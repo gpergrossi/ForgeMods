@@ -64,28 +64,15 @@ public class Voronoi {
 	}
 	
 
-	public void sweep(int i) {
-		if (state != null) state.sweeplineY += i;
+	public void sweep(double v) {
+		if (state != null) state.debugAdvanceSweepline(v);
 	}
 	
 	public void draw(Graphics2D g) {
 		if (inputBounds != null) g.drawRect((int) inputBounds.getX(), (int) inputBounds.getY(), (int) inputBounds.getWidth(), (int) inputBounds.getHeight());
 		
 		if (state == null) return;
-		state.shoreTree.draw(state, g);
-		
-		g.setColor(Color.YELLOW);
-		Line2D line = new Line2D.Double(state.minX, state.sweeplineY, state.maxX, state.sweeplineY);
-		g.draw(line);
-		
-		g.setColor(Color.GREEN);
-		for (Site s : state.sites) {
-			Ellipse2D sitedot = new Ellipse2D.Double(s.getX()-1, s.getY()-1, 2, 2);
-			g.draw(sitedot);
-			g.drawString(""+s.id, (int) s.getX(), (int) s.getY());
-		}
-		
-		g.setColor(Color.WHITE);
+		state.drawDebugState(g);
 	}
 
 	BuildState state = null;

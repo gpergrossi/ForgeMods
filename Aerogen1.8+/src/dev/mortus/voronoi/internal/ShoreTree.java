@@ -5,39 +5,60 @@ import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.MathUtil.Parabola;
 import dev.mortus.voronoi.internal.MathUtil.Vec2;
 
 public class ShoreTree {
-	Node head = new Node();
+	TreeNode.Sentinel tree = null;
 
-	public void processSiteEvent(BuildState state, Site site) {
-		head.addArc(state, site);
+	public Arc getArcUnderSite(final BuildState state, Site site) {
+		return tree.getArc(state, site.getX());
 	}
-
-	public void processCircleEvent(BuildState state, Arc arc) {
-		head = head.removeArc(state, arc);
+	
+	public Arc insertArc(final BuildState state, Site site) {
+		if (tree == null) {
+			tree = new Arc(site);
+		}
+		Arc newArc = tree.insertArc(state, site);
+		return newArc;
+	}
+	
+	public void removeArc(final BuildState state, Arc arc) {
+		tree = tree.removeArc(state, arc);
 	}
 		
-	public void draw(BuildState state, Graphics2D g) {
-		Node n = head.getFirst();
+	public void draw(final BuildState state, Graphics2D g) {
+		TreeNode n = tree.getFirstDescendant();
 		while (n != null) {
-			if (n.type == Node.Type.Arc) {
-				Parabola par = Parabola.fromPointAndLine(new Vec2(n.arc.site.getPos()), state.sweeplineY);
+			if (n.getType().equals("Arc")) {
+				Arc arc = (Arc) n;
+				Parabola par = Parabola.fromPointAndLine(new Vec2(arc.site.getPos()), state.getSweeplineY());
 				
-				double minX = state.minX;
-				double maxX = state.maxX;
+				Rectangle2D bounds = state.getBounds();
+				double minX = bounds.getMinX();
+				double maxX = bounds.getMaxX();
+				double minY = bounds.getMinY();
 				
-				Node pred = n.getPredecessor(); 
-				if (pred != null && pred.type == Node.Type.Breakpoint) minX = pred.breakpoint.getPos(state.sweeplineY).getX();
+				TreeNode pred = n.getPredecessor(); 
+				Point2D predBreakpoint = null;
+				if (pred != null && pred.getType().equals("Breakpoint")) {
+					Breakpoint breakpoint = (Breakpoint) pred;
+					predBreakpoint = breakpoint.getPosition(state.getSweeplineY());
+					if (predBreakpoint != null) minX = predBreakpoint.getX();
+				}
 				
-				Node succ = n.getSuccessor(); 
-				if (succ != null && succ.type == Node.Type.Breakpoint) maxX = succ.breakpoint.getPos(state.sweeplineY).getX();
+				TreeNode succ = n.getSuccessor(); 
+				if (succ != null && succ.getType().equals("Breakpoint")) {
+					Breakpoint breakpoint = (Breakpoint) succ;
+					Point2D succBreakpoint = breakpoint.getPosition(state.getSweeplineY());
+					if (succBreakpoint != null) maxX = succBreakpoint.getX();
+				}
 				
-				if (minX < state.minX) minX = state.minX;
-				if (maxX > state.maxX) maxX = state.maxX;
+				if (minX < bounds.getMinX()) minX = bounds.getMinX();
+				if (maxX > bounds.getMaxX()) maxX = bounds.getMaxX();
 				
 				Ellipse2D bpe = new Ellipse2D.Double(minX-2.5, par.get(minX)-2.5, 5.0, 5.0);
 				g.draw(bpe);
@@ -51,28 +72,31 @@ public class ShoreTree {
 						if (x > maxX) x = (int) maxX;
 						double y0 = par.get(x);
 						double y1 = par.get(x + step);
-						if (y1 < state.minY) y1 = state.minY;
-						if (y0 < state.minY) y0 = state.minY;
+						if (y1 < minY) y1 = minY;
+						if (y0 < minY) y0 = minY;
 						Line2D line = new Line2D.Double(x, y0, x + step, y1);
 						g.draw(line);
 					}
 				} else {
-					Line2D line = new Line2D.Double(par.verticalX, state.minY, par.verticalX, state.sweeplineY);
+					Line2D line = new Line2D.Double(par.verticalX, minY, par.verticalX, state.getSweeplineY());
 					g.draw(line);
 				}
 			}
 			n = n.getSuccessor();
 		}
 
-		n = head.getFirst();
+		g.setColor(Color.RED);
+		
+		n = tree.getFirstDescendant();
 		while (n != null) {
-			if (n.type == Node.Type.Breakpoint) {
-				g.setColor(Color.RED);
-				Point2D p = n.breakpoint.getPos(state.sweeplineY);
+			if (n.getType().equals("Breakpoint")) {
+				Breakpoint breakpoint = (Breakpoint) n;
+				Point2D p = breakpoint.getPosition(state.getSweeplineY());
+				if (p == null) continue;
 				
 				Ellipse2D bpe = new Ellipse2D.Double(p.getX()-2.5, p.getY()-2.5, 5.0, 5.0);
 				g.draw(bpe);
-				g.drawString(n.breakpoint.arcLeft.site.id+":"+n.breakpoint.arcRight.site.id, (int) p.getX(), (int) p.getY());
+				g.drawString(breakpoint.arcLeft.site.id+":"+breakpoint.arcRight.site.id, (int) p.getX(), (int) p.getY());
 			}
 			n = n.getSuccessor();
 		}
@@ -94,6 +118,8 @@ public class ShoreTree {
 		Node rightChild;
 		Node parent;
 		public final int id;
+		
+		Node prev, next;
 
 		private Node() {
 			this.id = IDCounter++;
@@ -114,6 +140,9 @@ public class ShoreTree {
 			
 			this.leftChild = new Node(this, bp.arcLeft);
 			this.rightChild = new Node(this, bp.arcRight);
+			
+			this.prev = null;
+			this.next = null;
 		}
 		
 		/**
@@ -123,7 +152,9 @@ public class ShoreTree {
 		 * @param site
 		 * @return the node of the new arc
 		 */
-		public Node addArc(BuildState state, Site site) {
+		public Node insertArc(final BuildState state, Site site) {
+			
+			Node arc = getArc(state, site);
 			
 			switch (this.type) {
 					
@@ -142,7 +173,8 @@ public class ShoreTree {
 					
 					if (site.getY() == this.arc.site.getY()) {
 						// Y coordinates equal, single breakpoint between sites
-						// new arc has greater x coordinate because it was added by priority queue
+						// new arc has greater X coordinate because it came from
+						// a priority queue that ensures so
 						this.breakpoint = new Breakpoint(oldArc, newArc);
 						this.leftChild = new Node(this, oldArc);
 						this.rightChild = new Node(this, newArc);
@@ -166,11 +198,11 @@ public class ShoreTree {
 			
 				// Call down the tree if it is a Breakpoint
 				case Breakpoint:
-					Point2D bp = this.breakpoint.getPos(state.sweeplineY);
+					Point2D bp = this.breakpoint.getPosition(state.getSweeplineY());
 					if (site.getX() <= bp.getX()) {
-						return leftChild.addArc(state, site);
+						return leftChild.insertArc(state, site);
 					} else {
-						return rightChild.addArc(state, site);
+						return rightChild.insertArc(state, site);
 					}
 					
 			}
@@ -193,13 +225,13 @@ public class ShoreTree {
 			return parent.leftChild == this;
 		}
 		
-		public Node getFirst() {
+		public Node getFirstDescendent() {
 			Node n = this;
 			while (n.leftChild != null) n = n.leftChild;
 			return n;
 		}
 		
-		public Node getLast() {
+		public Node getLastDescendent() {
 			Node n = this;
 			while (n.rightChild != null) n = n.rightChild;
 			return n;
@@ -207,7 +239,7 @@ public class ShoreTree {
 		
 		public Node getSuccessor() {
 			if (this.type == Type.Breakpoint) {
-				return this.rightChild.getFirst();
+				return this.rightChild.getFirstDescendent();
 			} else if (this.type == Type.Arc) {
 				Node n = this;
 				while (n != null && !n.isLeftChild()) n = n.parent;
@@ -218,12 +250,33 @@ public class ShoreTree {
 
 		public Node getPredecessor() {
 			if (this.type == Type.Breakpoint) {
-				return this.leftChild.getLast();
+				return this.leftChild.getLastDescendent();
 			} else if (this.type == Type.Arc) {
 				Node n = this;
 				while (n != null && !n.isRightChild()) n = n.parent;
 				if (n != null) return n.parent;
 			}
+			return null;
+		}
+		
+		public Node getPreviousArc() {
+			if (this.type == Type.Breakpoint) {
+				return getPredecessor();
+			} else if (this.type == Type.Arc) {
+				Node prevBP = getPredecessor();
+				if (prevBP != null) return prevBP.getPredecessor();
+			}
+			return null;
+		}
+
+		public Node getNextArc() {
+			if (this.type == Type.Breakpoint) {
+				return getSuccessor();
+			} else if (this.type == Type.Arc) {
+				Node nextBP = getSuccessor();
+				if (nextBP != null) return nextBP.getSuccessor();
+			}
+			
 			return null;
 		}
 		
