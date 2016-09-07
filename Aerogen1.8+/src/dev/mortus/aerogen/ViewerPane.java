@@ -23,6 +23,8 @@ import javax.swing.JPanel;
 
 public class ViewerPane extends JPanel implements Runnable {
 
+	public boolean showFPS = false;
+	
 	private static final long serialVersionUID = 5091243043686433403L;
 	private ComponentListener componentListener
     = new ComponentAdapter() {
@@ -220,7 +222,7 @@ public class ViewerPane extends JPanel implements Runnable {
 			printmod++;
 			if (printmod % 60 == 0) {
 				double FPS = (double) nanosPerSecond/delta;
-				System.out.println("FPS = "+FPS);
+				if (showFPS) System.out.println("FPS = "+FPS);
 			}
 			
 			view.update((double) delta/nanosPerSecond);

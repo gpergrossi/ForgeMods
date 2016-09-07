@@ -40,10 +40,10 @@ public class MathUtil {
 	}
 	
 	public static class Parabola {
-		private final double a, b, c;
+		public final double a, b, c;
 		
-		final boolean isVertical;
-		final double verticalX;
+		public final boolean isVertical;
+		public final double verticalX;
 
 		public static Parabola fromPointAndLine(Vec2 point, double lineY) {
 			double den = (point.y - lineY)*2;
@@ -187,13 +187,15 @@ public class MathUtil {
 			double bcy = b.y - c.y;
 			
 			double d = abx*bcy - bcx*aby;
+			if (d == 0) return null;
+			
 			double u = (a.x*a.x - b.x*b.x + a.y*a.y - b.y*b.y) / 2.0;
 			double v = (b.x*b.x - c.x*c.x + b.y*b.y - c.y*c.y) / 2.0;
 			
 			double x = (u*bcy - v*aby) / d;
 			double y = (v*abx - u*bcx) / d;
 			
-			return new Circle(x, y, d);
+			return new Circle(x, y, Math.sqrt((a.x-x)*(a.x-x) + (a.y-y)*(a.y-y)));
 		}
 		
 		public Circle(double x, double y, double r) {
@@ -212,6 +214,11 @@ public class MathUtil {
 		
 		public double getRadius() {
 			return radius;
+		}
+		
+		@Override
+		public String toString() {
+			return "Circle[X="+x+", Y="+y+", Radius="+radius+"]";
 		}
 		
 	}

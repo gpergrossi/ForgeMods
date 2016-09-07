@@ -1,15 +1,13 @@
 package dev.mortus.voronoi;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
 import dev.mortus.voronoi.internal.BuildState;
+import dev.mortus.voronoi.internal.Event;
 
 public class Voronoi {
 
@@ -51,15 +49,29 @@ public class Voronoi {
 		unbuild();
 
 		state = new BuildState(this, inputBounds);
-		
-		state.addSiteEvents(inputPoints);
+		state.initSiteEvents(inputPoints);
+		buildNeeded = false;
 	}
 	
 	public void buildStep() {
-		if (state == null) buildInit();
+		if (state == null || buildNeeded) buildInit();
 		if (state.hasNextEvent()) {
 			System.out.println("Build Step");
-			state.processNextEvent();
+			state.processNextEventVerbose();
+		}
+	}
+
+	public void stepBack() {
+		if (state == null) return;
+		int step = state.getEventsProcessed();
+		if (step == 0) return;
+		
+		state = null;
+		buildInit();
+		while (state.getEventsProcessed() < step-1) {		
+			System.out.println("Rewind: "+state.getEventsProcessed()+"/"+(step-1));
+			if (state.getEventsProcessed() == step-1) state.processNextEventVerbose(); 
+			else state.processNextEvent();
 		}
 	}
 	
@@ -82,7 +94,7 @@ public class Voronoi {
 
 		state = new BuildState(this, inputBounds);
 		
-		state.addSiteEvents(inputPoints);
+		state.initSiteEvents(inputPoints);
 
 		while (state.hasNextEvent()) {
 			state.processNextEvent();
@@ -92,13 +104,9 @@ public class Voronoi {
 	}
 
 	private void unbuild() {
-		for(Site site : sites) {
-			add(site.position);
-		}
 		sites.clear();
 		edges.clear();
 		buildNeeded = true;
 	}
-
 	
 }

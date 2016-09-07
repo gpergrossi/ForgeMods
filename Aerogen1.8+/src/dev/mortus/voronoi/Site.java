@@ -4,7 +4,7 @@ import java.awt.geom.Point2D;
 
 public class Site {
 
-	private static int IDCounter = 0;
+	public static int IDCounter = 0;
 	
 	final Point2D.Double position;
 	public final int id;
@@ -30,6 +30,11 @@ public class Site {
 		if (position.x != o.position.x) return false;
 		if (position.y != o.position.y) return false;
 		return true;
+	}
+	
+	@Override
+	public String toString() {
+		return "Site[ID="+id+", X="+position.x+", Y="+position.y+"]";
 	}
 	
 }

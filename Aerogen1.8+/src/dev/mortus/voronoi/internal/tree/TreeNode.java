@@ -1,28 +1,82 @@
-package dev.mortus.voronoi.internal;
+package dev.mortus.voronoi.internal.tree;
 
-import java.awt.geom.Point2D;
-
-import dev.mortus.voronoi.Site;
+import dev.mortus.voronoi.internal.BuildState;
+import dev.mortus.voronoi.internal.MathUtil.Circle;
 
 public abstract class TreeNode {
 	
-	private static int IDCounter = 0;
+	public static enum Type {
+		Sentinel(true), Arc(false), Breakpoint(true);
+		
+		private boolean canHaveChildren;
+		private Type(boolean canHaveChildren) {
+			this.canHaveChildren = canHaveChildren;
+		}
+		
+		public boolean canHaveChildren() {
+			return canHaveChildren;
+		}
+	}
+	
+	public static int IDCounter = 0;
 
+	private ShoreTree rootParent;
 	private TreeNode parent;
 	private TreeNode leftChild, rightChild;
 	private TreeNode predecessor, successor;
 	
 	public final int id;
-	
+	protected String name;
+
 	public TreeNode() {
 		this.id = IDCounter++;
 	}
-		
-	public abstract String getType();
-	public abstract boolean hasChildren();
+
+	public TreeNode(ShoreTree rootParent) {
+		this();
+		this.rootParent = rootParent;
+	}
+	
+	public abstract Type getType();
+	
+	
+	
+	public TreeNode getParent() {
+		return parent;
+	}
+	
+	protected boolean isRoot() {
+		return rootParent != null;
+	}
+	
+	public void promoteToRoot(TreeNode newRoot) {
+		this.rootParent.root = newRoot;
+		newRoot.rootParent = this.rootParent;
+		this.rootParent = null;
+	}
+	
+	public void replaceWith(TreeNode node) {
+		if (this.isLeftChild()) {
+			this.getParent().setLeftChild(node);
+		} else if (this.isRightChild()) {
+			this.getParent().setRightChild(node);
+		} else if (this.isRoot()) {
+			this.promoteToRoot(node);
+		} else {
+			throw new RuntimeException("TreeNode to be replaced has no parent");
+		}
+	}
+
+	
+	
+	public TreeNode getLeftChild() {
+		return leftChild;
+	}
 	
 	protected void setLeftChild(TreeNode left) {
+		//IMPORTANT! this.predecessor must refer to a node that stays in the tree
 		removeLeftChild();
+		
 		TreeNode first = left.getFirstDescendant();
 		TreeNode last = left.getLastDescendant();
 		
@@ -31,7 +85,7 @@ public abstract class TreeNode {
 		last.successor = this;
 				
 		// connect tree to child (predecessor & successor)		
-		this.predecessor.successor = first;
+		if (this.predecessor != null) this.predecessor.successor = first;
 		this.predecessor = last;
 				
 		// create parent/child relationship
@@ -44,7 +98,7 @@ public abstract class TreeNode {
 		TreeNode first = this.leftChild.getFirstDescendant();
 		
 		// disconnect tree from child (predecessor & successor)
-		first.predecessor.successor = this;
+		if (first.predecessor != null) first.predecessor.successor = this;
 		this.predecessor = first.predecessor;
 		
 		// disconnect removed child from tree (predecessor & successor)
@@ -56,17 +110,21 @@ public abstract class TreeNode {
 		this.leftChild = null;
 	}
 
-	public TreeNode getLeftChild() {
-		return leftChild;
-	}
-
 	public boolean isLeftChild() {
 		if (parent == null) return false;
 		return parent.leftChild == this;
 	}
 
+	
+	
+	public TreeNode getRightChild() {
+		return rightChild;
+	}
+	
 	protected void setRightChild(TreeNode right) {
+		//IMPORTANT! this.predecessor must refer to a node that stays in the tree
 		removeRightChild();
+		
 		TreeNode first = right.getFirstDescendant();
 		TreeNode last = right.getLastDescendant();
 		
@@ -75,7 +133,7 @@ public abstract class TreeNode {
 		last.successor = this.successor;
 		
 		// connect tree to child (predecessor & successor)
-		this.successor.predecessor = last;
+		if (this.successor != null) this.successor.predecessor = last;
 		this.successor = first;
 		
 		// create parent/child relationship
@@ -88,7 +146,7 @@ public abstract class TreeNode {
 		TreeNode last = this.rightChild.getLastDescendant();
 		
 		// disconnect tree from child (predecessor & successor)
-		last.successor.predecessor = this;
+		if (last.successor != null) last.successor.predecessor = this;
 		this.successor = last.successor;
 		
 		// disconnect removed child from tree (predecessor & successor)
@@ -99,15 +157,18 @@ public abstract class TreeNode {
 		this.rightChild.parent = null;
 		this.rightChild = null;
 	}
-
-	public TreeNode getRightChild() {
-		return rightChild;
-	}
 	
 	public boolean isRightChild() {
 		if (parent == null) return false;
 		return parent.rightChild == this;
 	}
+	
+	
+	public boolean isTreeless() {
+		if (this.parent == null && this.getType() != Type.Sentinel) return true;
+		return false;
+	}
+	
 	
 	/**
 	 * Returns the first descendant of this tree node.
@@ -141,7 +202,7 @@ public abstract class TreeNode {
 	 * @return
 	 */
 	protected TreeNode findPredecessor() {
-		if (this.hasChildren()) {
+		if (this.getType().canHaveChildren()) {
 			if (this.leftChild == null) return null;
 			return this.leftChild.getLastDescendant();
 		} else {
@@ -162,7 +223,7 @@ public abstract class TreeNode {
 	 * @return
 	 */
 	protected TreeNode findSuccessor() {
-		if (this.hasChildren()) {
+		if (this.getType().canHaveChildren()) {
 			if (this.rightChild == null) return null;
 			return this.rightChild.getFirstDescendant();
 		} else {
@@ -178,24 +239,46 @@ public abstract class TreeNode {
 	}
 	
 	public abstract Arc getArc(BuildState state, double x);
-
-	protected static class Sentinel extends TreeNode {
-
-		@Override
-		public String getType() {
-			return "Sentinel";
-		}
-
-		@Override
-		public boolean hasChildren() {
-			return true;
-		}
-
-		@Override
-		public Arc getArc(BuildState state, double x) {
-			return getLeftChild().getArc(state, x);
-		}
+	
+	/*
+	 * Removes all connections from this node to other nodes.
+	 * Throws an error if this node is still the child of its
+	 * parent. Additionally, an error is thrown if the subtree
+	 * represented by this node has not been replaced in the 
+	 * predecessor/successor linked list.
+	 */
+	protected void ensureDisconnected() {
+		if (this.isLeftChild()) throw new RuntimeException("The disconnected node is still attached! Parent's left child");
+		if (this.isRightChild()) throw new RuntimeException("The disconnected node is still attached! Parent's right child");
+		if (this.rootParent != null && this.rootParent.root == this) throw new RuntimeException("The disconnected node is still attached! Root node");
+		this.parent = null;
 		
+		TreeNode first = this.getFirstDescendant();		
+		if (first.getPredecessor() != null && first.getPredecessor().getSuccessor() == first) {
+			throw new RuntimeException("The disconnected node is still attached! First descendant still connected to predecessor");
+		}
+		first.predecessor = null;
+		
+		TreeNode last = this.getLastDescendant();		
+		if (last.getSuccessor() != null && last.getSuccessor().getPredecessor() == last) {
+			throw new RuntimeException("The disconnected node is still attached! Last descendant still connected to successor");
+		}
+		last.successor = null;
+	}
+
+	@Override
+	public String toString() {
+		if (getType() == Type.Breakpoint) {
+			Breakpoint bp = (Breakpoint) this;
+			return "Breakpoint["+(name != null ? "Name='"+name+"', " : "")+"ID="+id+", LeftArc="+bp.arcLeft+", RightArc="+bp.arcRight+", Children:[Left="+leftChild.id+", Right="+rightChild.id+"]]";
+		} else {
+			Arc arc = (Arc) this;
+			return "Arc["+(name != null ? "Name='"+name+"', " : "")+"ID="+id+", Site="+arc.site.id+", CircleEvent="+(arc.circleEvent!=null)+"]";
+		}
+	}
+	
+	protected void setName(String name) {
+		this.name = name;
 	}
 	
 }

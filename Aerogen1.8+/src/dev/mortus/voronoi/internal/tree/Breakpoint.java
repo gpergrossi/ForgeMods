@@ -1,9 +1,9 @@
-package dev.mortus.voronoi.internal;
+package dev.mortus.voronoi.internal.tree;
 
 import java.awt.geom.Point2D;
 import java.util.List;
 
-import dev.mortus.voronoi.Site;
+import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.MathUtil.Parabola;
 import dev.mortus.voronoi.internal.MathUtil.Vec2;
 
@@ -11,12 +11,30 @@ public class Breakpoint extends TreeNode {
 	
 	public Arc arcLeft, arcRight;
 	
-	public Breakpoint(Arc left, Arc right) {
+	public Breakpoint(TreeNode left, TreeNode right) {
 		if (left.equals(right)) throw new RuntimeException("Cannot construct breakpoint between identical arcs!");
 		
-		this.arcLeft = left;
-		this.arcRight = right;
+		setLeftChild(left);
+		setRightChild(right);
 		
+		checkPossible();
+	}
+
+	@Override
+	protected void setLeftChild(TreeNode left) {
+		if (left == null) throw new RuntimeException("Cannot set child of a breakpoint to null");		
+		super.setLeftChild(left);
+		this.arcLeft = (Arc) this.getLeftChild().getLastDescendant();
+	}
+
+	@Override
+	protected void setRightChild(TreeNode right) {
+		if (right == null) throw new RuntimeException("Cannot set child of a breakpoint to null");		
+		super.setRightChild(right);
+		this.arcRight = (Arc) this.getRightChild().getFirstDescendant();
+	}
+	
+	private void checkPossible() {		
 		if (arcLeft.site.getY() == arcRight.site.getY() && arcLeft.site.getX() > arcRight.site.getX()) {
 			// The parabolas are exactly side by side, there is only one intersection between
 			// them and the X coordinates of the parabola's focii are in the wrong order for
@@ -26,13 +44,8 @@ public class Breakpoint extends TreeNode {
 	}
 
 	@Override
-	public String getType() {
-		return "Breakpoint";
-	}
-
-	@Override
-	public boolean hasChildren() {
-		return true;
+	public Type getType() {
+		return Type.Breakpoint;
 	}
 	
 	private double lastRequest = Double.NaN;
@@ -46,6 +59,40 @@ public class Breakpoint extends TreeNode {
 		if (lastResult == null) return null;
 		return lastResult.toPoint();
 	}
+	
+	public Point2D getDirection() {
+		if (lastRequest == Double.NaN) {
+			double startY = Math.max(arcLeft.site.getY(), arcRight.site.getX())+1;
+			getPosition(startY);
+		}
+		
+		Point2D p0 = getPosition(lastRequest);
+		Point2D p1 = calculatePosition(lastRequest+10).toPoint();
+		Point2D diff = new Point2D.Double(p1.getX()-p0.getX(), p1.getY()-p0.getY());
+		
+		return diff;	
+	}
+	
+	public Point2D getIntersection(double sweeplineY, Breakpoint other) {
+		Point2D pos0 = getPosition(lastRequest);
+		Point2D dir0 = getDirection();
+		Point2D pos1 = other.getPosition(other.lastRequest);
+		Point2D dir1 = other.getDirection();
+		
+		double dx = pos1.getX() - pos0.getX();
+		double dy = pos1.getY() - pos0.getY();
+		double det = dir1.getX() * dir0.getY() - dir1.getY() * dir0.getX();
+		
+		if (det == 0) return null;
+		
+		double u = (dy * dir1.getX() - dx * dir1.getY()) / det;
+		double v = (dy * dir0.getX() - dx * dir0.getY()) / det;
+		
+		if (u < 0 || v < 0) return null;
+		
+		return new Point2D.Double(pos0.getX() + dir0.getX()*u, pos0.getY() + dir0.getY()*u);		
+	}
+	
 	
 	private Vec2 calculatePosition(double sweeplineY) {
 		Parabola leftParabola = arcLeft.getParabola(sweeplineY);
@@ -106,5 +153,10 @@ public class Breakpoint extends TreeNode {
 			return getRightChild().getArc(state, x);
 		}
 	}
+
+	public void updateArcs() {
+		this.arcLeft = (Arc) this.getLeftChild().getLastDescendant();
+		this.arcRight = (Arc) this.getRightChild().getFirstDescendant();
+	}	
 	
 }

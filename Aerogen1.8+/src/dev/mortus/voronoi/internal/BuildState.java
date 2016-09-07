@@ -1,7 +1,9 @@
 package dev.mortus.voronoi.internal;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -17,6 +19,11 @@ import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.MathUtil.Circle;
 import dev.mortus.voronoi.internal.MathUtil.Vec2;
+import dev.mortus.voronoi.internal.tree.Arc;
+import dev.mortus.voronoi.internal.tree.Breakpoint;
+import dev.mortus.voronoi.internal.tree.ShoreTree;
+import dev.mortus.voronoi.internal.tree.TreeNode;
+import dev.mortus.voronoi.internal.tree.TreeNode.Type;
 
 
 /**
@@ -51,6 +58,7 @@ public final class BuildState {
 	private double sweeplineY = Double.NaN;
 	private double minX, maxX, minY, maxY;
 	private final List<Site> sites;
+	private int eventsProcessed;
 
 	public BuildState (Voronoi voronoi, Rectangle2D bounds) {
 		this.voronoi = voronoi;
@@ -62,15 +70,27 @@ public final class BuildState {
 		this.maxX = bounds.getMaxX();
 		this.minY = bounds.getMinY();
 		this.maxY = bounds.getMaxY();
+		
+		this.eventsProcessed = 0;
 	}
 
-	public void addSiteEvents(List<Point2D> points) {
+	public void initSiteEvents(List<Point2D> points) {
+		eventQueue.clear();
+		eventsProcessed = 0;
+		TreeNode.IDCounter = 0;
+		Site.IDCounter = 0;
+		
 		for(Point2D point : points) {
 			Site site = new Site(point);
 			Event e = Event.createSiteEvent(site);
 			sites.add(site);
 			eventQueue.offer(e);
 		}
+
+		Event e = eventQueue.poll();
+		
+		// Create tree with first site
+		shoreTree.initialize(e.site);
 	}
 	
 	public boolean hasNextEvent() {
@@ -78,59 +98,109 @@ public final class BuildState {
 	}
 	
 	public void processNextEvent() {
+		if (!shoreTree.isInitialized()) throw new RuntimeException("Shore Tree has not yet been initialized");
+		
 		Event e = eventQueue.poll();
 		sweeplineY = e.getPosition().getY();
 		
 		switch(e.type) {
 			case SITE:
 				// Get arc node under site event
-				ShoreTree.Node arcNodeUnderSite = shoreTree.getArcUnderSite(this, e.site);
-				ShoreTree.Node leftNeighbor = arcNodeUnderSite.getPreviousArc();
-				ShoreTree.Node rightNeighbor = arcNodeUnderSite.getNextArc();
+				Arc arcUnderSite = shoreTree.getArcUnderSite(this, e.site);
 				
 				// Clear the circle event for the arc being split
-				if (arcNodeUnderSite.arc != null) {
-					Event oldCircleEvent = arcNodeUnderSite.arc.getCircleEvent();
-					if (oldCircleEvent != null) eventQueue.remove(oldCircleEvent);
-					arcNodeUnderSite.arc.setCircleEvent(null);
-				}
+				Event oldCircleEvent = arcUnderSite.getCircleEvent();
+				if (oldCircleEvent != null) eventQueue.remove(oldCircleEvent);
+				// arcUnderSite.setCircleEvent(null); // the original arc is removed entirely and replaced by copies
 				
 				// Split the arc with two breakpoints and insert an arc for the site event
-				ShoreTree.Node newArcNode = arcNodeUnderSite.insertArc(this, e.site);
+				Arc newArc = arcUnderSite.insertArc(this, e.site);
 				
 				// Check for circle events on left and right neighboring arcs
-				// Five sites are relevant: farLeft, left, center, right, farRight
-				Arc left, right = left = arcNodeUnderSite.arc;
-				Arc center = newArcNode.arc;
-				
-				Vec2 leftSitePos, rightSitePos = leftSitePos = new Vec2(left.site.getPos());
-				Vec2 centerSitePos = new Vec2(center.site.getPos());
-				
-				if (leftNeighbor != null) {
-					Arc farLeft = leftNeighbor.arc;
-					Vec2 farLeftSitePos = new Vec2(farLeft.site.getPos());
-					
-					Circle circle = Circle.fromPoints(farLeftSitePos, leftSitePos, centerSitePos);
-					if (circle.y + circle.radius > sweeplineY) {
-						farLeft.setCircleEvent(Event.createCircleEvent(farLeft, circle.y + circle.radius));
-					}
+				if (newArc.getLeftNeighborArc() != null) {
+					Event leftCircleEvent = newArc.getLeftNeighborArc().checkCircleEvent(this);
+					if (leftCircleEvent != null) eventQueue.offer(leftCircleEvent);
 				}
-				
-				if (rightNeighbor != null) {
-					Arc farRight = rightNeighbor.arc;
-					Vec2 farRightSitePos = new Vec2(farRight.site.getPos());
-					
-					Circle circle = Circle.fromPoints(centerSitePos, rightSitePos, farRightSitePos);
-					if (circle.y + circle.radius > sweeplineY) {
-						farRight.setCircleEvent(Event.createCircleEvent(farRight, circle.y + circle.radius));
-					}
+
+				if (newArc.getRightNeighborArc() != null) {
+					Event rightCircleEvent = newArc.getRightNeighborArc().checkCircleEvent(this);
+					if (rightCircleEvent != null) eventQueue.offer(rightCircleEvent);
 				}
 				
 				break;
 				
 			case CIRCLE:
-				shoreTree.removeArc(this, e.arc);
+				Arc prevArc = e.arc.getLeftNeighborArc();
+				Arc nextArc = e.arc.getRightNeighborArc(); 
+				
+				TreeNode predecessor = e.arc.getPredecessor();
+				TreeNode successor = e.arc.getSuccessor();
+				boolean predecessorDeleted = false;
+				boolean successorDeleted = false;
+				
+				// Step 1. remove closely related breakpoint
+				if (e.arc.isLeftChild()) {
+					
+					// This is a left child, replace breakpoint with right child
+					TreeNode breakpoint = e.arc.getParent();
+					TreeNode promote = breakpoint.getRightChild();
+					
+					// replace the breakpoint node with the right child and update its arcs
+					breakpoint.replaceWith(promote);
+					successorDeleted = true;
+					
+				} else if (e.arc.isRightChild()) {
+					
+					// This is a right child, replace breakpoint with left child
+					TreeNode breakpoint = e.arc.getParent();
+					TreeNode promote = breakpoint.getLeftChild();
+
+					// replace the breakpoint node with the left child and update its arcs
+					breakpoint.replaceWith(promote);
+					predecessorDeleted = true;
+					
+				} else {
+					throw new RuntimeException("Cannot remove final arc");
+				}
+				
+				// Step 2. Fix higher ancestor breakpoint
+				if (predecessorDeleted) ((Breakpoint) successor).updateArcs();
+				if (successorDeleted) ((Breakpoint) predecessor).updateArcs();
+				
+				Event oldPrevCircleEvent = prevArc.circleEvent;
+				Event prevCircleEvent = prevArc.checkCircleEvent(this);
+				if (prevCircleEvent != null) eventQueue.offer(prevCircleEvent);
+				else if (oldPrevCircleEvent != null) eventQueue.remove(oldPrevCircleEvent);
+
+				Event oldNextCircleEvent = nextArc.circleEvent;
+				Event nextCircleEvent = nextArc.checkCircleEvent(this);
+				if (nextCircleEvent != null) eventQueue.offer(nextCircleEvent);
+				else if (oldNextCircleEvent != null) eventQueue.remove(oldNextCircleEvent);
 				break;
+		}
+		
+		eventsProcessed++;
+		
+	}
+	
+	public void processNextEventVerbose() {
+		Event e = eventQueue.peek();
+		
+		this.processNextEvent();
+		
+		int siteCount = 0, circleCount = 0;
+		for (Event event : eventQueue) {
+			if (event.type == Event.Type.SITE) siteCount++;
+			if (event.type == Event.Type.CIRCLE) circleCount++;
+		}
+		System.out.println("processed: "+eventsProcessed+" events. "+siteCount+" site events and "+circleCount+" circle events remaining.");
+		System.out.println("just processed: "+e+", next: "+eventQueue.peek());
+		
+		TreeNode n = shoreTree.getRoot().getFirstDescendant();
+		System.out.println(" ========== TREELIST ==========");
+		while (n != null) {
+			System.out.println(n);
+			n = n.getSuccessor();
 		}
 	}
 
@@ -143,23 +213,36 @@ public final class BuildState {
 	}
 
 	public void drawDebugState(Graphics2D g) {
-		g.setColor(Color.WHITE);
+		g.setFont(new Font("Consolas", Font.PLAIN, 12));
 		this.shoreTree.draw(this, g);
 		
 		g.setColor(Color.YELLOW);
 		Line2D line = new Line2D.Double(minX, sweeplineY, maxX, sweeplineY);
 		g.draw(line);
 		
-		g.setColor(Color.GREEN);
+		AffineTransform transform = g.getTransform();
+		AffineTransform identity = new AffineTransform();
+		
 		for (Site s : sites) {
 			Ellipse2D sitedot = new Ellipse2D.Double(s.getX()-1, s.getY()-1, 2, 2);
+			g.setColor(new Color(0,128,0));
 			g.draw(sitedot);
-			g.drawString(""+s.id, (int) s.getX(), (int) s.getY());
+			
+			g.setTransform(identity);
+			Point2D pt = new Point2D.Double(s.getX(), s.getY());
+			transform.transform(pt, pt);
+			g.setColor(new Color(0,255,0));
+			g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
+			g.setTransform(transform);
 		}
 	}
 
 	public void debugAdvanceSweepline(double v) {
 		this.sweeplineY += v;
+	}
+
+	public int getEventsProcessed() {
+		return eventsProcessed;
 	}
 	
 }

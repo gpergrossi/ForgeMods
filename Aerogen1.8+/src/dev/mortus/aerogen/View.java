@@ -7,6 +7,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +26,8 @@ public class View {
 	double halfWidth, halfHeight;
 	double printTime;
 	
+	boolean useChunkLoader = false;
+	
 	Voronoi voronoi;
 	
 	List<Point2D> points;
@@ -42,8 +45,10 @@ public class View {
 		
 		voronoi = new Voronoi();
 		
-		//chunkLoader = new SimulationChunkLoader(100);
-		//chunkManager = new ChunkManager<SimulationChunk>(chunkLoader, 100, SimulationFrame.NUM_WORKER_THREADS);
+		if (useChunkLoader) {
+			chunkLoader = new SimulationChunkLoader(100);
+			chunkManager = new ChunkManager<SimulationChunk>(chunkLoader, 100, SimulationFrame.NUM_WORKER_THREADS);
+		}
 	}
 
 	double seconds;
@@ -56,11 +61,13 @@ public class View {
 		double decay = Math.pow(0.5, secondsPassed);
 		this.velocityX *= decay;
 		this.velocityY *= decay;
-		
-		printTime += secondsPassed;
-		if (printTime > 1) {
-			printTime -= 1;
-			//System.out.println("Loaded chunks = "+chunkManager.getNumLoaded());
+
+		if (useChunkLoader) {
+			printTime += secondsPassed;
+			if (printTime > 1) {
+				printTime -= 1;
+				if (useChunkLoader) System.out.println("Loaded chunks = "+chunkManager.getNumLoaded());
+			}
 		}
 	}
 	
@@ -87,9 +94,11 @@ public class View {
 		g2d.fill(ellipse2);
 		g2d.setColor(Color.WHITE);
 		
-		//Rectangle2D.Double bounds = new Rectangle2D.Double(x-halfWidth, y-halfHeight, halfWidth*2, halfHeight*2);
-		//chunkManager.update(bounds);
-		//chunkManager.draw(g2d);
+		if (useChunkLoader) { 
+			Rectangle2D.Double bounds = new Rectangle2D.Double(x-halfWidth, y-halfHeight, halfWidth*2, halfHeight*2);
+			chunkManager.update(bounds);
+			chunkManager.draw(g2d);
+		}
 		
 		ellipse2.width = 2.0;
 		ellipse2.height = 2.0;
@@ -111,9 +120,11 @@ public class View {
 		g2d.fill(path);
 		
 		g2d.setTransform(before);
-
-		//g2d.clearRect(0, 0, 200, 30);
-		//g2d.drawString("Chunks loaded: "+chunkManager.getNumLoaded(), 10, 20);
+		
+		if (useChunkLoader) {
+			g2d.clearRect(0, 0, 200, 30);
+			g2d.drawString("Chunks loaded: "+chunkManager.getNumLoaded(), 10, 20);
+		}
 	}
 
 	double startPX, startPY;
@@ -139,6 +150,8 @@ public class View {
 		if (click == View.LEFT_CLICK) {
 			mDX = (mX - px); mVelX = (mVelX*4 + mDX) / 5.0; mX = px;
 			mDY = (mY - py); mVelY = (mVelY*4 + mDY) / 5.0; mY = py;
+			this.velocityX = 0;
+			this.velocityY = 0;
 			
 			this.x = startViewX + startPX - px;
 			this.y = startViewY + startPY - py;
@@ -164,6 +177,10 @@ public class View {
 			panning = false;
 		} else if (click == View.RIGHT_CLICK) {
 			Point2D clickP = new Point2D.Double(px, py);
+			int x = (int) Math.floor((clickP.getX()+4) / 8);
+			int y = (int) Math.floor((clickP.getY()+4) / 8);
+			clickP = new Point2D.Double(x*8, y*8);
+			
 			boolean removed = false;
 			for (Point2D point : points) {
 				if (clickP.distance(point) < 2) {
@@ -172,7 +189,9 @@ public class View {
 					break;
 				}
 			}
-			if (!removed) points.add(clickP);
+			if (!removed) {
+				points.add(clickP);
+			}
 			
 			voronoi = new Voronoi();
 			for (Point2D point : points) voronoi.add(point);
@@ -197,11 +216,11 @@ public class View {
 	}
 
 	public void start() {
-		//chunkManager.start();
+		if (useChunkLoader) chunkManager.start();
 	}
 
 	public void stop() {
-		//chunkManager.stop();
+		if (useChunkLoader) chunkManager.stop();
 	}
 
 	public void keyPressed(KeyEvent e) {
@@ -211,15 +230,13 @@ public class View {
 			voronoi.sweep(-1);
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
 			voronoi.sweep(+1);
+		} else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+			voronoi.stepBack();
 		}
 	}
 	
-	public void keyReleased(KeyEvent e) {
-		
-	}
+	public void keyReleased(KeyEvent e) {}
 	
-	public void keyTyped(KeyEvent e) {
-		
-	}
+	public void keyTyped(KeyEvent e) {}
 	
 }
