@@ -56,7 +56,7 @@ public class Arc extends TreeNode {
 	}
 
 	@Override
-	public Arc getArc(BuildState state, double x) {
+	public Arc getArc(double sweeplineY, double siteX) {
 		return this;
 	}
 	
@@ -81,7 +81,7 @@ public class Arc extends TreeNode {
 			
 			Breakpoint leftBP = (Breakpoint) getPredecessor();
 			Breakpoint rightBP = (Breakpoint) getSuccessor();
-			Point2D intersection = leftBP.getIntersection(state.getSweeplineY(), rightBP);
+			Point2D intersection = Breakpoint.getIntersection(state.getSweeplineY(), leftBP, rightBP);
 			if (intersection == null) break;
 			
 			Vec2 leftSite = new Vec2(leftNeighbor.site.getPos());
@@ -125,7 +125,6 @@ public class Arc extends TreeNode {
 		}
 		
 		this.replaceWith(newBreakpoint);
-		this.ensureDisconnected();
 		
 		return newArc;
 	}

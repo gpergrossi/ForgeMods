@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.mortus.voronoi.internal.BuildState;
-import dev.mortus.voronoi.internal.Event;
 
 public class Voronoi {
 
-	static final double VERY_SMALL = 0.000001;
+	public static final double VERY_SMALL = 0.000001;
+	public static boolean DEBUG = false;
 
 	List<Point2D> inputPoints; // Points that have not yet been added
 	Rectangle2D inputBounds; // Bounds to be used in next build
@@ -57,7 +57,7 @@ public class Voronoi {
 		if (state == null || buildNeeded) buildInit();
 		if (state.hasNextEvent()) {
 			System.out.println("Build Step");
-			state.processNextEventVerbose();
+			state.processNextEvent();
 		}
 	}
 
@@ -70,8 +70,8 @@ public class Voronoi {
 		buildInit();
 		while (state.getEventsProcessed() < step-1) {		
 			System.out.println("Rewind: "+state.getEventsProcessed()+"/"+(step-1));
-			if (state.getEventsProcessed() == step-1) state.processNextEventVerbose(); 
-			else state.processNextEvent();
+			if (state.getEventsProcessed() == step-1) state.processNextEvent(); 
+			else state.processNextEventVerbose();
 		}
 	}
 	

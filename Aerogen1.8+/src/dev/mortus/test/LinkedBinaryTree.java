@@ -1,6 +1,6 @@
 package dev.mortus.test;
 
-public abstract class LinkedBinaryTree {
+public class LinkedBinaryTree {
 
 	protected LinkedBinaryNode root;
 	

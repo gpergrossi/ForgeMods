@@ -1,7 +1,6 @@
 package dev.mortus.voronoi.internal.tree;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
@@ -30,9 +29,9 @@ public class ShoreTree {
 		return (root != null);
 	}
 	
-	public Arc getArcUnderSite(final BuildState state, Site site) {
+	public Arc getArcUnderSite(double sweeplineY, Site site) {
 		if (root == null) throw new RuntimeException("Tree has not yuet been initialized");
-		return root.getArc(state, site.getX());
+		return root.getArc(sweeplineY, site.getX());
 	}
 		
 	public void draw(final BuildState state, Graphics2D g) {
@@ -57,16 +56,18 @@ public class ShoreTree {
 				Breakpoint leftBP = (Breakpoint) arc.getPredecessor();
 				Breakpoint rightBP = (Breakpoint) arc.getSuccessor();
 				
-				Point2D leftPos = leftBP.getPosition(state.getSweeplineY());
-				Point2D rightPos = rightBP.getPosition(state.getSweeplineY());
-				Point2D intersection = leftBP.getIntersection(state.getSweeplineY(), rightBP);
+				Point2D intersection = Breakpoint.getIntersection(state.getSweeplineY(), leftBP, rightBP);
 				if (intersection != null) {
 					g.setColor(new Color(0,0,128));
+					Point2D leftPos = leftBP.getPosition(state.getSweeplineY());
+					Point2D rightPos = rightBP.getPosition(state.getSweeplineY());
 					Line2D lineBP0 = new Line2D.Double(leftPos.getX(), leftPos.getY(), intersection.getX(), intersection.getY());
 					Line2D lineBP1 = new Line2D.Double(rightPos.getX(), rightPos.getY(), intersection.getX(), intersection.getY());
 					g.draw(lineBP0);
 					g.draw(lineBP1);
 					g.setColor(Color.BLUE);
+				} else {
+					g.setColor(Color.RED);
 				}
 				
 				Circle circle = circleEvent.getCircle();

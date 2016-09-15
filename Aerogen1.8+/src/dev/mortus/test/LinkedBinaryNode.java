@@ -1,8 +1,5 @@
 package dev.mortus.test;
 
-import dev.mortus.voronoi.internal.BuildState;
-import dev.mortus.voronoi.internal.MathUtil.Circle;
-
 public abstract class LinkedBinaryNode {
 	
 	public static int IDCounter = 0;
@@ -12,11 +9,11 @@ public abstract class LinkedBinaryNode {
 	private LinkedBinaryNode leftChild, rightChild;
 	private LinkedBinaryNode predecessor, successor;
 	
-	public final int id;
-	protected String name;
+	public final int debugID;
+	protected String debugName;
 
 	public LinkedBinaryNode() {
-		this.id = IDCounter++;
+		this.debugID = IDCounter++;
 	}
 
 	protected LinkedBinaryNode(LinkedBinaryTree rootParent) {
@@ -111,6 +108,11 @@ public abstract class LinkedBinaryNode {
 	 * @throws RuntimeException if the child to be added is not a floating root.
 	 */
 	protected void setLeftChild(LinkedBinaryNode left) {
+		if (left == null) {
+			removeLeftChild();
+			return;
+		}
+		
 		if (!left.isFloating() || left.hasParent()) {
 			throw new RuntimeException("A node may only be added as a child if it is a floating root. This means"
 					+ "that the node has no parents and is not connected to a Tree object. Use remove() to"
@@ -177,6 +179,11 @@ public abstract class LinkedBinaryNode {
 	 * @throws RuntimeException if the child to be added is not a floating root.
 	 */	
 	protected void setRightChild(LinkedBinaryNode right) {
+		if (right == null) {
+			removeRightChild();
+			return;
+		}
+		
 		if (!right.isFloating() || right.hasParent()) {
 			throw new RuntimeException("A node may only be added as a child if it is a floating root. This means"
 					+ "that the node has no parents and is not connected to a Tree object. Use remove() to"
@@ -232,25 +239,18 @@ public abstract class LinkedBinaryNode {
 	
 	/**
 	 * Replaces this node (and its children) with the provided node.
-	 * Returns the new root of the tree, which will remain unchanged unless
-	 * the node to be replaced has no parent and does not belong to a tree.
+	 * The node being replaced must have a parent or be the root of a tree.
 	 * @param node
 	 * @return
 	 */
-	public LinkedBinaryNode replaceWith(LinkedBinaryNode node) {
+	public void replaceWith(LinkedBinaryNode node) {
 		if (this.isLeftChild()) {
 			this.getParent().setLeftChild(node);
 		} else if (this.isRightChild()) {
 			this.getParent().setRightChild(node);
 		} else if (this.isRoot()) {
 			this.promoteToRoot(node);
-		} else {
-			return node;
-		}
-	}
-	
-	public void remove() {
-		if (this.hasLeftChild()) {
+		} else throw new RuntimeException("Replaced node has no valid connection to a parent or tree. Floating?");
 	}
 	
 	
@@ -289,40 +289,13 @@ public abstract class LinkedBinaryNode {
 	}
 	
 	protected void setName(String name) {
-		this.name = name;
+		this.debugName = name;
 	}
 	
 	@Override
 	public String toString() {
-		if (name == null) return "TreeNode[]";
-		return "TreeNode[Name='"+name+"']";
-	}
-	
-	
-	/*
-	 * Removes all connections from this node to other nodes.
-	 * Throws an error if this node is still the child of its
-	 * parent. Additionally, an error is thrown if the subtree
-	 * represented by this node has not been replaced in the 
-	 * predecessor/successor linked list.
-	 */
-	protected void debugEnsureDisconnected() {
-		if (this.isLeftChild()) throw new RuntimeException("The disconnected node is still attached! Parent's left child");
-		if (this.isRightChild()) throw new RuntimeException("The disconnected node is still attached! Parent's right child");
-		if (this.rootParent != null && this.rootParent.root == this) throw new RuntimeException("The disconnected node is still attached! Root node");
-		this.parent = null;
-		
-		LinkedBinaryNode first = this.getFirstDescendant();		
-		if (first.getPredecessor() != null && first.getPredecessor().getSuccessor() == first) {
-			throw new RuntimeException("The disconnected node is still attached! First descendant still connected to predecessor");
-		}
-		first.predecessor = null;
-		
-		LinkedBinaryNode last = this.getLastDescendant();		
-		if (last.getSuccessor() != null && last.getSuccessor().getPredecessor() == last) {
-			throw new RuntimeException("The disconnected node is still attached! Last descendant still connected to successor");
-		}
-		last.successor = null;
+		if (debugName == null) return "TreeNode[]";
+		return "TreeNode[Name='"+debugName+"']";
 	}
 
 	/**
@@ -330,14 +303,13 @@ public abstract class LinkedBinaryNode {
 	 * the saved node variable. Used internally for newly inserted nodes.
 	 * @return
 	 */
-	protected LinkedBinaryNode debugFindSuccessor() {
-		if (this.hasChildren()) {
-			if (this.rightChild == null) return null;
-			return this.rightChild.getFirstDescendant();
+	public LinkedBinaryNode debugFindSuccessor() {
+		if (this.hasRightChild()) {
+			return this.getRightChild().getFirstDescendant();
 		} else {
 			LinkedBinaryNode n = this;
 			while (n != null && !n.isLeftChild()) n = n.parent;
-			if (n != null && n != this) return n.parent;
+			if (n != null) return n.parent;
 		}
 		return null;
 	}
@@ -347,14 +319,13 @@ public abstract class LinkedBinaryNode {
 	 * the saved node variable. Used internally for newly inserted nodes.
 	 * @return
 	 */
-	protected LinkedBinaryNode findPredecessor() {
-		if (this.hasChildren()) {
-			if (this.leftChild == null) return null;
-			return this.leftChild.getLastDescendant();
+	public LinkedBinaryNode debugFindPredecessor() {
+		if (this.hasLeftChild()) {
+			return this.getLeftChild().getLastDescendant();
 		} else {
 			LinkedBinaryNode n = this;
 			while (n != null && !n.isRightChild()) n = n.parent;
-			if (n != null && n != this) return n.parent;
+			if (n != null) return n.parent;
 		}
 		return null;
 	}

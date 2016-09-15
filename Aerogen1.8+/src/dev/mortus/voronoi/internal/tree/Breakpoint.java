@@ -3,7 +3,7 @@ package dev.mortus.voronoi.internal.tree;
 import java.awt.geom.Point2D;
 import java.util.List;
 
-import dev.mortus.voronoi.internal.BuildState;
+import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.MathUtil.Parabola;
 import dev.mortus.voronoi.internal.MathUtil.Vec2;
 
@@ -60,40 +60,80 @@ public class Breakpoint extends TreeNode {
 		return lastResult.toPoint();
 	}
 	
-	public Point2D getDirection() {
-		if (lastRequest == Double.NaN) {
-			double startY = Math.max(arcLeft.site.getY(), arcRight.site.getX())+1;
-			getPosition(startY);
+	/**
+	 * Gets the direction this breakpoint moves as the sweepline progresses.
+	 * A point is returned representing a vector. The length is not normalized.
+	 * @return
+	 */
+	private Point2D getDirection() {
+		double dy = arcRight.site.getY() - arcLeft.site.getY();
+		double dx = arcRight.site.getX() - arcLeft.site.getX();
+		
+		if (dy == 0) {
+			if (dx == 0) return new Point2D.Double(0, 0);
+			return new Point2D.Double(0, 1);
 		}
-		
-		Point2D p0 = getPosition(lastRequest);
-		Point2D p1 = calculatePosition(lastRequest+10).toPoint();
-		Point2D diff = new Point2D.Double(p1.getX()-p0.getX(), p1.getY()-p0.getY());
-		
-		return diff;	
+		if (dy < 0) {
+			return new Point2D.Double(1, -dx/dy);
+		} else {
+			return new Point2D.Double(-1, dx/dy);
+		}
 	}
 	
-	public Point2D getIntersection(double sweeplineY, Breakpoint other) {
-		Point2D pos0 = getPosition(lastRequest);
-		Point2D dir0 = getDirection();
-		Point2D pos1 = other.getPosition(other.lastRequest);
-		Point2D dir1 = other.getDirection();
+	public static Point2D getIntersection(double sweeplineY, Breakpoint left, Breakpoint right) {		
+		Point2D pos0 = left.getPosition(sweeplineY);
+		Point2D dir0 = left.getDirection();
+		Point2D pos1 = right.getPosition(sweeplineY);
+		Point2D dir1 = right.getDirection();
+		
+		if (Voronoi.DEBUG) {
+			if (pos0 == null) {
+				System.err.println("breakpoint position undefined: "+left);
+				return null;
+			}
+			if (pos1 == null) {
+				System.err.println("breakpoint position undefined: "+right);
+				return null;
+			}
+		}
+		if (pos0 == null || pos1 == null) return null;
 		
 		double dx = pos1.getX() - pos0.getX();
 		double dy = pos1.getY() - pos0.getY();
 		double det = dir1.getX() * dir0.getY() - dir1.getY() * dir0.getX();
 		
-		if (det == 0) return null;
+		if (det == 0) {
+			if (Voronoi.DEBUG) System.err.println("determinant of 0");
+			return null;
+		}
 		
 		double u = (dy * dir1.getX() - dx * dir1.getY()) / det;
 		double v = (dy * dir0.getX() - dx * dir0.getY()) / det;
-		
-		if (u < 0 || v < 0) return null;
+
+		if (u < -Voronoi.VERY_SMALL || v < -Voronoi.VERY_SMALL) {
+			if (Voronoi.DEBUG) System.err.println("Intersection at negative U or V: "+left+", "+right);
+			return null; // intersection is behind the current position of one of the breakpoints
+		}
+		if (abs(u) < Voronoi.VERY_SMALL && abs(v) < Voronoi.VERY_SMALL) {
+			// special case, the breakpoints are currently intersecting: 
+			// return null only if they are diverging with respect to Y+
+			if (dir0.getX() < dir1.getX()) {
+				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Diverging (left.dx="+dir0.getX()+", right.dx="+dir1.getX()+"). Special case denied.");
+				return null;
+			} else {
+				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Converging (left.dx="+dir0.getX()+", right.dx="+dir1.getX()+"). Special case accepted.");
+			}
+		}
 		
 		return new Point2D.Double(pos0.getX() + dir0.getX()*u, pos0.getY() + dir0.getY()*u);		
 	}
 	
 	
+	private static double abs(double v) {
+		if (v < 0) return -v;
+		return v;
+	}
+
 	private Vec2 calculatePosition(double sweeplineY) {
 		Parabola leftParabola = arcLeft.getParabola(sweeplineY);
 		Parabola rightParabola = arcRight.getParabola(sweeplineY);
@@ -144,13 +184,18 @@ public class Breakpoint extends TreeNode {
 	}
 
 	@Override
-	public Arc getArc(BuildState state, double x) {
+	public Arc getArc(double sweeplineY, double siteX) {
 		// Call down the tree based on breakpoint positions
-		Point2D bp = this.getPosition(state.getSweeplineY());
-		if (x <= bp.getX()) {
-			return getLeftChild().getArc(state, x);
+		Point2D bp = this.getPosition(sweeplineY);
+		
+		double bpx;
+		if (bp == null) bpx = (this.arcLeft.site.getX() + this.arcRight.site.getX()) / 2.0;
+		else bpx = bp.getX();
+		
+		if (siteX <= bpx) {
+			return getLeftChild().getArc(sweeplineY, siteX);
 		} else {
-			return getRightChild().getArc(state, x);
+			return getRightChild().getArc(sweeplineY, siteX);
 		}
 	}
 

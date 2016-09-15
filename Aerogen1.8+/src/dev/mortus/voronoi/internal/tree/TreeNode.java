@@ -1,8 +1,5 @@
 package dev.mortus.voronoi.internal.tree;
 
-import dev.mortus.voronoi.internal.BuildState;
-import dev.mortus.voronoi.internal.MathUtil.Circle;
-
 public abstract class TreeNode {
 	
 	public static enum Type {
@@ -238,7 +235,7 @@ public abstract class TreeNode {
 		return successor;
 	}
 	
-	public abstract Arc getArc(BuildState state, double x);
+	public abstract Arc getArc(double sweeplineY, double siteX);
 	
 	/*
 	 * Removes all connections from this node to other nodes.
