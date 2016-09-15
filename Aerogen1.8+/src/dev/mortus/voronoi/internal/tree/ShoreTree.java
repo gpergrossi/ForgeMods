@@ -14,10 +14,21 @@ import dev.mortus.voronoi.internal.Event;
 import dev.mortus.voronoi.internal.MathUtil.Circle;
 import dev.mortus.voronoi.internal.MathUtil.Parabola;
 import dev.mortus.voronoi.internal.MathUtil.Vec2;
-import dev.mortus.voronoi.internal.tree.TreeNode.Type;
 
-public class ShoreTree {
+public class ShoreTree implements LinkedBinaryNode.Tree {
 	TreeNode root;
+	
+
+	public TreeNode getRoot() {
+		return root;
+	}
+
+	@Override
+	public void setRoot(LinkedBinaryNode node) {
+		if (node == null) throw new RuntimeException("Cannot remove root node from ShoreTree");
+		if (!(node instanceof TreeNode)) throw new RuntimeException("ShoreTree can only have a root of type TreeNode");
+		this.root = (TreeNode) node;
+	}
 	
 	public void initialize(Site site) {
 		if (root != null) throw new RuntimeException("Tree has already been initialized");
@@ -44,7 +55,7 @@ public class ShoreTree {
 		
 		TreeNode n = root.getFirstDescendant();
 		while (n != null) {
-			if (n.getType() == Type.Arc) {
+			if (n instanceof Arc) {
 				Arc arc = (Arc) n;
 				
 				Event circleEvent = arc.getCircleEvent();
@@ -84,7 +95,7 @@ public class ShoreTree {
 		
 		n = root.getFirstDescendant();
 		while (n != null) {
-			if (n.getType() == Type.Arc) {
+			if (n instanceof Arc) {
 				Arc arc = (Arc) n;
 				Parabola par = Parabola.fromPointAndLine(new Vec2(arc.site.getPos()), state.getSweeplineY());
 				
@@ -95,7 +106,7 @@ public class ShoreTree {
 				
 				TreeNode pred = n.getPredecessor(); 
 				Point2D predBreakpoint = null;
-				if (pred != null && pred.getType() == Type.Breakpoint) {
+				if (pred != null && pred instanceof Breakpoint) {
 					Breakpoint breakpoint = (Breakpoint) pred;
 					predBreakpoint = breakpoint.getPosition(state.getSweeplineY());
 					if (predBreakpoint != null) minX = predBreakpoint.getX();
@@ -103,7 +114,7 @@ public class ShoreTree {
 				
 				TreeNode succ = n.getSuccessor(); 
 				Point2D succBreakpoint = null;
-				if (succ != null && succ.getType() == Type.Breakpoint) {
+				if (succ != null && succ instanceof Breakpoint) {
 					Breakpoint breakpoint = (Breakpoint) succ;
 					succBreakpoint = breakpoint.getPosition(state.getSweeplineY());
 					if (succBreakpoint != null) maxX = succBreakpoint.getX();
@@ -145,7 +156,7 @@ public class ShoreTree {
 		
 		n = root.getFirstDescendant();
 		while (n != null) {
-			if (n.getType() == Type.Breakpoint) {
+			if (n instanceof Breakpoint) {
 				Breakpoint breakpoint = (Breakpoint) n;
 				Point2D p = breakpoint.getPosition(state.getSweeplineY());
 				if (p == null) {
@@ -166,8 +177,5 @@ public class ShoreTree {
 		}
 	}
 
-	public TreeNode getRoot() {
-		return root;
-	}
 	
 }

@@ -51,11 +51,6 @@ public class Arc extends TreeNode {
 	}
 
 	@Override
-	public Type getType() {
-		return Type.Arc;
-	}
-
-	@Override
 	public Arc getArc(double sweeplineY, double siteX) {
 		return this;
 	}
@@ -129,5 +124,11 @@ public class Arc extends TreeNode {
 		return newArc;
 	}
 
+	@Override
+	public String toString() {
+		return "Arc["+(debugName != null ? "Name='"+debugName+"', " : "")+"ID="+id+", "
+				+ "Site="+site.id+", CircleEvent="+(circleEvent!=null)+"]";
+	}
+	
 }
 		

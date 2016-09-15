@@ -129,8 +129,10 @@ public final class BuildState {
 				Arc prevArc = e.arc.getLeftNeighborArc();
 				Arc nextArc = e.arc.getRightNeighborArc(); 
 				
-				TreeNode predecessor = e.arc.getPredecessor();
-				TreeNode successor = e.arc.getSuccessor();
+				Breakpoint predecessor = (Breakpoint) e.arc.getPredecessor();
+				Breakpoint successor = (Breakpoint) e.arc.getSuccessor();
+				boolean predecessorDeleted = false;
+				boolean successorDeleted = false;
 				
 				// Step 1. remove closely related breakpoint
 				if (e.arc.isLeftChild()) {
@@ -144,7 +146,9 @@ public final class BuildState {
 					}
 					
 					// replace the breakpoint node with the right child and update its arcs
+					promote.disconnect();
 					breakpoint.replaceWith(promote);
+					successorDeleted = true;
 					
 				} else if (e.arc.isRightChild()) {
 					
@@ -157,15 +161,17 @@ public final class BuildState {
 					}
 
 					// replace the breakpoint node with the left child and update its arcs
+					promote.disconnect();
 					breakpoint.replaceWith(promote);
+					predecessorDeleted = true;
 					
 				} else {
 					throw new RuntimeException("Cannot remove final arc");
 				}
 				
 				// Step 2. Fix higher ancestor breakpoint
-				((Breakpoint) successor).updateArcs();
-				((Breakpoint) predecessor).updateArcs();
+				if (predecessorDeleted) successor.updateArcs();
+				if (successorDeleted) predecessor.updateArcs();
 				
 				// Step 3. Update circle events
 				if (prevArc.circleEvent != null) eventQueue.remove(prevArc.circleEvent);

@@ -1,24 +1,30 @@
-package dev.mortus.test;
+package dev.mortus.voronoi.internal.tree;
 
 public abstract class LinkedBinaryNode {
+
+	public static interface Tree {
+		public LinkedBinaryNode getRoot();
+		public void setRoot(LinkedBinaryNode node);
+	}
 	
 	public static int IDCounter = 0;
 
-	private LinkedBinaryTree rootParent;
+	private Tree rootParent;
 	private LinkedBinaryNode parent;
 	private LinkedBinaryNode leftChild, rightChild;
 	private LinkedBinaryNode predecessor, successor;
 	
-	public final int debugID;
+	public final int id;
 	protected String debugName;
 
 	public LinkedBinaryNode() {
-		this.debugID = IDCounter++;
+		this.id = IDCounter++;
 	}
 
-	protected LinkedBinaryNode(LinkedBinaryTree rootParent) {
+	protected LinkedBinaryNode(Tree rootParent) {
 		this();
 		this.rootParent = rootParent;
+		rootParent.setRoot(this);
 	}
 	
 	
@@ -59,8 +65,8 @@ public abstract class LinkedBinaryNode {
 	 */
 	public void promoteToRoot(LinkedBinaryNode newRoot) {
 		if (!this.isRoot()) throw new RuntimeException("Cannot use promoteToRoot on a non-root node. see: isRoot");
-		this.rootParent.root = newRoot;
-		newRoot.rootParent = this.rootParent;
+		this.rootParent.setRoot(newRoot);
+		if (newRoot != null) newRoot.rootParent = this.rootParent;
 		this.rootParent = null;
 	}
 	
@@ -108,19 +114,15 @@ public abstract class LinkedBinaryNode {
 	 * @throws RuntimeException if the child to be added is not a floating root.
 	 */
 	protected void setLeftChild(LinkedBinaryNode left) {
-		if (left == null) {
-			removeLeftChild();
-			return;
-		}
-		
-		if (!left.isFloating() || left.hasParent()) {
-			throw new RuntimeException("A node may only be added as a child if it is a floating root. This means"
-					+ "that the node has no parents and is not connected to a Tree object. Use remove() to"
+		if (left != null && (!left.isFloating() || left.hasParent())) {
+			throw new RuntimeException("A node may only be added as a child if it is a floating root. This means "
+					+ "that the node has no parents and is not connected to a Tree object. Use disconnect() to "
 					+ "remove a node from its current tree and ensure that it is floating.");
 		}
 		
 		//IMPORTANT! this.predecessor must refer to a node that is not removed from the tree
 		removeLeftChild();
+		if (left == null) return;
 		
 		LinkedBinaryNode first = left.getFirstDescendant();
 		LinkedBinaryNode last = left.getLastDescendant();
@@ -179,19 +181,15 @@ public abstract class LinkedBinaryNode {
 	 * @throws RuntimeException if the child to be added is not a floating root.
 	 */	
 	protected void setRightChild(LinkedBinaryNode right) {
-		if (right == null) {
-			removeRightChild();
-			return;
-		}
-		
-		if (!right.isFloating() || right.hasParent()) {
-			throw new RuntimeException("A node may only be added as a child if it is a floating root. This means"
-					+ "that the node has no parents and is not connected to a Tree object. Use remove() to"
+		if (right != null && (!right.isFloating() || right.hasParent())) {
+			throw new RuntimeException("A node may only be added as a child if it is a floating root. This means "
+					+ "that the node has no parents and is not connected to a Tree object. Use disconnect() to "
 					+ "remove a node from its current tree and ensure that it is floating.");
 		}
 		
 		//IMPORTANT! this.predecessor must refer to a node that is not removed from the tree
 		removeRightChild();
+		if (right == null) return;
 		
 		LinkedBinaryNode first = right.getFirstDescendant();
 		LinkedBinaryNode last = right.getLastDescendant();
@@ -235,6 +233,22 @@ public abstract class LinkedBinaryNode {
 		return this.rightChild != null;
 	}
 
+	/**
+	 * Forces this node to be disconnected from its tree.
+	 * Will call removeLeftChild, removeRightChild, or promoteToRoot(null).
+	 * If an extending class does not allow use of these methods, an error
+	 * may be thrown. If this node is already floating, no action will be taken.
+	 */
+	public void disconnect() {
+		if (this.isFloating()) return;
+		if (this.isLeftChild()) {
+			this.getParent().removeLeftChild();
+		} else if (this.isRightChild()) {
+			this.getParent().removeRightChild();
+		} else if (this.rootParent != null) {
+			this.promoteToRoot(null);
+		}
+	}
 	
 	
 	/**
@@ -250,7 +264,7 @@ public abstract class LinkedBinaryNode {
 			this.getParent().setRightChild(node);
 		} else if (this.isRoot()) {
 			this.promoteToRoot(node);
-		} else throw new RuntimeException("Replaced node has no valid connection to a parent or tree. Floating?");
+		} else throw new RuntimeException("Replaced node has no valid connection to a parent or tree.");
 	}
 	
 	
@@ -288,14 +302,14 @@ public abstract class LinkedBinaryNode {
 		return successor;
 	}
 	
-	protected void setName(String name) {
+	protected void setDebugName(String name) {
 		this.debugName = name;
 	}
 	
 	@Override
 	public String toString() {
 		if (debugName == null) return "TreeNode[]";
-		return "TreeNode[Name='"+debugName+"']";
+		return "TreeNode[DebugName='"+debugName+"']";
 	}
 
 	/**
@@ -328,6 +342,19 @@ public abstract class LinkedBinaryNode {
 			if (n != null) return n.parent;
 		}
 		return null;
+	}
+	
+	/**
+	 * Returns the tree as a formatted string. Hard to read, but could be useful anyway.
+	 * @return
+	 */
+	public String treeString() {
+		return treeString(this, "", "root");
+	}
+
+	private String treeString(LinkedBinaryNode node, String indent, String name) {
+		if (node == null) return "";
+		return treeString(node.getLeftChild(), indent + "      ", "left") + indent + name + ": " + node.toString() + "\n" + treeString(node.getRightChild(), indent + "      ", "right"); 
 	}
 	
 }

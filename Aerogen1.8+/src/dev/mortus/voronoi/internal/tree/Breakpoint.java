@@ -20,14 +20,12 @@ public class Breakpoint extends TreeNode {
 		checkPossible();
 	}
 
-	@Override
 	protected void setLeftChild(TreeNode left) {
 		if (left == null) throw new RuntimeException("Cannot set child of a breakpoint to null");		
 		super.setLeftChild(left);
 		this.arcLeft = (Arc) this.getLeftChild().getLastDescendant();
 	}
 
-	@Override
 	protected void setRightChild(TreeNode right) {
 		if (right == null) throw new RuntimeException("Cannot set child of a breakpoint to null");		
 		super.setRightChild(right);
@@ -41,11 +39,6 @@ public class Breakpoint extends TreeNode {
 			// the requested breakpoint to exist.
 			throw new RuntimeException("There is no such breakpoint!");
 		}
-	}
-
-	@Override
-	public Type getType() {
-		return Type.Breakpoint;
 	}
 	
 	private double lastRequest = Double.NaN;
@@ -203,5 +196,14 @@ public class Breakpoint extends TreeNode {
 		this.arcLeft = (Arc) this.getLeftChild().getLastDescendant();
 		this.arcRight = (Arc) this.getRightChild().getFirstDescendant();
 	}	
+	
+	@Override
+	public String toString() {
+		String leftID = (hasLeftChild() ? ""+getLeftChild().id : "null");
+		String rightID = (hasRightChild() ? ""+getRightChild().id : "null");
+		return "Breakpoint["+(debugName != null ? "DebugName='"+debugName+"', " : "")+"ID="+id+", "
+				+ "LeftArc="+arcLeft+", RightArc="+arcRight+", "
+				+ "Children:[Left="+leftID+", Right="+rightID+"]]";
+	}
 	
 }

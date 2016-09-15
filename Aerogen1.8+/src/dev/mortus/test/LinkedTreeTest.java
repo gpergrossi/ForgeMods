@@ -1,12 +1,11 @@
-package dev.mortus.test.main;
+package dev.mortus.test;
 
 import java.util.ArrayList;
 import java.util.Random;
 
-import dev.mortus.test.LinkedBinaryNode;
-import dev.mortus.test.LinkedBinaryTree;
+import dev.mortus.voronoi.internal.tree.LinkedBinaryNode;
 
-public class Test {
+public class LinkedTreeTest {
 
 	public static class TestNode extends LinkedBinaryNode {
 		
@@ -63,18 +62,17 @@ public class Test {
 		
 		@Override
 		public String toString() {
-			return "TestNode[ID="+debugID+" value="+value+"]";
+			return "TestNode[ID="+id+" value="+value+"]";
 		}
 		
 	}
 	
-	public static class TestTree extends LinkedBinaryTree {
+	public static class TestTree implements LinkedBinaryNode.Tree {
 
 		TestNode root;
 		
 		public TestTree(int value) {
-			super(new TestNode(value));
-			this.root = (TestNode) super.root;
+			this.root = new TestNode(value);
 		}
 		
 		public void insert(int value) {
@@ -93,6 +91,17 @@ public class Test {
 		private String toString(TestNode node, String indent, String name) {
 			if (node == null) return "";
 			return toString(node.getLeftChild(), indent + "      ", "left") + indent + name + ": " + node.toString() + "\n" + toString(node.getRightChild(), indent + "      ", "right"); 
+		}
+
+		@Override
+		public LinkedBinaryNode getRoot() {
+			return root;
+		}
+
+		@Override
+		public void setRoot(LinkedBinaryNode node) {
+			if (!(node instanceof TestNode)) throw new RuntimeException("TestTree can only reference TestNode roots.");
+			this.root = (TestNode) node;			
 		}
 		
 	}
