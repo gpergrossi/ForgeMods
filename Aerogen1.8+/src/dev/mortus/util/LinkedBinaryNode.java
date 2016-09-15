@@ -1,4 +1,17 @@
-package dev.mortus.voronoi.internal.tree;
+package dev.mortus.util;
+
+/**
+ * This class includes some useful methods for a binary tree that
+ * calculates and saves predecessor and successor nodes on each addition
+ * or deletion of a node. There are no insert methods. This class is intended
+ * to be extended by other classes to facilitate useful tree logic.
+ * 
+ * Originally used as a base class for a ShoreTree in Fortune's algorithm because
+ * the tree provides better average case lookup and insertion than an array and
+ * the getPredecessor and getSuccessor methods are called very frequently.
+ * 
+ * @author Gregary Pergrossi
+ */
 
 public abstract class LinkedBinaryNode {
 

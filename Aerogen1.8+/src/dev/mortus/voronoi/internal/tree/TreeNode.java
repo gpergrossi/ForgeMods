@@ -1,5 +1,7 @@
 package dev.mortus.voronoi.internal.tree;
 
+import dev.mortus.util.LinkedBinaryNode;
+
 public abstract class TreeNode extends LinkedBinaryNode {
 	
 	public TreeNode() {

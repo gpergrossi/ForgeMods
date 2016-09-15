@@ -3,9 +3,9 @@ package dev.mortus.voronoi.internal.tree;
 import java.awt.geom.Point2D;
 import java.util.List;
 
+import dev.mortus.util.MathUtil.Parabola;
+import dev.mortus.util.MathUtil.Vec2;
 import dev.mortus.voronoi.Voronoi;
-import dev.mortus.voronoi.internal.MathUtil.Parabola;
-import dev.mortus.voronoi.internal.MathUtil.Vec2;
 
 public class Breakpoint extends TreeNode {
 	

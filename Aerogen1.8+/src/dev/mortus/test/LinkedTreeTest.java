@@ -3,7 +3,7 @@ package dev.mortus.test;
 import java.util.ArrayList;
 import java.util.Random;
 
-import dev.mortus.voronoi.internal.tree.LinkedBinaryNode;
+import dev.mortus.util.LinkedBinaryNode;
 
 public class LinkedTreeTest {
 

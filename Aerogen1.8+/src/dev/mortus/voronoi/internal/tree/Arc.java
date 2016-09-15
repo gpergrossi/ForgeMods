@@ -2,12 +2,12 @@ package dev.mortus.voronoi.internal.tree;
 
 import java.awt.geom.Point2D;
 
+import dev.mortus.util.MathUtil.Circle;
+import dev.mortus.util.MathUtil.Parabola;
+import dev.mortus.util.MathUtil.Vec2;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
-import dev.mortus.voronoi.internal.MathUtil.Circle;
-import dev.mortus.voronoi.internal.MathUtil.Parabola;
-import dev.mortus.voronoi.internal.MathUtil.Vec2;
 
 /**
  * Arcs are parabolas formed from a site as a focus point and the

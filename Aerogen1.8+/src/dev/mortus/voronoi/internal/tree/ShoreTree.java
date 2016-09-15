@@ -8,12 +8,13 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
+import dev.mortus.util.LinkedBinaryNode;
+import dev.mortus.util.MathUtil.Circle;
+import dev.mortus.util.MathUtil.Parabola;
+import dev.mortus.util.MathUtil.Vec2;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
-import dev.mortus.voronoi.internal.MathUtil.Circle;
-import dev.mortus.voronoi.internal.MathUtil.Parabola;
-import dev.mortus.voronoi.internal.MathUtil.Vec2;
 
 public class ShoreTree implements LinkedBinaryNode.Tree {
 	TreeNode root;
