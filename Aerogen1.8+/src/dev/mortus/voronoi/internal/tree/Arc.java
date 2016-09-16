@@ -5,6 +5,7 @@ import java.awt.geom.Point2D;
 import dev.mortus.util.MathUtil.Circle;
 import dev.mortus.util.MathUtil.Parabola;
 import dev.mortus.util.MathUtil.Vec2;
+import dev.mortus.util.Pair;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
@@ -54,6 +55,24 @@ public class Arc extends TreeNode {
 	public Arc getArc(double sweeplineY, double siteX) {
 		return this;
 	}
+
+	@Override
+	public Breakpoint getPredecessor() {
+		return (Breakpoint) super.getPredecessor();
+	}
+
+	@Override
+	public Breakpoint getSuccessor() {
+		return (Breakpoint) super.getSuccessor();
+	}
+	
+	public Pair<Breakpoint> getBreakpoints() {
+		return new Pair<Breakpoint>(getPredecessor(), getSuccessor());
+	}
+	
+	public Pair<Arc> getNeighborArcs() {
+		return new Pair<Arc>(getLeftNeighborArc(), getRightNeighborArc());
+	}
 	
 	public Arc getLeftNeighborArc() {
 		if (this.getPredecessor() == null) return null;
@@ -95,9 +114,9 @@ public class Arc extends TreeNode {
 		this.setCircleEvent(null);
 		return null;
 	}
-
+	
 	public Arc insertArc(BuildState state, Site site) {
-		TreeNode newBreakpoint = null;
+		Breakpoint newBreakpoint = null;
 		Arc newArc = null;
 		
 		if (this.site.getY() == site.getY()) {

@@ -20,6 +20,39 @@ public abstract class LinkedBinaryNode {
 		public void setRoot(LinkedBinaryNode node);
 	}
 	
+	protected static class Iterator<T extends LinkedBinaryNode> implements java.util.Iterator<T>, Iterable<T> {
+
+		LinkedBinaryNode nextElem;
+		LinkedBinaryNode lastElem;
+	
+		/**
+		 * Constructs an iterator that will iterate over each of the Nodes in its root node's subtree in order.
+		 * This iterator is not safe with concurrent modifications, however, it will remain functional
+		 * as long as the lastDescendant() of the root node remains the same (==, not .equals).
+		 * @param localRoot
+		 */
+		private Iterator(LinkedBinaryNode localRoot) {
+			this.nextElem = localRoot.getFirstDescendant();
+			this.lastElem = localRoot.getLastDescendant().getSuccessor();
+		}
+		
+		public boolean hasNext() {
+			return nextElem != null && nextElem != lastElem;
+		}
+
+		@SuppressWarnings("unchecked")
+		public T next() {
+			LinkedBinaryNode returnValue = nextElem;
+			nextElem = nextElem.getSuccessor();
+			return (T) returnValue;
+		}
+
+		public java.util.Iterator<T> iterator() {
+			return this;
+		}
+		
+	}
+	
 	public static int IDCounter = 0;
 
 	private Tree rootParent;
@@ -66,7 +99,7 @@ public abstract class LinkedBinaryNode {
 	 * the hasParent() and isFloating() methods are sufficient for locating floating roots.
 	 * @see hasParent
 	 */
-	protected boolean isRoot() {
+	public boolean isRoot() {
 		return rootParent != null;
 	}
 	
@@ -245,15 +278,27 @@ public abstract class LinkedBinaryNode {
 	public boolean hasRightChild() {
 		return this.rightChild != null;
 	}
+	
+	
+	/**
+	 * Returns this node's sibling, or null if it does not have one.
+	 */
+	public LinkedBinaryNode getSibling() {
+		if (this.isLeftChild()) return this.getParent().getRightChild();
+		if (this.isRightChild()) return this.getParent().getLeftChild();
+		return null;
+	}
+	
 
 	/**
 	 * Forces this node to be disconnected from its tree.
 	 * Will call removeLeftChild, removeRightChild, or promoteToRoot(null).
 	 * If an extending class does not allow use of these methods, an error
 	 * may be thrown. If this node is already floating, no action will be taken.
+	 * @return self
 	 */
-	public void disconnect() {
-		if (this.isFloating()) return;
+	public LinkedBinaryNode disconnect() {
+		if (this.isFloating()) return this;
 		if (this.isLeftChild()) {
 			this.getParent().removeLeftChild();
 		} else if (this.isRightChild()) {
@@ -261,6 +306,7 @@ public abstract class LinkedBinaryNode {
 		} else if (this.rootParent != null) {
 			this.promoteToRoot(null);
 		}
+		return this;
 	}
 	
 	
@@ -307,6 +353,33 @@ public abstract class LinkedBinaryNode {
 		return n;
 	}
 
+	/**
+	 * Returns an iterator over this node's subtree. The type argument should be
+	 * a LinkedBinaryNode class that will absolutely be the parent to all children
+	 * of this node. If a child of this node does not extend from the type class
+	 * provided, a casting error will occur when the iterator reaches that node.
+	 * 
+	 * Use this method for convenience if an extending class to LinkedBinaryNode will
+	 * have a particular type of children. 
+	 * @return
+	 */
+	protected <T extends LinkedBinaryNode> Iterator<T> castedSubtreeIterator() {
+		return new Iterator<T>(this);
+	}
+	
+	/**
+	 * Returns an iterator over this node's subtree.
+	 * This iterator is not safe with concurrent modifications.
+	 * 
+	 * This method is intended to be overridden by a subclass. 
+	 * Simply call the protected method castedSubtreeIterator().
+	 * 
+	 * It is not abstract because it is not a required override.
+	 */
+	public Iterator<?> subtreeIterator() {
+		return new Iterator<LinkedBinaryNode>(this);
+	}
+	
 	public LinkedBinaryNode getPredecessor() {
 		return predecessor;
 	}

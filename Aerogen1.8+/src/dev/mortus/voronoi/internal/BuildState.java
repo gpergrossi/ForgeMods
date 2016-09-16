@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
+import dev.mortus.util.Pair;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.tree.Arc;
@@ -72,7 +73,6 @@ public final class BuildState {
 
 	public void initSiteEvents(List<Point2D> points) {
 		eventQueue.clear();
-		eventsProcessed = 0;
 		TreeNode.IDCounter = 0;
 		Site.IDCounter = 0;
 		
@@ -80,17 +80,28 @@ public final class BuildState {
 			Site site = new Site(point);
 			Event e = Event.createSiteEvent(site);
 			sites.add(site);
-			eventQueue.offer(e);
+			addEvent(e);
 		}
 
 		Event e = eventQueue.poll();
 		
 		// Create tree with first site
 		shoreTree.initialize(e.site);
+		eventsProcessed = 1;
 	}
 	
 	public boolean hasNextEvent() {
 		return eventQueue.size() > 0;
+	}
+	
+	private void addEvent(Event e) {
+		 if (e == null) return;
+		 eventQueue.offer(e);
+	}
+	
+	private void removeEvent(Event e) {
+		 if (e == null) return;
+		 eventQueue.remove(e);
 	}
 	
 	public void processNextEvent() {
@@ -101,88 +112,11 @@ public final class BuildState {
 		
 		switch(e.type) {
 			case SITE:
-				// Get arc node under site event
-				Arc arcUnderSite = shoreTree.getArcUnderSite(this.sweeplineY, e.site);
-				
-				// Clear the circle event for the arc being split
-				Event oldCircleEvent = arcUnderSite.getCircleEvent();
-				if (oldCircleEvent != null) eventQueue.remove(oldCircleEvent);
-				arcUnderSite.setCircleEvent(null); // the original arc is removed entirely and replaced by copies
-				
-				// Split the arc with two breakpoints and insert an arc for the site event
-				Arc newArc = arcUnderSite.insertArc(this, e.site);
-				
-				// Check for circle events on left and right neighboring arcs
-				if (newArc.getLeftNeighborArc() != null) {
-					Event leftCircleEvent = newArc.getLeftNeighborArc().checkCircleEvent(this);
-					if (leftCircleEvent != null) eventQueue.offer(leftCircleEvent);
-				}
-
-				if (newArc.getRightNeighborArc() != null) {
-					Event rightCircleEvent = newArc.getRightNeighborArc().checkCircleEvent(this);
-					if (rightCircleEvent != null) eventQueue.offer(rightCircleEvent);
-				}
-				
+				processSiteEvent(e.site);
 				break;
 				
 			case CIRCLE:
-				Arc prevArc = e.arc.getLeftNeighborArc();
-				Arc nextArc = e.arc.getRightNeighborArc(); 
-				
-				Breakpoint predecessor = (Breakpoint) e.arc.getPredecessor();
-				Breakpoint successor = (Breakpoint) e.arc.getSuccessor();
-				boolean predecessorDeleted = false;
-				boolean successorDeleted = false;
-				
-				// Step 1. remove closely related breakpoint
-				if (e.arc.isLeftChild()) {
-					
-					// This is a left child, replace breakpoint with right child
-					TreeNode breakpoint = e.arc.getParent();
-					TreeNode promote = breakpoint.getRightChild();
-					
-					if (breakpoint != e.arc.getSuccessor()) {
-						throw new RuntimeException("Unexpected successor! "+e.arc.getSuccessor() + ", should be "+breakpoint);
-					}
-					
-					// replace the breakpoint node with the right child and update its arcs
-					promote.disconnect();
-					breakpoint.replaceWith(promote);
-					successorDeleted = true;
-					
-				} else if (e.arc.isRightChild()) {
-					
-					// This is a right child, replace breakpoint with left child
-					TreeNode breakpoint = e.arc.getParent();
-					TreeNode promote = breakpoint.getLeftChild();
-					
-					if (breakpoint != e.arc.getPredecessor()) {
-						throw new RuntimeException("Unexpected predecessor! "+e.arc.getPredecessor() + ", should be "+breakpoint);
-					}
-
-					// replace the breakpoint node with the left child and update its arcs
-					promote.disconnect();
-					breakpoint.replaceWith(promote);
-					predecessorDeleted = true;
-					
-				} else {
-					throw new RuntimeException("Cannot remove final arc");
-				}
-				
-				// Step 2. Fix higher ancestor breakpoint
-				if (predecessorDeleted) successor.updateArcs();
-				if (successorDeleted) predecessor.updateArcs();
-				
-				// Step 3. Update circle events
-				if (prevArc.circleEvent != null) eventQueue.remove(prevArc.circleEvent);
-				if (nextArc.circleEvent != null) eventQueue.remove(nextArc.circleEvent);
-				
-				Event leftCircleEvent = prevArc.checkCircleEvent(this);
-				if (leftCircleEvent != null) eventQueue.offer(leftCircleEvent);
-				
-				Event rightCircleEvent = nextArc.checkCircleEvent(this);
-				if (rightCircleEvent != null) eventQueue.offer(rightCircleEvent);
-				 
+				processCircleEvent(e.arc);
 				break;
 		}
 		
@@ -206,7 +140,61 @@ public final class BuildState {
 		}
 		
 	}
-
+	
+	private void processSiteEvent(Site site) {
+		Arc arcUnderSite = shoreTree.getArcUnderSite(this.sweeplineY, site);
+		removeEvent(arcUnderSite.getCircleEvent());
+		
+		// Split the arc with two breakpoints (possibly just one) and insert an arc for the site event
+		Arc newArc = arcUnderSite.insertArc(this, site);
+		
+		// Check for circle events on neighboring arcs
+		for (Arc neighbor : newArc.getNeighborArcs()) {
+			addEvent(neighbor.checkCircleEvent(this));
+		}
+		
+		// TODO: Create new edges
+//		for (TreeNode node : newArc.getBreakpoints() ) {
+//			node.checkEdge();
+//		}
+		
+	}
+	
+	private void processCircleEvent(Arc arc) {
+		
+		// Save these, they will change
+		Pair<Arc> neighbors = arc.getNeighborArcs(); 
+		Breakpoint predecessor = arc.getPredecessor();
+		Breakpoint successor = arc.getSuccessor();
+		
+		
+		// Step 1. Remove arc and one of its breakpoints
+		TreeNode parentBreakpoint = arc.getParent();
+		TreeNode sibling = arc.getSibling();
+			
+		if (parentBreakpoint != successor && parentBreakpoint != predecessor) {
+			if (arc.isLeftChild()) throw new RuntimeException("Unexpected successor! "+successor + ", should be "+parentBreakpoint);
+			if (arc.isRightChild()) throw new RuntimeException("Unexpected predecessor! "+predecessor + ", should be "+parentBreakpoint);
+			throw new RuntimeException("The parent of any arc should be it successor or its predecessor!");
+		}
+		
+		sibling.disconnect();
+		parentBreakpoint.replaceWith(sibling);
+		
+		
+		// Step 2. Update the remaining breakpoint
+		if (parentBreakpoint == successor) predecessor.updateArcs();
+		if (parentBreakpoint == predecessor) successor.updateArcs();
+		
+		
+		// Step 3. Update circle events
+		for (Arc neighbor : neighbors) {
+			removeEvent(neighbor.circleEvent);
+			addEvent(neighbor.checkCircleEvent(this));
+		}
+		
+	}
+	
 	public double getSweeplineY() {
 		return sweeplineY;
 	}
@@ -246,6 +234,13 @@ public final class BuildState {
 
 	public int getEventsProcessed() {
 		return eventsProcessed;
+	}
+
+	public int getTheoreticalMaxSteps() {
+		int maxPossibleCircleEvents = sites.size()*2 - 5;
+		if (sites.size() <= 2) maxPossibleCircleEvents = 0;
+		int numSiteEvents = sites.size(); 
+		return numSiteEvents + maxPossibleCircleEvents;
 	}
 
 	public void processNextEventVerbose() {

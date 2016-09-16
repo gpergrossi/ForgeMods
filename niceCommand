@@ -1,0 +1,1 @@
+find . -name BuildState.java -exec git diff --color=never {} \; | sed -e 's/^M//g' > /cygdrive/c/Users/Gregary/Desktop/diff.txt

@@ -54,9 +54,13 @@ public class Voronoi {
 	}
 	
 	public void buildStep() {
-		if (state == null || buildNeeded) buildInit();
+		if (state == null || buildNeeded) {
+			buildInit();
+			System.out.println("Build Step 0 (out of <"+state.getTheoreticalMaxSteps()+")");
+			return;
+		}
 		if (state.hasNextEvent()) {
-			System.out.println("Build Step");
+			System.out.println("Build Step "+state.getEventsProcessed()+" (out of <"+state.getTheoreticalMaxSteps()+")");
 			state.processNextEvent();
 		}
 	}
