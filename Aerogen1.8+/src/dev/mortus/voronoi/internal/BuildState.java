@@ -9,13 +9,18 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
 import dev.mortus.util.Pair;
+import dev.mortus.util.math.Ray;
+import dev.mortus.util.math.Vec2;
+import dev.mortus.voronoi.Edge;
 import dev.mortus.voronoi.Site;
+import dev.mortus.voronoi.Vertex;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.tree.Arc;
 import dev.mortus.voronoi.internal.tree.Breakpoint;
@@ -53,45 +58,41 @@ public final class BuildState {
 	private final Queue<Event> eventQueue;
 	private final ShoreTree shoreTree;
 	private double sweeplineY = Double.NaN;
-	private double minX, maxX, minY, maxY;
-	private final List<Site> sites;
+	private Rectangle2D bounds;
 	private int eventsProcessed;
+	private boolean completed;
+	private List<Edge> edges;
+	private int numSites;
 
 	public BuildState (Voronoi voronoi, Rectangle2D bounds) {
 		this.voronoi = voronoi;
 		this.eventQueue = new PriorityQueue<Event>(EventOrder);
 		this.shoreTree = new ShoreTree();
-		this.sites = new ArrayList<Site>();
 		
-		this.minX = bounds.getMinX();
-		this.maxX = bounds.getMaxX();
-		this.minY = bounds.getMinY();
-		this.maxY = bounds.getMaxY();
+		this.bounds = new Rectangle2D.Double(bounds.getX(), bounds.getY(), bounds.getWidth(),bounds.getHeight());
+		this.edges = new ArrayList<Edge>();
 		
 		this.eventsProcessed = 0;
 	}
 
-	public void initSiteEvents(List<Point2D> points) {
+	public void initSiteEvents(List<Site> sites) {
 		eventQueue.clear();
 		TreeNode.IDCounter = 0;
 		Site.IDCounter = 0;
+		edges.clear();
+		completed = false;
+		numSites = sites.size();
 		
-		for(Point2D point : points) {
-			Site site = new Site(point);
-			Event e = Event.createSiteEvent(site);
-			sites.add(site);
-			addEvent(e);
-		}
+		for(Site site : sites) addEvent(Event.createSiteEvent(site));
 
-		Event e = eventQueue.poll();
-		
 		// Create tree with first site
+		Event e = eventQueue.poll();
 		shoreTree.initialize(e.site);
 		eventsProcessed = 1;
 	}
 	
 	public boolean hasNextEvent() {
-		return eventQueue.size() > 0;
+		return !completed;
 	}
 	
 	private void addEvent(Event e) {
@@ -106,6 +107,11 @@ public final class BuildState {
 	
 	public void processNextEvent() {
 		if (!shoreTree.isInitialized()) throw new RuntimeException("Shore Tree has not yet been initialized");
+		
+		if (eventQueue.size() == 0) {
+			finish();
+			return;
+		}
 		
 		Event e = eventQueue.poll();
 		sweeplineY = e.getPosition().getY();
@@ -140,9 +146,9 @@ public final class BuildState {
 		}
 		
 	}
-	
+
 	private void processSiteEvent(Site site) {
-		Arc arcUnderSite = shoreTree.getArcUnderSite(this.sweeplineY, site);
+		Arc arcUnderSite = shoreTree.getArcUnderSite(sweeplineY, site);
 		removeEvent(arcUnderSite.getCircleEvent());
 		
 		// Split the arc with two breakpoints (possibly just one) and insert an arc for the site event
@@ -153,46 +159,86 @@ public final class BuildState {
 			addEvent(neighbor.checkCircleEvent(this));
 		}
 		
-		// TODO: Create new edges
-//		for (TreeNode node : newArc.getBreakpoints() ) {
-//			node.checkEdge();
-//		}
-		
+		// Create edges
+		Vertex sharedVertex = null;
+		for (Breakpoint bp : newArc.getBreakpoints() ) {
+			Edge newEdge = bp.checkNewEdge(sweeplineY, bounds, sharedVertex);
+			if (newEdge != null) sharedVertex = newEdge.getStart();
+		}
 	}
 	
 	private void processCircleEvent(Arc arc) {
-		
 		// Save these, they will change
 		Pair<Arc> neighbors = arc.getNeighborArcs(); 
 		Breakpoint predecessor = arc.getPredecessor();
 		Breakpoint successor = arc.getSuccessor();
 		
+		// Step 1. Finish the edges of each breakpoint
+		Vertex sharedVertex = new Vertex(predecessor.getPosition(sweeplineY));
+		for (Breakpoint bp : arc.getBreakpoints()) {
+			bp.edge.finish(sharedVertex);
+			addEdge(bp.edge);
+			bp.edge = null;
+		}
 		
-		// Step 1. Remove arc and one of its breakpoints
+		// Step 2. Remove arc and one of its breakpoints
 		TreeNode parentBreakpoint = arc.getParent();
 		TreeNode sibling = arc.getSibling();
-			
 		if (parentBreakpoint != successor && parentBreakpoint != predecessor) {
 			if (arc.isLeftChild()) throw new RuntimeException("Unexpected successor! "+successor + ", should be "+parentBreakpoint);
 			if (arc.isRightChild()) throw new RuntimeException("Unexpected predecessor! "+predecessor + ", should be "+parentBreakpoint);
-			throw new RuntimeException("The parent of any arc should be it successor or its predecessor!");
+			throw new RuntimeException("The parent of any arc should be its successor or its predecessor!");
 		}
-		
 		sibling.disconnect();
 		parentBreakpoint.replaceWith(sibling);
 		
+		// Step 3. Update the remaining breakpoint
+		Breakpoint remainingBP = null;
+		if (parentBreakpoint == successor) remainingBP = predecessor;
+		if (parentBreakpoint == predecessor) remainingBP = successor;
+		remainingBP.updateArcs();
 		
-		// Step 2. Update the remaining breakpoint
-		if (parentBreakpoint == successor) predecessor.updateArcs();
-		if (parentBreakpoint == predecessor) successor.updateArcs();
-		
-		
-		// Step 3. Update circle events
+		// Step 4. Update circle events
 		for (Arc neighbor : neighbors) {
 			removeEvent(neighbor.circleEvent);
 			addEvent(neighbor.checkCircleEvent(this));
 		}
 		
+		// Step 5. Form new edge
+		remainingBP.checkNewEdge(sweeplineY, bounds, sharedVertex);
+	}
+	
+	private void finish() {
+		if (sweeplineY < bounds.getMinY()) sweeplineY = bounds.getMaxY();
+		// TODO merge vertices, clip edges, create new edges along boundaries, link edges/vertices/sites
+		// report completed graph back to voronoi
+		
+		// extend edges
+		TreeNode node = shoreTree.getRoot().getFirstDescendant();
+		for (; node != null; node = node.getSuccessor()) {
+			if (!(node instanceof Breakpoint)) continue;
+			Breakpoint bp = (Breakpoint) node;
+			
+			Edge edge = bp.edge;
+			Vec2 endPoint = bp.getPosition(sweeplineY);
+			if (bounds.contains(endPoint.toPoint())) {
+				Ray edgeRay = new Ray(endPoint, bp.getDirection());
+				// project ray onto bounds, redefine endPoint
+			}
+			
+			edge.finish(new Vertex(endPoint));
+		}
+		
+		completed = true;
+		System.out.println("finished");
+	}
+	
+	private void addEdge(Edge edge) {
+		this.edges.add(edge);
+	}
+
+	public List<Edge> getEdges() {
+		return Collections.unmodifiableList(edges);
 	}
 	
 	public double getSweeplineY() {
@@ -200,7 +246,7 @@ public final class BuildState {
 	}
 	
 	public Rectangle2D getBounds() {
-		return new Rectangle2D.Double(minX, minY, maxX-minX, maxY-minY);
+		return new Rectangle2D.Double(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
 	}
 
 	public void drawDebugState(Graphics2D g) {
@@ -208,13 +254,13 @@ public final class BuildState {
 		this.shoreTree.draw(this, g);
 		
 		g.setColor(Color.YELLOW);
-		Line2D line = new Line2D.Double(minX, sweeplineY, maxX, sweeplineY);
+		Line2D line = new Line2D.Double(bounds.getMinX(), sweeplineY, bounds.getMaxX(), sweeplineY);
 		g.draw(line);
 		
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
 		
-		for (Site s : sites) {
+		for (Site s : voronoi.getSites()) {
 			Ellipse2D sitedot = new Ellipse2D.Double(s.getX()-1, s.getY()-1, 2, 2);
 			g.setColor(new Color(0,128,0));
 			g.draw(sitedot);
@@ -237,10 +283,9 @@ public final class BuildState {
 	}
 
 	public int getTheoreticalMaxSteps() {
-		int maxPossibleCircleEvents = sites.size()*2 - 5;
-		if (sites.size() <= 2) maxPossibleCircleEvents = 0;
-		int numSiteEvents = sites.size(); 
-		return numSiteEvents + maxPossibleCircleEvents;
+		int maxPossibleCircleEvents = numSites*2 - 5;
+		if (numSites <= 2) maxPossibleCircleEvents = 0;
+		return numSites + maxPossibleCircleEvents;
 	}
 
 	public void processNextEventVerbose() {

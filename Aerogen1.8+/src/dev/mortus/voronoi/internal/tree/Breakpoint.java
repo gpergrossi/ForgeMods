@@ -1,14 +1,18 @@
 package dev.mortus.voronoi.internal.tree;
 
-import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.List;
 
-import dev.mortus.util.MathUtil.Parabola;
-import dev.mortus.util.MathUtil.Vec2;
+import dev.mortus.util.math.Parabola;
+import dev.mortus.util.math.Ray;
+import dev.mortus.util.math.Vec2;
+import dev.mortus.voronoi.Edge;
+import dev.mortus.voronoi.Vertex;
 import dev.mortus.voronoi.Voronoi;
 
 public class Breakpoint extends TreeNode {
 	
+	public Edge edge;
 	public Arc arcLeft, arcRight;
 	
 	public Breakpoint(TreeNode left, TreeNode right) {
@@ -44,13 +48,13 @@ public class Breakpoint extends TreeNode {
 	private double lastRequest = Double.NaN;
 	private Vec2 lastResult = null;
 	
-	public Point2D getPosition(double sweeplineY) {
+	public Vec2 getPosition(double sweeplineY) {
 		if (sweeplineY != lastRequest) {
 			lastRequest = sweeplineY;
 			lastResult = calculatePosition(sweeplineY);
 		}
 		if (lastResult == null) return null;
-		return lastResult.toPoint();
+		return lastResult;
 	}
 	
 	/**
@@ -58,73 +62,55 @@ public class Breakpoint extends TreeNode {
 	 * A point is returned representing a vector. The length is not normalized.
 	 * @return
 	 */
-	private Point2D getDirection() {
+	public Vec2 getDirection() {
 		double dy = arcRight.site.getY() - arcLeft.site.getY();
 		double dx = arcRight.site.getX() - arcLeft.site.getX();
 		
 		if (dy == 0) {
-			if (dx == 0) return new Point2D.Double(0, 0);
-			return new Point2D.Double(0, 1);
+			if (dx == 0) return new Vec2(0, 0);
+			return new Vec2(0, 1);
 		}
 		if (dy < 0) {
-			return new Point2D.Double(1, -dx/dy);
+			return new Vec2(1, -dx/dy);
 		} else {
-			return new Point2D.Double(-1, dx/dy);
+			return new Vec2(-1, dx/dy);
 		}
 	}
 	
-	public static Point2D getIntersection(double sweeplineY, Breakpoint left, Breakpoint right) {		
-		Point2D pos0 = left.getPosition(sweeplineY);
-		Point2D dir0 = left.getDirection();
-		Point2D pos1 = right.getPosition(sweeplineY);
-		Point2D dir1 = right.getDirection();
+	public static Vec2 getIntersection(double sweeplineY, Breakpoint left, Breakpoint right) {		
+		Vec2 pos0 = left.getPosition(sweeplineY);
+		Vec2 pos1 = right.getPosition(sweeplineY);
 		
-		if (Voronoi.DEBUG) {
-			if (pos0 == null) {
-				System.err.println("breakpoint position undefined: "+left);
-				return null;
+		if (pos0 == null || pos1 == null) {
+			if (Voronoi.DEBUG) {
+				if (pos0 == null) System.err.println("breakpoint position undefined: "+left);
+				if (pos1 == null) System.err.println("breakpoint position undefined: "+right);
 			}
-			if (pos1 == null) {
-				System.err.println("breakpoint position undefined: "+right);
-				return null;
-			}
-		}
-		if (pos0 == null || pos1 == null) return null;
-		
-		double dx = pos1.getX() - pos0.getX();
-		double dy = pos1.getY() - pos0.getY();
-		double det = dir1.getX() * dir0.getY() - dir1.getY() * dir0.getX();
-		
-		if (det == 0) {
-			if (Voronoi.DEBUG) System.err.println("determinant of 0");
 			return null;
 		}
 		
-		double u = (dy * dir1.getX() - dx * dir1.getY()) / det;
-		double v = (dy * dir0.getX() - dx * dir0.getY()) / det;
-
-		if (u < -Voronoi.VERY_SMALL || v < -Voronoi.VERY_SMALL) {
-			if (Voronoi.DEBUG) System.err.println("Intersection at negative U or V: "+left+", "+right);
-			return null; // intersection is behind the current position of one of the breakpoints
-		}
-		if (abs(u) < Voronoi.VERY_SMALL && abs(v) < Voronoi.VERY_SMALL) {
-			// special case, the breakpoints are currently intersecting: 
-			// return null only if they are diverging with respect to Y+
-			if (dir0.getX() < dir1.getX()) {
-				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Diverging (left.dx="+dir0.getX()+", right.dx="+dir1.getX()+"). Special case denied.");
-				return null;
-			} else {
-				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Converging (left.dx="+dir0.getX()+", right.dx="+dir1.getX()+"). Special case accepted.");
-			}
+		Vec2 dir0 = left.getDirection();
+		Vec2 dir1 = right.getDirection();
+		
+		Ray ray0 = new Ray(pos0, dir0).lengthen(Voronoi.VERY_SMALL);
+		Ray ray1 = new Ray(pos1, dir1).lengthen(Voronoi.VERY_SMALL);
+		
+		Vec2 intersection = ray0.intersect(ray1);
+		if (intersection == null) {
+			if (Voronoi.DEBUG) System.out.println("No intersection between "+left+" and "+right);
+			return null;
 		}
 		
-		return new Point2D.Double(pos0.getX() + dir0.getX()*u, pos0.getY() + dir0.getY()*u);		
-	}
-	
-	
-	private static double abs(double v) {
-		if (v < 0) return -v;
-		return v;
+		if (intersection.subtract(pos0).length() < Voronoi.VERY_SMALL) {
+			// special case, the breakpoints are currently intersecting: 
+			// return null only if they are diverging with respect to Y+
+			if (dir0.x < dir1.x) {
+				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Diverging (left.dx="+dir0.x+", right.dx="+dir1.x+"). Special case denied.");
+				return null;
+			} else if (Voronoi.DEBUG) System.out.println("Currently intersecting. Converging (left.dx="+dir0.x+", right.dx="+dir1.x+"). Special case accepted.");
+		}
+		
+		return intersection;
 	}
 
 	private Vec2 calculatePosition(double sweeplineY) {
@@ -179,13 +165,13 @@ public class Breakpoint extends TreeNode {
 	@Override
 	public Arc getArc(double sweeplineY, double siteX) {
 		// Call down the tree based on breakpoint positions
-		Point2D bp = this.getPosition(sweeplineY);
+		Vec2 pos = this.getPosition(sweeplineY);
 		
-		double bpx;
-		if (bp == null) bpx = (this.arcLeft.site.getX() + this.arcRight.site.getX()) / 2.0;
-		else bpx = bp.getX();
+		double posX;
+		if (pos == null) posX = (this.arcLeft.site.getX() + this.arcRight.site.getX()) / 2.0;
+		else posX = pos.x;
 		
-		if (siteX <= bpx) {
+		if (siteX <= posX) {
 			return getLeftChild().getArc(sweeplineY, siteX);
 		} else {
 			return getRightChild().getArc(sweeplineY, siteX);
@@ -204,6 +190,40 @@ public class Breakpoint extends TreeNode {
 		return "Breakpoint["+(debugName != null ? "DebugName='"+debugName+"', " : "")+"ID="+id+", "
 				+ "LeftArc="+arcLeft+", RightArc="+arcRight+", "
 				+ "Children:[Left="+leftID+", Right="+rightID+"]]";
+	}
+
+	/**
+	 * Checks if this breakpoint has an edge, if not one is created.
+	 * The created edge will begin at the current position using
+	 * possibleVertex if it is close enough (distance < Voronoi.VERY_SMALL)
+	 * otherwise it will create a new vertex. The voronoiBounds argument is used
+	 * to create a Y coordinate for breakpoints whose positions are not defined
+	 * (only occurs when the first several breakpoints of the voronoi diagram
+	 * are at the same Y coordinate).
+	 * @param sweeplineY
+	 * @param voronoiBounds
+	 * @param possibleVertex
+	 * @return
+	 */
+	public Edge checkNewEdge(double sweeplineY, Rectangle2D voronoiBounds, Vertex possibleVertex) {
+		if (this.edge != null) return null;
+		
+		// Get current position
+		Vec2 currentPosition = this.getPosition(sweeplineY);
+		if (currentPosition == null) {
+			double x = (arcLeft.site.getX() + arcRight.site.getX()) / 2.0;
+			currentPosition = new Vec2(x, voronoiBounds.getY() - voronoiBounds.getHeight());
+		}
+		
+		// Find or create a vertex
+		Vertex vertex = null;
+		if (possibleVertex != null && possibleVertex.isCloseTo(currentPosition)) vertex = possibleVertex;
+		else vertex = new Vertex(currentPosition);
+		
+		// Create edge
+		this.edge = new Edge(this);
+		this.edge.start(vertex);
+		return edge;
 	}
 	
 }

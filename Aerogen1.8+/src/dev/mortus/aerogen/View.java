@@ -194,7 +194,7 @@ public class View {
 			}
 			
 			voronoi = new Voronoi();
-			for (Point2D point : points) voronoi.add(point);
+			for (Point2D point : points) voronoi.addSite(point);
 		}
 		//System.out.println("Click released: "+click);
 	}
@@ -227,9 +227,9 @@ public class View {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			voronoi.buildStep();
 		} else if (e.getKeyCode() == KeyEvent.VK_UP) {
-			voronoi.sweep(-1);
+			voronoi.debugAdvanceSweepline(-1);
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-			voronoi.sweep(+1);
+			voronoi.debugAdvanceSweepline(+1);
 		} else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
 			voronoi.stepBack();
 		}

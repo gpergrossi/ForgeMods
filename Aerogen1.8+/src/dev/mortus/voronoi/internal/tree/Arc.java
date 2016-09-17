@@ -2,9 +2,9 @@ package dev.mortus.voronoi.internal.tree;
 
 import java.awt.geom.Point2D;
 
-import dev.mortus.util.MathUtil.Circle;
-import dev.mortus.util.MathUtil.Parabola;
-import dev.mortus.util.MathUtil.Vec2;
+import dev.mortus.util.math.Circle;
+import dev.mortus.util.math.Parabola;
+import dev.mortus.util.math.Vec2;
 import dev.mortus.util.Pair;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.BuildState;
@@ -95,7 +95,7 @@ public class Arc extends TreeNode {
 			
 			Breakpoint leftBP = (Breakpoint) getPredecessor();
 			Breakpoint rightBP = (Breakpoint) getSuccessor();
-			Point2D intersection = Breakpoint.getIntersection(state.getSweeplineY(), leftBP, rightBP);
+			Vec2 intersection = Breakpoint.getIntersection(state.getSweeplineY(), leftBP, rightBP);
 			if (intersection == null) break;
 			
 			Vec2 leftSite = new Vec2(leftNeighbor.site.getPos());

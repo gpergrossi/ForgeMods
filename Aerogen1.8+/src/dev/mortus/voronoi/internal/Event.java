@@ -2,7 +2,7 @@ package dev.mortus.voronoi.internal;
 
 import java.awt.geom.Point2D;
 
-import dev.mortus.util.MathUtil.Circle;
+import dev.mortus.util.math.Circle;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.tree.Arc;
 
