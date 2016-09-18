@@ -59,7 +59,7 @@ public final class BuildState {
 	private final Voronoi voronoi;
 	private final Queue<Event> eventQueue;
 	private final ShoreTree shoreTree;
-	private double sweeplineY = Double.NaN;
+	private double sweeplineY = Double.NEGATIVE_INFINITY;
 	private Rectangle2D bounds;
 	private int eventsProcessed;
 	private boolean finished;
@@ -78,11 +78,7 @@ public final class BuildState {
 	}
 
 	public void initSiteEvents(List<Site> sites) {
-		eventQueue.clear();
-		TreeNode.IDCounter = 0;
-		Site.IDCounter = 0;
-		edges.clear();
-		finished = false;
+		if (eventsProcessed > 0) throw new RuntimeException("Already initialized.");
 		numSites = sites.size();
 		
 		for(Site site : sites) addEvent(Event.createSiteEvent(site));
@@ -116,7 +112,18 @@ public final class BuildState {
 		}
 		
 		Event e = eventQueue.poll();
-		sweeplineY = e.getPosition().getY();
+		
+		// Advance sweepline
+		if (sweeplineY <= e.getPosition().getY()) sweeplineY = e.getPosition().getY();
+		else {
+			// An event may be below the sweepline by a VERY_SMALL amount if it is a circle event created 
+			// by a site event that landed exactly on top of a breakpoint. In this case an already vanishing 
+			// arc will be created and must be cleaned up immediately before any other events are processed.
+			if (sweeplineY > e.getPosition().getY()+Voronoi.VERY_SMALL) {
+				throw new RuntimeException("Event inserted after it should have already been processed. "
+						+ "EventY="+e.getPosition().getY()+", sweeplineY="+sweeplineY);
+			}
+		}
 		
 		switch(e.type) {
 			case SITE:
@@ -150,7 +157,7 @@ public final class BuildState {
 	}
 
 	private void processSiteEvent(Site site) {
-		Arc arcUnderSite = shoreTree.getArcUnderSite(sweeplineY, site);
+		Arc arcUnderSite = shoreTree.getArcUnderSite(this, site);
 		removeEvent(arcUnderSite.getCircleEvent());
 		
 		// Split the arc with two breakpoints (possibly just one) and insert an arc for the site event
@@ -162,10 +169,15 @@ public final class BuildState {
 		}
 		
 		// Create edges
-		Vertex sharedVertex = null;
+		HalfEdge twin = null;
 		for (Breakpoint bp : newArc.getBreakpoints() ) {
-			Edge newEdge = bp.checkNewEdge(sweeplineY, bounds, sharedVertex);
-			if (newEdge != null) sharedVertex = newEdge.start();
+			if (twin == null) {
+				HalfEdge edge = (HalfEdge) bp.checkNewEdge(this, null, true);
+				if (edge != null) twin = edge;
+			} else {
+				HalfEdge edge = (HalfEdge) bp.checkNewEdge(this, twin.start(), true);
+				edge.setTwin(twin);
+			}
 		}
 	}
 	
@@ -176,7 +188,7 @@ public final class BuildState {
 		Breakpoint successor = arc.getSuccessor();
 		
 		// Step 1. Finish the edges of each breakpoint
-		Vertex sharedVertex = new Vertex(predecessor.getPosition(sweeplineY));
+		Vertex sharedVertex = new Vertex(predecessor.getPosition(this));
 		for (Breakpoint bp : arc.getBreakpoints()) {
 			bp.edge.end(sharedVertex);
 			addEdge(bp.edge);
@@ -207,7 +219,7 @@ public final class BuildState {
 		}
 		
 		// Step 5. Form new edge
-		remainingBP.checkNewEdge(sweeplineY, bounds, sharedVertex);
+		remainingBP.checkNewEdge(this, sharedVertex, false);
 	}
 	
 	private void finish() {
@@ -224,7 +236,7 @@ public final class BuildState {
 			Breakpoint bp = (Breakpoint) node;
 			
 			Edge edge = bp.edge;
-			Vec2 endPoint = bp.getPosition(sweeplineY);
+			Vec2 endPoint = bp.getPosition(this);
 			if (bounds.contains(endPoint.toPoint2D())) {
 				Ray edgeRay = new Ray(endPoint, bp.getDirection());
 				endPoint = boundsRect.intersect(edgeRay).get(0);

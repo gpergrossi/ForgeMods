@@ -43,9 +43,9 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		return (root != null);
 	}
 	
-	public Arc getArcUnderSite(double sweeplineY, Site site) {
+	public Arc getArcUnderSite(final BuildState state, Site site) {
 		if (root == null) throw new RuntimeException("Tree has not yuet been initialized");
-		return root.getArc(sweeplineY, site.getX());
+		return root.getArc(state, site.getX());
 	}
 		
 	public void draw(final BuildState state, Graphics2D g) {
@@ -77,11 +77,11 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 				Breakpoint leftBP = (Breakpoint) arc.getPredecessor();
 				Breakpoint rightBP = (Breakpoint) arc.getSuccessor();
 				
-				Vec2 intersection = Breakpoint.getIntersection(state.getSweeplineY(), leftBP, rightBP);
+				Vec2 intersection = Breakpoint.getIntersection(state, leftBP, rightBP);
 				if (intersection != null) {
 					g.setColor(new Color(0,0,128));
-					Vec2 leftPos = leftBP.getPosition(state.getSweeplineY());
-					Vec2 rightPos = rightBP.getPosition(state.getSweeplineY());
+					Vec2 leftPos = leftBP.getPosition(state);
+					Vec2 rightPos = rightBP.getPosition(state);
 					Line2D lineBP0 = new Line2D.Double(leftPos.toPoint2D(), intersection.toPoint2D());
 					Line2D lineBP1 = new Line2D.Double(rightPos.toPoint2D(), intersection.toPoint2D());
 					g.draw(lineBP0);
@@ -118,7 +118,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 				Vec2 predBreakpoint = null;
 				if (pred != null && pred instanceof Breakpoint) {
 					Breakpoint breakpoint = (Breakpoint) pred;
-					predBreakpoint = breakpoint.getPosition(state.getSweeplineY());
+					predBreakpoint = breakpoint.getPosition(state);
 					if (predBreakpoint != null) minX = predBreakpoint.x;
 				}
 				
@@ -126,7 +126,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 				Vec2 succBreakpoint = null;
 				if (succ != null && succ instanceof Breakpoint) {
 					Breakpoint breakpoint = (Breakpoint) succ;
-					succBreakpoint = breakpoint.getPosition(state.getSweeplineY());
+					succBreakpoint = breakpoint.getPosition(state);
 					if (succBreakpoint != null) maxX = succBreakpoint.x;
 				}
 				
@@ -162,7 +162,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		while (n != null) {
 			if (n instanceof Breakpoint) {
 				Breakpoint breakpoint = (Breakpoint) n;
-				Vec2 posVec = breakpoint.getPosition(state.getSweeplineY());
+				Vec2 posVec = breakpoint.getPosition(state);
 				if (posVec == null) {
 					n = n.getSuccessor();
 					continue;
@@ -206,7 +206,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 			Vec2 start = edge.start().getPosition();
 			Vec2 end;
 			if (edge.isFinished()) end = edge.end().getPosition();
-			else end = bp.getPosition(state.getSweeplineY());
+			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);
 		}

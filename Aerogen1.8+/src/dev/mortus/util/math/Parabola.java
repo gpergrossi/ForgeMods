@@ -1,9 +1,6 @@
 package dev.mortus.util.math;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import dev.mortus.util.data.Pair;
 
 public class Parabola {
 	public final double a, b, c;
@@ -49,41 +46,38 @@ public class Parabola {
 	 * @param other parabola to intersect with
 	 * @return list of intersecting points or null if there are an unlimited number
 	 */
-	public List<Vec2> intersect(Parabola other) {
+	public Pair<Vec2> intersect(Parabola other) {
 		Parabola composite = this.subtract(other);
-		List<Double> zeros = composite.zeros();
-		if (zeros == null) return null;
-		List<Vec2> intersects;
+		Pair<Double> zeros = composite.zeros();
+		
 		if (!this.isVertical) { 
-			intersects = zeros.stream()
-			.map(s -> new Vec2(s, get(s)))
-			.collect(Collectors.toList());
+			return new Pair<Vec2>(getPoint(zeros.first), getPoint(zeros.second));
 		} else if (!other.isVertical) {
-			intersects = zeros.stream()
-			.map(s -> new Vec2(s, other.get(s)))
-			.collect(Collectors.toList());
+			return new Pair<Vec2>(other.getPoint(zeros.first), other.getPoint(zeros.second));
 		} else {
-			return null;
+			return new Pair<Vec2>(null, null);
 		}
-		return Collections.unmodifiableList(intersects);
+	}
+	
+	private Vec2 getPoint(Double x) {
+		if (x == null) return null;
+		return new Vec2(x, get(x));
 	}
 	
 	/**
 	 * Returns a list of the one or two X coordinates of the zeroes of this parabola.
-	 * If the equation is consta/*nt and equal to zero (I.E. y = 0), there are an unlimited
+	 * If the equation is constant and equal to zero (I.E. y = 0), there are an unlimited
 	 * number of zeros. To represent this case, null is returned. If two zeros exist,
 	 * they are added to the list with the lower X coordinate first.
 	 * @return list of x coordinates resulting in a zero output, or null if there 
 	 * are an unlimited number
 	 */
-	public List<Double> zeros() {
-		List<Double> zeros = new ArrayList<Double>();
+	public Pair<Double> zeros() {
 		
 		// Vertical "parabola"
 		if (this.isVertical) {
-			if (this.verticalX == Double.NaN) return null;
-			zeros.add(this.verticalX);
-			return Collections.unmodifiableList(zeros);
+			if (this.verticalX == Double.NaN) return new Pair<Double>(null, null);
+			return new Pair<Double>(this.verticalX, null);
 		}
 		
 		// Non order 2
@@ -94,30 +88,28 @@ public class Parabola {
 			}
 			
 			// linear, return single zero
-			zeros.add(-c/b);
-			return Collections.unmodifiableList(zeros);
+			return new Pair<Double>(-c/b, null);
 		}
 		
-		double partial = b*b - 4*a*c;
+		double range = b*b - 4*a*c;
 		
-		// No zeros
-		if (partial < 0) return Collections.unmodifiableList(zeros);
+		// No real zeros
+		if (range < 0) return new Pair<Double>(null, null);
 		
-		if (partial == 0) {
-			zeros.add(-b / (2 * a));
+		// Normal quadratic
+		if (range == 0) {
+			// Parabola touches zero exactly once
+			return new Pair<Double>(-b / (2 * a), null);
 		} else {
-			partial = Math.sqrt(partial);
+			range = Math.sqrt(range);
 			
-			// Add zeros so lesser X is first
+			// Return zeros so lesser X is first
 			if (a > 0) {
-				zeros.add((-b - partial) / (2 * a));
-				zeros.add((-b + partial) / (2 * a));
+				return new Pair<Double>((-b - range) / (2 * a), (-b + range) / (2 * a));
 			} else {
-				zeros.add((-b + partial) / (2 * a));
-				zeros.add((-b - partial) / (2 * a));
+				return new Pair<Double>((-b + range) / (2 * a), (-b - range) / (2 * a));
 			}
 		}
-		return Collections.unmodifiableList(zeros);
 	}
 	
 	public Parabola subtract(Parabola other) {

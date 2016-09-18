@@ -14,9 +14,9 @@ import dev.mortus.voronoi.internal.Event;
  * sweep line as a directrix. The Parabola class -- used by all Arcs
  * for purposes of calculation -- is immutable. Therefore, the arc
  * class serves the purpose of forming appropriate Parabolas for a 
- * site at any given position of the sweep line.
- * 
- * @author Gregary
+ * site at any given position of the sweep line. It also holds onto 
+ * important information about the arc, such as its circle event
+ * and neighbors.
  */
 public class Arc extends TreeNode {
 	
@@ -51,7 +51,7 @@ public class Arc extends TreeNode {
 	}
 
 	@Override
-	public Arc getArc(double sweeplineY, double siteX) {
+	public Arc getArc(final BuildState state, double siteX) {
 		return this;
 	}
 
@@ -94,7 +94,7 @@ public class Arc extends TreeNode {
 			
 			Breakpoint leftBP = (Breakpoint) getPredecessor();
 			Breakpoint rightBP = (Breakpoint) getSuccessor();
-			Vec2 intersection = Breakpoint.getIntersection(state.getSweeplineY(), leftBP, rightBP);
+			Vec2 intersection = Breakpoint.getIntersection(state, leftBP, rightBP);
 			if (intersection == null) break;
 			
 			Vec2 leftSite = new Vec2(leftNeighbor.site.getPos());

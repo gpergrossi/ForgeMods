@@ -1,6 +1,7 @@
 package dev.mortus.voronoi.internal.tree;
 
 import dev.mortus.util.data.LinkedBinaryNode;
+import dev.mortus.voronoi.internal.BuildState;
 
 /**
  * This class mostly recasts the LinkedBinaryNode class. I tried to find a way around this by
@@ -63,6 +64,6 @@ public abstract class TreeNode extends LinkedBinaryNode {
 		return super.<TreeNode>castedSubtreeIterator();
 	}
 	
-	public abstract Arc getArc(double sweeplineY, double siteX);
+	public abstract Arc getArc(final BuildState state, double siteX);
 	
 }

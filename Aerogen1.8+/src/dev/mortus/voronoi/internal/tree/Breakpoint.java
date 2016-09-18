@@ -1,14 +1,14 @@
 package dev.mortus.voronoi.internal.tree;
 
-import java.awt.geom.Rectangle2D;
-import java.util.List;
-
+import dev.mortus.util.data.Pair;
 import dev.mortus.util.math.Parabola;
 import dev.mortus.util.math.Ray;
 import dev.mortus.util.math.Vec2;
 import dev.mortus.voronoi.Edge;
 import dev.mortus.voronoi.Vertex;
 import dev.mortus.voronoi.Voronoi;
+import dev.mortus.voronoi.internal.BuildState;
+import dev.mortus.voronoi.internal.HalfEdge;
 
 public class Breakpoint extends TreeNode {
 	
@@ -48,12 +48,16 @@ public class Breakpoint extends TreeNode {
 	private double lastRequest = Double.NaN;
 	private Vec2 lastResult = null;
 	
-	public Vec2 getPosition(double sweeplineY) {
-		if (sweeplineY != lastRequest) {
-			lastRequest = sweeplineY;
-			lastResult = calculatePosition(sweeplineY);
+	public Vec2 getPosition(final BuildState state) {
+		if (state.getSweeplineY() != lastRequest) {
+			lastRequest = state.getSweeplineY();
+			lastResult = calculatePosition(state.getSweeplineY());
 		}
-		if (lastResult == null) return null;
+		if (lastResult == null) {
+			double x = (arcLeft.site.getX() + arcRight.site.getX()) / 2.0;
+			double y = state.getBounds().getMinY()-10;
+			lastResult = new Vec2(x, y);
+		}
 		return lastResult;
 	}
 	
@@ -77,9 +81,9 @@ public class Breakpoint extends TreeNode {
 		}
 	}
 	
-	public static Vec2 getIntersection(double sweeplineY, Breakpoint left, Breakpoint right) {		
-		Vec2 pos0 = left.getPosition(sweeplineY);
-		Vec2 pos1 = right.getPosition(sweeplineY);
+	public static Vec2 getIntersection(final BuildState state, Breakpoint left, Breakpoint right) {		
+		Vec2 pos0 = left.getPosition(state);
+		Vec2 pos1 = right.getPosition(state);
 		
 		if (pos0 == null || pos1 == null) {
 			if (Voronoi.DEBUG) {
@@ -117,29 +121,26 @@ public class Breakpoint extends TreeNode {
 		Parabola leftParabola = arcLeft.getParabola(sweeplineY);
 		Parabola rightParabola = arcRight.getParabola(sweeplineY);
 		
-		List<Vec2> intersects = leftParabola.intersect(rightParabola);
+		Pair<Vec2> intersects = leftParabola.intersect(rightParabola);
 		double leftY = arcLeft.site.getY();
 		double rightY = arcRight.site.getY();
 			
 		// Case either parabola is a vertical line (focus y coord = directrix y coord)
-		if (leftParabola.isVertical && rightParabola.isVertical) {
-			// Both parabolas are vertical, no valid intersection
-			System.err.println("null intersect ("+arcLeft.site.id+" x "+arcRight.site.id+")");
-			return null;
-		} else if (leftParabola.isVertical) {
-			if (intersects.size() != 1) throw new RuntimeException("Seemingly impossible intersection result, vertical parabola intersects "+intersects.size()+" times");
-			return intersects.get(0);
+		if (leftParabola.isVertical) {
+			if (rightParabola.isVertical) return null; // Both parabolas are vertical, no valid intersection
+			if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
+			return intersects.first;
 		} else if (rightParabola.isVertical) {
-			if (intersects.size() != 1) throw new RuntimeException("Seemingly impossible intersection result, vertical parabola intersects "+intersects.size()+" times");
-			return intersects.get(0);
+			if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
+			return intersects.first;
 		} 
 		
 		if (leftY == rightY) {
 			// Parabolas are exactly side by side. There is only one intersect, 
 			// the desired left/right relationship may not exist.
 			if (arcLeft.site.getX() < arcRight.site.getX()) {
-				if (intersects.size() != 1) throw new RuntimeException("Seemingly impossible intersection result");
-				return intersects.get(0);
+				if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
+				return intersects.first;
 			} else {
 				throw new RuntimeException("There is no such breakpoint!");
 			}
@@ -152,20 +153,20 @@ public class Breakpoint extends TreeNode {
 		if (leftY > rightY) {
 			// The left parabola is steeper than right. There are 2 intersections between them, but 
 			// the X+ most intersect (index: 1) is the intersect for which the desired left/right relationship is correct
-			if (intersects.size() != 2) throw new RuntimeException("Seemingly impossible intersection result");
-			return intersects.get(1);
+			if (intersects.first == null) throw new RuntimeException("There should be 2 intersections in this situation");
+			return intersects.second;
 		} else {
 			// The right parabola is steeper than left. There are 2 intersections between them, but 
 			// the X- most intersect (index: 0) is the intersect for which the desired left/right relationship is correct
-			if (intersects.size() != 2) throw new RuntimeException("Seemingly impossible intersection result");
-			return intersects.get(0);
+			if (intersects.second == null) throw new RuntimeException("There should be 2 intersections in this situation");
+			return intersects.first;
 		}
 	}
 
 	@Override
-	public Arc getArc(double sweeplineY, double siteX) {
+	public Arc getArc(final BuildState state, double siteX) {
 		// Call down the tree based on breakpoint positions
-		Vec2 pos = this.getPosition(sweeplineY);
+		Vec2 pos = this.getPosition(state);
 		
 		double posX;
 		if (pos == null) posX = (this.arcLeft.site.getX() + this.arcRight.site.getX()) / 2.0;
@@ -173,10 +174,10 @@ public class Breakpoint extends TreeNode {
 				
 		if (siteX <= posX) {
 			System.out.println("X:"+siteX+" <= "+this);
-			return getLeftChild().getArc(sweeplineY, siteX);
+			return getLeftChild().getArc(state, siteX);
 		} else {
 			System.out.println("X:"+siteX+" > "+this);
-			return getRightChild().getArc(sweeplineY, siteX);
+			return getRightChild().getArc(state, siteX);
 		}
 	}
 
@@ -197,33 +198,32 @@ public class Breakpoint extends TreeNode {
 	/**
 	 * Checks if this breakpoint has an edge, if not one is created.
 	 * The created edge will begin at the current position using
-	 * possibleVertex if it is close enough (distance < Voronoi.VERY_SMALL)
-	 * otherwise it will create a new vertex. The voronoiBounds argument is used
-	 * to create a Y coordinate for breakpoints whose positions are not defined
-	 * (only occurs when the first several breakpoints of the voronoi diagram
-	 * are at the same Y coordinate).
+	 * a shared vertex if it is provided. Otherwise, it will create a 
+	 * new vertex. 
 	 * @param sweeplineY
 	 * @param voronoiBounds
-	 * @param possibleVertex
+	 * @param shared - a vertex that has already been created
+	 * @param half - is this a halfEdge? formed by a site event?
 	 * @return
 	 */
-	public Edge checkNewEdge(double sweeplineY, Rectangle2D voronoiBounds, Vertex possibleVertex) {
+	public Edge checkNewEdge(final BuildState state, Vertex shared, boolean half) {
 		if (this.edge != null) return null;
 		
 		// Get current position
-		Vec2 currentPosition = this.getPosition(sweeplineY);
+		Vec2 currentPosition = this.getPosition(state);
 		if (currentPosition == null) {
 			double x = (arcLeft.site.getX() + arcRight.site.getX()) / 2.0;
-			currentPosition = new Vec2(x, voronoiBounds.getY() - voronoiBounds.getHeight());
+			currentPosition = new Vec2(x, state.getBounds().getMinY() - 10);
 		}
 		
 		// Find or create a vertex
 		Vertex vertex = null;
-		if (possibleVertex != null && possibleVertex.isCloseTo(currentPosition)) vertex = possibleVertex;
+		if (shared != null) vertex = shared;
 		else vertex = new Vertex(currentPosition);
 		
 		// Create edge
-		this.edge = new Edge(this);
+		if (half) this.edge = new HalfEdge(this);
+		else this.edge = new Edge(this);
 		this.edge.start(vertex);
 		return edge;
 	}

@@ -70,9 +70,9 @@ public class ChunkManager<T extends Chunk> {
 	public ChunkManager(ChunkLoader<T> loader, double chunkSize, int numWorkers, int initialQueueSize) {
 		this.loader = loader;
 		this.chunkSize = chunkSize;
-		loadingQueue = new LoosePriorityDequeue<T>(initialQueueSize, CLOSEST_CHUNK_FIRST);
-		unloadingQueue = new LoosePriorityDequeue<T>(initialQueueSize, FARTHEST_CHUNK_FIRST);
-		loadedChunks = new LoosePriorityDequeue<T>(initialQueueSize, OLDEST_CHUNK_FIRST);
+		loadingQueue = new LoosePriorityQueue<T>(initialQueueSize, CLOSEST_CHUNK_FIRST);
+		unloadingQueue = new LoosePriorityQueue<T>(initialQueueSize, FARTHEST_CHUNK_FIRST);
+		loadedChunks = new LoosePriorityQueue<T>(initialQueueSize, OLDEST_CHUNK_FIRST);
 		workers = new Thread[numWorkers];
 		for (int i = 0; i < numWorkers; i++) {
 			workers[i] = new Thread(new WorkerTask<T>(this));

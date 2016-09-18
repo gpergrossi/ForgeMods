@@ -6,7 +6,15 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Random;
 
-public class LoosePriorityDequeue<T extends Object> extends ArrayList<T> implements Queue<T> {
+/**
+ * A loose priority queue calculates priority when an object is removed instead of when it is offered.
+ * Instead of finding the absolute best on each poll(), some elements are selected at random and the highest
+ * priority of the selected few is returned. This achieves constant time offering and polling while still behaving
+ * similarly to a perfect priority queue in large applications.
+ *
+ * @param <T> the type of object stored by this dequeue
+ */
+public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implements Queue<T> {
 
 	private static final long serialVersionUID = 6955654743124598514L;
 	
@@ -15,11 +23,11 @@ public class LoosePriorityDequeue<T extends Object> extends ArrayList<T> impleme
 	Random random;
 	int searchIters = 4;
 	
-	public LoosePriorityDequeue(int initialCapacity) {
+	public LoosePriorityQueue(int initialCapacity) {
 		this(initialCapacity, null);
 	}
 	
-	public LoosePriorityDequeue(int initialCapacity, Comparator<T> comparator) {
+	public LoosePriorityQueue(int initialCapacity, Comparator<T> comparator) {
 		super(initialCapacity);
 		this.comparator = comparator;
 		this.random = new Random();

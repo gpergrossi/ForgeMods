@@ -13,6 +13,7 @@ import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
+import dev.mortus.voronoi.internal.tree.TreeNode;
 
 public class View {
 	
@@ -233,6 +234,8 @@ public class View {
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_C) {
 			System.out.println("Clearing");
+			TreeNode.IDCounter = 0;
+			Site.IDCounter = 0;
 			voronoi.clearSites();
 		}
 	}
