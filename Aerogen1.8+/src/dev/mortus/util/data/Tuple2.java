@@ -1,4 +1,4 @@
-package dev.mortus.util;
+package dev.mortus.util.data;
 
 public class Tuple2<T,S> {
 

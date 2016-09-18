@@ -8,11 +8,10 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.List;
-
+import java.io.IOException;
 import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
+import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 
 public class View {
@@ -30,8 +29,6 @@ public class View {
 	
 	Voronoi voronoi;
 	
-	List<Point2D> points;
-	
 	ChunkLoader<SimulationChunk> chunkLoader;
 	ChunkManager<SimulationChunk> chunkManager;
 
@@ -40,8 +37,6 @@ public class View {
 		this.y = y;
 		this.halfWidth = width/2.0;
 		this.halfHeight = height/2.0;
-		
-		points = new ArrayList<Point2D>();
 		
 		voronoi = new Voronoi();
 		
@@ -98,14 +93,6 @@ public class View {
 			Rectangle2D.Double bounds = new Rectangle2D.Double(x-halfWidth, y-halfHeight, halfWidth*2, halfHeight*2);
 			chunkManager.update(bounds);
 			chunkManager.draw(g2d);
-		}
-		
-		ellipse2.width = 2.0;
-		ellipse2.height = 2.0;
-		for (Point2D point : points) {
-			ellipse2.x = point.getX()-1.0;
-			ellipse2.y = point.getY()-1.0;
-			g2d.fill(ellipse2);
 		}
 		
 		voronoi.draw(g2d);
@@ -182,19 +169,17 @@ public class View {
 			clickP = new Point2D.Double(x*8, y*8);
 			
 			boolean removed = false;
-			for (Point2D point : points) {
+			for (Site site : voronoi.getSites()) {
+				Point2D point = site.getPos();
 				if (clickP.distance(point) < 2) {
-					points.remove(point);
+					voronoi.removeSite(site);
 					removed = true;
 					break;
 				}
 			}
 			if (!removed) {
-				points.add(clickP);
+				voronoi.addSite(clickP);
 			}
-			
-			voronoi = new Voronoi();
-			for (Point2D point : points) voronoi.addSite(point);
 		}
 		//System.out.println("Click released: "+click);
 	}
@@ -232,6 +217,23 @@ public class View {
 			voronoi.debugAdvanceSweepline(+1);
 		} else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
 			voronoi.stepBack();
+		} else if (e.getKeyCode() == KeyEvent.VK_S) {
+			System.out.println("Saving");
+			try {
+				voronoi.savePoints();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		} else if (e.getKeyCode() == KeyEvent.VK_L) {
+			System.out.println("Loading");
+			try {
+				voronoi.loadPoints();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		} else if (e.getKeyCode() == KeyEvent.VK_C) {
+			System.out.println("Clearing");
+			voronoi.clearSites();
 		}
 	}
 	

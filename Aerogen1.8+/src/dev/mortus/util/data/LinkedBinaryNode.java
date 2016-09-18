@@ -1,4 +1,4 @@
-package dev.mortus.util;
+package dev.mortus.util.data;
 
 /**
  * This class includes some useful methods for a binary tree that

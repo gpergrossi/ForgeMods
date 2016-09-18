@@ -8,12 +8,13 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
-import dev.mortus.util.LinkedBinaryNode;
+import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.util.math.Circle;
 import dev.mortus.util.math.Parabola;
 import dev.mortus.util.math.Vec2;
 import dev.mortus.voronoi.Edge;
 import dev.mortus.voronoi.Site;
+import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
 
@@ -49,7 +50,14 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		
 	public void draw(final BuildState state, Graphics2D g) {
 		if (root == null) return;
+		if (state.isFinished()) {
+			drawFinished(state, g);
+			return;
+		}
 
+		boolean debug = Voronoi.DEBUG;
+		Voronoi.DEBUG = false;
+		
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
 		
@@ -74,8 +82,8 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 					g.setColor(new Color(0,0,128));
 					Vec2 leftPos = leftBP.getPosition(state.getSweeplineY());
 					Vec2 rightPos = rightBP.getPosition(state.getSweeplineY());
-					Line2D lineBP0 = new Line2D.Double(leftPos.toPoint(), intersection.toPoint());
-					Line2D lineBP1 = new Line2D.Double(rightPos.toPoint(), intersection.toPoint());
+					Line2D lineBP0 = new Line2D.Double(leftPos.toPoint2D(), intersection.toPoint2D());
+					Line2D lineBP1 = new Line2D.Double(rightPos.toPoint2D(), intersection.toPoint2D());
 					g.draw(lineBP0);
 					g.draw(lineBP1);
 					g.setColor(Color.BLUE);
@@ -159,7 +167,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 					n = n.getSuccessor();
 					continue;
 				}
-				Point2D pos = posVec.toPoint();
+				Point2D pos = posVec.toPoint2D();
 
 				g.setColor(new Color(128,0,0));
 				Ellipse2D bpe = new Ellipse2D.Double(pos.getX()-2.5, pos.getY()-2.5, 5.0, 5.0);
@@ -178,20 +186,28 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		}
 		
 		for (Edge edge : state.getEdges()) {
-			Line2D line = new Line2D.Double(edge.getStart().toPoint(), edge.getEnd().toPoint());
+			Line2D line = new Line2D.Double(edge.start().toPoint2D(), edge.end().toPoint2D());
 			g.draw(line);
 		}
 		
+		Voronoi.DEBUG = debug;
+	}
+	
+	private void drawFinished(final BuildState state, Graphics2D g) {
+		for (Edge edge : state.getEdges()) {
+			Line2D line = new Line2D.Double(edge.start().toPoint2D(), edge.end().toPoint2D());
+			g.draw(line);
+		}
 	}
 
 	private void drawPartialEdge(Graphics2D g, Breakpoint bp, BuildState state) {
 		Edge edge = bp.edge;
 		if (edge != null) {
-			Vec2 start = edge.getStart().getPosition();
+			Vec2 start = edge.start().getPosition();
 			Vec2 end;
-			if (edge.isFinished()) end = edge.getEnd().getPosition();
+			if (edge.isFinished()) end = edge.end().getPosition();
 			else end = bp.getPosition(state.getSweeplineY());
-			Line2D line = new Line2D.Double(start.toPoint(), end.toPoint());
+			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);
 		}
 	}

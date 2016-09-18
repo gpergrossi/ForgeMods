@@ -24,8 +24,8 @@ public class Vertex {
 		return position;
 	}
 	
-	public Point2D toPoint() {
-		return position.toPoint();
+	public Point2D toPoint2D() {
+		return position.toPoint2D();
 	}
 	
 }

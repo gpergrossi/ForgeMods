@@ -17,7 +17,7 @@ public class Vec2 {
 		this.y = position.getY();
 	}
 	
-	public Point2D toPoint() {
+	public Point2D toPoint2D() {
 		return new Point2D.Double(x, y);
 	}
 	
@@ -37,6 +37,10 @@ public class Vec2 {
 		return new Vec2(x-other.x, y-other.y);
 	}
 	
+	public double cross(Vec2 other) {
+		return this.x*other.y - this.y*other.x;
+	}
+	
 	public double length() {
 		if (length < 0) {
 			length = Math.sqrt(x*x + y*y);
@@ -47,6 +51,15 @@ public class Vec2 {
 	public Vec2 normalize() {
 		if (length() == 1.0) return this;
 		return this.divide(length());
+	}
+	
+	public boolean equals(Vec2 other) {
+		return this.x == other.x && this.y == other.y;
+	}
+	
+	@Override
+	public String toString() {
+		return "Vec2[x="+x+", y="+y+"]";
 	}
 	
 }

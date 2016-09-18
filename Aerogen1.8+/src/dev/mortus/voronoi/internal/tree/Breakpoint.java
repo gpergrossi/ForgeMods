@@ -92,8 +92,8 @@ public class Breakpoint extends TreeNode {
 		Vec2 dir0 = left.getDirection();
 		Vec2 dir1 = right.getDirection();
 		
-		Ray ray0 = new Ray(pos0, dir0).lengthen(Voronoi.VERY_SMALL);
-		Ray ray1 = new Ray(pos1, dir1).lengthen(Voronoi.VERY_SMALL);
+		Ray ray0 = new Ray(pos0, dir0).extend(Voronoi.VERY_SMALL);
+		Ray ray1 = new Ray(pos1, dir1).extend(Voronoi.VERY_SMALL);
 		
 		Vec2 intersection = ray0.intersect(ray1);
 		if (intersection == null) {
@@ -170,10 +170,12 @@ public class Breakpoint extends TreeNode {
 		double posX;
 		if (pos == null) posX = (this.arcLeft.site.getX() + this.arcRight.site.getX()) / 2.0;
 		else posX = pos.x;
-		
+				
 		if (siteX <= posX) {
+			System.out.println("X:"+siteX+" <= "+this);
 			return getLeftChild().getArc(sweeplineY, siteX);
 		} else {
+			System.out.println("X:"+siteX+" > "+this);
 			return getRightChild().getArc(sweeplineY, siteX);
 		}
 	}

@@ -1,12 +1,11 @@
 package dev.mortus.voronoi.internal.tree;
 
-import java.awt.geom.Point2D;
-
+import dev.mortus.util.data.Pair;
 import dev.mortus.util.math.Circle;
 import dev.mortus.util.math.Parabola;
 import dev.mortus.util.math.Vec2;
-import dev.mortus.util.Pair;
 import dev.mortus.voronoi.Site;
+import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
 
@@ -104,7 +103,7 @@ public class Arc extends TreeNode {
 			Circle circle = Circle.fromPoints(leftSite, centerSite, rightSite);
 			if (circle == null) break;
 			
-			if (circle.y + circle.radius >= state.getSweeplineY()) {
+			if (circle.y + circle.radius + Voronoi.VERY_SMALL >= state.getSweeplineY()) {
 				Event circleEvent = Event.createCircleEvent(this, circle);
 				this.setCircleEvent(circleEvent);
 				return circleEvent;

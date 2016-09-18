@@ -1,4 +1,4 @@
-package dev.mortus.util;
+package dev.mortus.util.data;
 
 import java.util.Iterator;
 

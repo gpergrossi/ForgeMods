@@ -15,8 +15,10 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import dev.mortus.util.Pair;
+import dev.mortus.util.data.Pair;
+import dev.mortus.util.math.LineSeg;
 import dev.mortus.util.math.Ray;
+import dev.mortus.util.math.Rect;
 import dev.mortus.util.math.Vec2;
 import dev.mortus.voronoi.Edge;
 import dev.mortus.voronoi.Site;
@@ -60,7 +62,7 @@ public final class BuildState {
 	private double sweeplineY = Double.NaN;
 	private Rectangle2D bounds;
 	private int eventsProcessed;
-	private boolean completed;
+	private boolean finished;
 	private List<Edge> edges;
 	private int numSites;
 
@@ -80,7 +82,7 @@ public final class BuildState {
 		TreeNode.IDCounter = 0;
 		Site.IDCounter = 0;
 		edges.clear();
-		completed = false;
+		finished = false;
 		numSites = sites.size();
 		
 		for(Site site : sites) addEvent(Event.createSiteEvent(site));
@@ -92,7 +94,7 @@ public final class BuildState {
 	}
 	
 	public boolean hasNextEvent() {
-		return !completed;
+		return !finished;
 	}
 	
 	private void addEvent(Event e) {
@@ -163,7 +165,7 @@ public final class BuildState {
 		Vertex sharedVertex = null;
 		for (Breakpoint bp : newArc.getBreakpoints() ) {
 			Edge newEdge = bp.checkNewEdge(sweeplineY, bounds, sharedVertex);
-			if (newEdge != null) sharedVertex = newEdge.getStart();
+			if (newEdge != null) sharedVertex = newEdge.start();
 		}
 	}
 	
@@ -176,7 +178,7 @@ public final class BuildState {
 		// Step 1. Finish the edges of each breakpoint
 		Vertex sharedVertex = new Vertex(predecessor.getPosition(sweeplineY));
 		for (Breakpoint bp : arc.getBreakpoints()) {
-			bp.edge.finish(sharedVertex);
+			bp.edge.end(sharedVertex);
 			addEdge(bp.edge);
 			bp.edge = null;
 		}
@@ -212,8 +214,10 @@ public final class BuildState {
 		if (sweeplineY < bounds.getMinY()) sweeplineY = bounds.getMaxY();
 		// TODO merge vertices, clip edges, create new edges along boundaries, link edges/vertices/sites
 		// report completed graph back to voronoi
+
+		Rect boundsRect = new Rect(bounds);
 		
-		// extend edges
+		// Extend unfinished edges
 		TreeNode node = shoreTree.getRoot().getFirstDescendant();
 		for (; node != null; node = node.getSuccessor()) {
 			if (!(node instanceof Breakpoint)) continue;
@@ -221,16 +225,51 @@ public final class BuildState {
 			
 			Edge edge = bp.edge;
 			Vec2 endPoint = bp.getPosition(sweeplineY);
-			if (bounds.contains(endPoint.toPoint())) {
+			if (bounds.contains(endPoint.toPoint2D())) {
 				Ray edgeRay = new Ray(endPoint, bp.getDirection());
-				// project ray onto bounds, redefine endPoint
+				endPoint = boundsRect.intersect(edgeRay).get(0);
 			}
 			
-			edge.finish(new Vertex(endPoint));
+			edge.end(new Vertex(endPoint));
+			addEdge(edge);
 		}
 		
-		completed = true;
+		// Clip all edges
+		List<Edge> remove = new ArrayList<Edge>();
+		for (Edge edge : edges) {
+			LineSeg seg = edge.toLineSeg();
+			seg = boundsRect.clip(seg);
+			
+			if (seg == null) {
+				remove.add(edge);
+				continue;
+			}
+			
+			boolean sameStart = seg.pos.equals(edge.start().getPosition());
+			boolean sameEnd = seg.end.equals(edge.end().getPosition());
+			
+			if (!sameStart || !sameEnd) {				
+				Vertex start = edge.start();
+				Vertex end = edge.end();
+				if (!sameStart) start = new Vertex(seg.pos);
+				if (!sameEnd) end = new Vertex(seg.end);
+				
+				edge.start(start);
+				edge.end(end);
+			}
+		}
+		for (Edge edge : remove) removeEdge(edge);
+		
+		finished = true;
 		System.out.println("finished");
+	}
+	
+	private void removeEdge(Edge edge) {
+		this.edges.remove(edge);
+	}
+
+	public boolean isFinished() {
+		return finished;
 	}
 	
 	private void addEdge(Edge edge) {

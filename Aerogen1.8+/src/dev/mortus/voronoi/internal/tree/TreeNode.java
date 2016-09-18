@@ -1,6 +1,6 @@
 package dev.mortus.voronoi.internal.tree;
 
-import dev.mortus.util.LinkedBinaryNode;
+import dev.mortus.util.data.LinkedBinaryNode;
 
 /**
  * This class mostly recasts the LinkedBinaryNode class. I tried to find a way around this by

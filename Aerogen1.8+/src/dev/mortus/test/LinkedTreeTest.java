@@ -3,7 +3,7 @@ package dev.mortus.test;
 import java.util.ArrayList;
 import java.util.Random;
 
-import dev.mortus.util.LinkedBinaryNode;
+import dev.mortus.util.data.LinkedBinaryNode;
 
 public class LinkedTreeTest {
 
