@@ -1,14 +1,23 @@
 package dev.mortus.voronoi;
 
 import dev.mortus.util.math.LineSeg;
+import dev.mortus.voronoi.internal.HalfEdge;
 import dev.mortus.voronoi.internal.tree.Breakpoint;
 
 public class Edge {
 	
-	Site siteLeft, siteRight;
+	protected Site siteLeft;
+	protected Site siteRight;
 	
 	private Vertex start;
 	private Vertex end;
+	
+	public Edge(HalfEdge a, HalfEdge b) {
+		this.siteLeft = a.siteLeft;
+		this.siteRight = a.siteRight;
+		start(b.end());
+		end(a.end());
+	}
 	
 	public Edge(Breakpoint bp) {
 		this.siteLeft = bp.arcLeft.site;

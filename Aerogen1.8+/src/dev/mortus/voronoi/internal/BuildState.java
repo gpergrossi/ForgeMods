@@ -176,7 +176,7 @@ public final class BuildState {
 				if (edge != null) twin = edge;
 			} else {
 				HalfEdge edge = (HalfEdge) bp.checkNewEdge(this, twin.start(), true);
-				edge.setTwin(twin);
+				if (edge != null) edge.setTwin(twin);
 			}
 		}
 	}
@@ -227,11 +227,22 @@ public final class BuildState {
 		// TODO merge vertices, clip edges, create new edges along boundaries, link edges/vertices/sites
 		// report completed graph back to voronoi
 
-		Rect boundsRect = new Rect(bounds);
+		extendUnfinishedEdges();
+		joinHalfEdges();
+		clipEdges();
 		
-		// Extend unfinished edges
-		TreeNode node = shoreTree.getRoot().getFirstDescendant();
-		for (; node != null; node = node.getSuccessor()) {
+		// IDEA output compiler class, takes list of sites and list of edges; returns HashMap<Site, OutputSite>
+		
+		// TODO create edge list per vertex
+		// TODO create edge list and vertex list per site
+		
+		finished = true;
+		System.out.println("Finished. "+edges.size()+" edges");
+	}
+
+	private void extendUnfinishedEdges() {		
+		Rect boundsRect = new Rect(bounds);
+		for (TreeNode node : shoreTree.getRoot().subtreeIterator()) {
 			if (!(node instanceof Breakpoint)) continue;
 			Breakpoint bp = (Breakpoint) node;
 			
@@ -239,15 +250,43 @@ public final class BuildState {
 			Vec2 endPoint = bp.getPosition(this);
 			if (bounds.contains(endPoint.toPoint2D())) {
 				Ray edgeRay = new Ray(endPoint, bp.getDirection());
-				endPoint = boundsRect.intersect(edgeRay).get(0);
+				if (bounds.contains(edge.start().toPoint2D())) {
+					endPoint = boundsRect.intersect(edgeRay).get(0);
+				} else {
+					endPoint = boundsRect.intersect(edgeRay).get(1);
+				}
 			}
 			
-			edge.end(new Vertex(endPoint));
+			edge.end(new Vertex(endPoint, true));
 			addEdge(edge);
+			bp.edge = null;
 		}
-		
-		// Clip all edges
+	}
+	
+	private void joinHalfEdges() {
 		List<Edge> remove = new ArrayList<Edge>();
+		List<Edge> add = new ArrayList<Edge>();
+		for (Edge e : edges) {
+			if (!(e instanceof HalfEdge)) continue;
+			if (remove.contains(e)) continue;
+			HalfEdge edge = (HalfEdge) e;
+			HalfEdge twin = ((HalfEdge) edge).getTwin();
+			
+			if (twin != null) {
+				remove.add(edge);
+				remove.add(twin);
+				add.add(new Edge(edge, twin));
+			}
+		}
+		for (Edge edge : remove) removeEdge(edge);
+		remove.clear();
+		for (Edge edge : add) addEdge(edge);
+		add.clear();
+	}
+
+	private void clipEdges() {
+		List<Edge> remove = new ArrayList<Edge>();
+		Rect boundsRect = new Rect(bounds);
 		for (Edge edge : edges) {
 			LineSeg seg = edge.toLineSeg();
 			seg = boundsRect.clip(seg);
@@ -263,34 +302,34 @@ public final class BuildState {
 			if (!sameStart || !sameEnd) {				
 				Vertex start = edge.start();
 				Vertex end = edge.end();
-				if (!sameStart) start = new Vertex(seg.pos);
-				if (!sameEnd) end = new Vertex(seg.end);
+				if (!sameStart) start = new Vertex(seg.pos, true);
+				if (!sameEnd) end = new Vertex(seg.end, true);
 				
 				edge.start(start);
 				edge.end(end);
 			}
 		}
 		for (Edge edge : remove) removeEdge(edge);
-		
-		finished = true;
-		System.out.println("finished");
+		remove.clear();
+	}
+
+	
+	private void addEdge(Edge edge) {
+		this.edges.add(edge);
 	}
 	
 	private void removeEdge(Edge edge) {
 		this.edges.remove(edge);
 	}
 
-	public boolean isFinished() {
-		return finished;
-	}
-	
-	private void addEdge(Edge edge) {
-		this.edges.add(edge);
-	}
-
 	public List<Edge> getEdges() {
 		return Collections.unmodifiableList(edges);
 	}
+	
+	public boolean isFinished() {
+		return finished;
+	}
+
 	
 	public double getSweeplineY() {
 		return sweeplineY;
@@ -302,26 +341,44 @@ public final class BuildState {
 
 	public void drawDebugState(Graphics2D g) {
 		g.setFont(new Font("Consolas", Font.PLAIN, 12));
-		this.shoreTree.draw(this, g);
-		
-		g.setColor(Color.YELLOW);
-		Line2D line = new Line2D.Double(bounds.getMinX(), sweeplineY, bounds.getMaxX(), sweeplineY);
-		g.draw(line);
-		
-		AffineTransform transform = g.getTransform();
-		AffineTransform identity = new AffineTransform();
-		
-		for (Site s : voronoi.getSites()) {
-			Ellipse2D sitedot = new Ellipse2D.Double(s.getX()-1, s.getY()-1, 2, 2);
-			g.setColor(new Color(0,128,0));
-			g.draw(sitedot);
+		if (this.isFinished()) {
+			// Draw edges
+			for (Edge edge : edges) {
+				Line2D line = new Line2D.Double(edge.start().toPoint2D(), edge.end().toPoint2D());
+				g.draw(line);
+			}
 			
-			g.setTransform(identity);
-			Point2D pt = new Point2D.Double(s.getX(), s.getY());
-			transform.transform(pt, pt);
-			g.setColor(new Color(0,255,0));
-			g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
-			g.setTransform(transform);
+			// Draw sites
+			g.setColor(new Color(0,128,0));
+			for (Site s : voronoi.getSites()) {
+				Ellipse2D sitedot = new Ellipse2D.Double(s.getX()-1, s.getY()-1, 2, 2);
+				g.draw(sitedot);
+			}
+		} else {
+			// Draw shore tree (edges, circle events, parabolas)
+			this.shoreTree.draw(this, g);
+		
+			// Draw sweep line
+			g.setColor(Color.YELLOW);
+			Line2D line = new Line2D.Double(bounds.getMinX(), sweeplineY, bounds.getMaxX(), sweeplineY);
+			g.draw(line);
+			
+			// Draw sites and site labels
+			AffineTransform transform = g.getTransform();
+			AffineTransform identity = new AffineTransform();
+			
+			for (Site s : voronoi.getSites()) {
+				Ellipse2D sitedot = new Ellipse2D.Double(s.getX()-1, s.getY()-1, 2, 2);
+				g.setColor(new Color(0,128,0));
+				g.draw(sitedot);
+				
+				g.setTransform(identity);
+				Point2D pt = new Point2D.Double(s.getX(), s.getY());
+				transform.transform(pt, pt);
+				g.setColor(new Color(0,255,0));
+				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
+				g.setTransform(transform);
+			}
 		}
 	}
 

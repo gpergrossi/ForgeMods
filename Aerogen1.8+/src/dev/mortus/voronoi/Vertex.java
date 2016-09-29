@@ -7,9 +7,15 @@ import dev.mortus.util.math.Vec2;
 public class Vertex {
 
 	public static final double VERY_SMALL_2 = Voronoi.VERY_SMALL * Voronoi.VERY_SMALL;
-	
+
+	boolean isBoundary;
 	Vec2 position;
 
+	public Vertex(Vec2 pos, boolean isBoundary) {
+		this.position = pos;
+		this.isBoundary = isBoundary;
+	}
+	
 	public Vertex(Vec2 pos) {
 		this.position = pos;
 	}

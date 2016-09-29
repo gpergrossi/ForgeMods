@@ -84,7 +84,7 @@ public class Parabola {
 		if (a == 0) {
 			if (b == 0) {
 				// constant, returns null
-				return null; 
+				return new Pair<Double>(null, null);
 			}
 			
 			// linear, return single zero

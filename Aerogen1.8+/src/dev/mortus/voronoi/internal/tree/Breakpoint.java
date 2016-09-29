@@ -173,10 +173,10 @@ public class Breakpoint extends TreeNode {
 		else posX = pos.x;
 				
 		if (siteX <= posX) {
-			System.out.println("X:"+siteX+" <= "+this);
+			if (Voronoi.DEBUG) System.out.println("X:"+siteX+" <= "+this);
 			return getLeftChild().getArc(state, siteX);
 		} else {
-			System.out.println("X:"+siteX+" > "+this);
+			if (Voronoi.DEBUG) System.out.println("X:"+siteX+" > "+this);
 			return getRightChild().getArc(state, siteX);
 		}
 	}

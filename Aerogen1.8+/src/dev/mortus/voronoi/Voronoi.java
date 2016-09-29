@@ -18,18 +18,15 @@ import dev.mortus.voronoi.internal.BuildState;
 public class Voronoi {
 
 	public static final double VERY_SMALL = 0.000001;
-	public static boolean DEBUG = true;
+	public static boolean DEBUG = false;
 
 	Rectangle2D inputBounds; // Bounds to be used in next build
 
 	List<Site> sites; // Sites included in the last build
-	List<Edge> edges; // Edges included in the last build
 
 	public Voronoi() {
 		this.inputBounds = null;
-
 		sites = new ArrayList<Site>();
-		edges = new ArrayList<Edge>();
 	}
 
 	public Site addSite(Point2D point) {
@@ -49,8 +46,6 @@ public class Voronoi {
 	}
 	
 	public void buildInit() {
-		System.out.println("Build Init");
-		
 		state = new BuildState(this, inputBounds);
 		state.initSiteEvents(sites);
 	}
@@ -58,6 +53,7 @@ public class Voronoi {
 	public void buildStep() {
 		if (state == null) {
 			buildInit();
+			System.out.println("Build Init");
 			System.out.println("\nBuild Step 0 (out of <"+state.getTheoreticalMaxSteps()+")");
 			return;
 		}
@@ -100,8 +96,7 @@ public class Voronoi {
 	BuildState state = null;
 	
 	public void build() {
-		state = new BuildState(this, inputBounds);
-		state.initSiteEvents(sites);
+		if (state == null) buildInit();
 
 		while (state.hasNextEvent()) {
 			state.processNextEvent();

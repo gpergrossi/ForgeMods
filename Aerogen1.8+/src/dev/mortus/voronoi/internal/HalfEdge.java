@@ -5,7 +5,7 @@ import dev.mortus.voronoi.internal.tree.Breakpoint;
 
 public class HalfEdge extends Edge {
 
-	HalfEdge twin;
+	private HalfEdge twin;
 	
 	public HalfEdge(Breakpoint bp) {
 		super(bp);
@@ -16,6 +16,10 @@ public class HalfEdge extends Edge {
 			this.twin = twin;
 			twin.twin = this;
 		}
+	}
+	
+	public HalfEdge getTwin() {
+		return this.twin;
 	}
 
 }

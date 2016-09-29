@@ -212,6 +212,8 @@ public class View {
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			voronoi.buildStep();
+		} else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+			voronoi.build();
 		} else if (e.getKeyCode() == KeyEvent.VK_UP) {
 			voronoi.debugAdvanceSweepline(-1);
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
