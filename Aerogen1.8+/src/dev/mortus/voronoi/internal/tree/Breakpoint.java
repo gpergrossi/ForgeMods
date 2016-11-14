@@ -4,16 +4,14 @@ import dev.mortus.util.data.Pair;
 import dev.mortus.util.math.Parabola;
 import dev.mortus.util.math.Ray;
 import dev.mortus.util.math.Vec2;
-import dev.mortus.voronoi.Edge;
-import dev.mortus.voronoi.Vertex;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
-import dev.mortus.voronoi.internal.HalfEdge;
+import dev.mortus.voronoi.internal.MutableEdge;
 
 public class Breakpoint extends TreeNode {
 	
-	public Edge edge;
-	public Arc arcLeft, arcRight;
+	public MutableEdge edge;
+	private Arc arcLeft, arcRight;
 	
 	public Breakpoint(TreeNode left, TreeNode right) {
 		if (left.equals(right)) throw new RuntimeException("Cannot construct breakpoint between identical arcs!");
@@ -36,8 +34,8 @@ public class Breakpoint extends TreeNode {
 		this.arcRight = (Arc) this.getRightChild().getFirstDescendant();
 	}
 	
-	private void checkPossible() {		
-		if (arcLeft.site.getY() == arcRight.site.getY() && arcLeft.site.getX() > arcRight.site.getX()) {
+	private void checkPossible() {
+		if ( arcLeft.site.pos.y == arcRight.site.pos.y &&  arcLeft.site.pos.x > arcRight.site.pos.x) {
 			// The parabolas are exactly side by side, there is only one intersection between
 			// them and the X coordinates of the parabola's focii are in the wrong order for
 			// the requested breakpoint to exist.
@@ -54,7 +52,7 @@ public class Breakpoint extends TreeNode {
 			lastResult = calculatePosition(state.getSweeplineY());
 		}
 		if (lastResult == null) {
-			double x = (arcLeft.site.getX() + arcRight.site.getX()) / 2.0;
+			double x = (arcLeft.site.pos.x + arcRight.site.pos.x) / 2.0;
 			double y = state.getBounds().getMinY()-10;
 			lastResult = new Vec2(x, y);
 		}
@@ -67,8 +65,8 @@ public class Breakpoint extends TreeNode {
 	 * @return
 	 */
 	public Vec2 getDirection() {
-		double dy = arcRight.site.getY() - arcLeft.site.getY();
-		double dx = arcRight.site.getX() - arcLeft.site.getX();
+		double dy = arcRight.site.pos.y - arcLeft.site.pos.y;
+		double dx = arcRight.site.pos.x - arcLeft.site.pos.x;
 		
 		if (dy == 0) {
 			if (dx == 0) return new Vec2(0, 0);
@@ -122,8 +120,8 @@ public class Breakpoint extends TreeNode {
 		Parabola rightParabola = arcRight.getParabola(sweeplineY);
 		
 		Pair<Vec2> intersects = leftParabola.intersect(rightParabola);
-		double leftY = arcLeft.site.getY();
-		double rightY = arcRight.site.getY();
+		double leftY = arcLeft.site.pos.y;
+		double rightY = arcRight.site.pos.y;
 			
 		// Case either parabola is a vertical line (focus y coord = directrix y coord)
 		if (leftParabola.isVertical) {
@@ -138,7 +136,7 @@ public class Breakpoint extends TreeNode {
 		if (leftY == rightY) {
 			// Parabolas are exactly side by side. There is only one intersect, 
 			// the desired left/right relationship may not exist.
-			if (arcLeft.site.getX() < arcRight.site.getX()) {
+			if (arcLeft.site.pos.x < arcRight.site.pos.x) {
 				if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
 				return intersects.first;
 			} else {
@@ -169,7 +167,7 @@ public class Breakpoint extends TreeNode {
 		Vec2 pos = this.getPosition(state);
 		
 		double posX;
-		if (pos == null) posX = (this.arcLeft.site.getX() + this.arcRight.site.getX()) / 2.0;
+		if (pos == null) posX = (this.arcLeft.site.pos.x + this.arcRight.site.pos.x) / 2.0;
 		else posX = pos.x;
 				
 		if (siteX <= posX) {
@@ -194,9 +192,17 @@ public class Breakpoint extends TreeNode {
 				+ "LeftArc="+arcLeft+", RightArc="+arcRight+", "
 				+ "Children:[Left="+leftID+", Right="+rightID+"]]";
 	}
-
+	
+	public Arc getArcLeft() {
+		return this.arcLeft;
+	}
+	
+	public Arc getArcRight() {
+		return this.arcRight;
+	}
+	
 	/**
-	 * Checks if this breakpoint has an edge, if not one is created.
+	 * Checks if this breakpoint has an edge. If not, one is created.
 	 * The created edge will begin at the current position using
 	 * a shared vertex if it is provided. Otherwise, it will create a 
 	 * new vertex. 
@@ -206,13 +212,14 @@ public class Breakpoint extends TreeNode {
 	 * @param half - is this a halfEdge? formed by a site event?
 	 * @return
 	 */
+	/*
 	public Edge checkNewEdge(final BuildState state, Vertex shared, boolean half) {
 		if (this.edge != null) return null;
 		
 		// Get current position
 		Vec2 currentPosition = this.getPosition(state);
 		if (currentPosition == null) {
-			double x = (arcLeft.site.getX() + arcRight.site.getX()) / 2.0;
+			double x = (arcLeft.site.pos.x + arcRight.site.pos.x) / 2.0;
 			currentPosition = new Vec2(x, state.getBounds().getMinY() - 10);
 		}
 		
@@ -227,5 +234,6 @@ public class Breakpoint extends TreeNode {
 		this.edge.start(vertex);
 		return edge;
 	}
+	*/
 	
 }

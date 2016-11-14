@@ -45,7 +45,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 	
 	public Arc getArcUnderSite(final BuildState state, Site site) {
 		if (root == null) throw new RuntimeException("Tree has not yuet been initialized");
-		return root.getArc(state, site.getX());
+		return root.getArc(state, site.pos.x);
 	}
 		
 	public void draw(final BuildState state, Graphics2D g) {
@@ -76,7 +76,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 			g.setTransform(identity);
 			transform.transform(pos, pos);
 			g.setColor(new Color(255,0,0));
-			g.drawString(breakpoint.arcLeft.site.id+":"+breakpoint.arcRight.site.id, (int) pos.getX(), (int) pos.getY());
+			g.drawString(breakpoint.getArcLeft().site.id+":"+breakpoint.getArcRight().site.id, (int) pos.getX(), (int) pos.getY());
 			g.setTransform(transform);
 			
 			g.setColor(new Color(64,64,64));
@@ -84,7 +84,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		}
 		
 		for (Edge edge : state.getEdges()) {
-			Line2D line = new Line2D.Double(edge.start().toPoint2D(), edge.end().toPoint2D());
+			Line2D line = new Line2D.Double(edge.start.toPoint2D(), edge.end.toPoint2D());
 			g.draw(line);
 		}
 		
@@ -135,7 +135,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 			if (!(n instanceof Arc)) continue;
 			Arc arc = (Arc) n;
 			
-			Parabola par = Parabola.fromPointAndLine(new Vec2(arc.site.getPos()), state.getSweeplineY());
+			Parabola par = Parabola.fromPointAndLine(arc.site.pos, state.getSweeplineY());
 			
 			Rectangle2D bounds = state.getBounds();
 			double minX = bounds.getMinX();
@@ -194,9 +194,9 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 	private void drawPartialEdge(Graphics2D g, Breakpoint bp, BuildState state) {
 		Edge edge = bp.edge;
 		if (edge != null) {
-			Vec2 start = edge.start().getPosition();
+			Vec2 start = edge.start.getPosition();
 			Vec2 end;
-			if (edge.isFinished()) end = edge.end().getPosition();
+			if (edge.isFinished()) end = edge.end.getPosition();
 			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);

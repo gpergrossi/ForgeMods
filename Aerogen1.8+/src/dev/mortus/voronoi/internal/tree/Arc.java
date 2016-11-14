@@ -47,7 +47,7 @@ public class Arc extends TreeNode {
 	}
 	
 	public Parabola getParabola(double sweeplineY) {
-		return Parabola.fromPointAndLine(new Vec2(site.getPos()), sweeplineY);
+		return Parabola.fromPointAndLine(site.pos, sweeplineY);
 	}
 
 	@Override
@@ -97,10 +97,7 @@ public class Arc extends TreeNode {
 			Vec2 intersection = Breakpoint.getIntersection(state, leftBP, rightBP);
 			if (intersection == null) break;
 			
-			Vec2 leftSite = new Vec2(leftNeighbor.site.getPos());
-			Vec2 centerSite = new Vec2(this.site.getPos());
-			Vec2 rightSite = new Vec2(rightNeighbor.site.getPos());
-			Circle circle = Circle.fromPoints(leftSite, centerSite, rightSite);
+			Circle circle = Circle.fromPoints(leftNeighbor.site.pos, this.site.pos, rightNeighbor.site.pos);
 			if (circle == null) break;
 			
 			if (circle.y + circle.radius + Voronoi.VERY_SMALL >= state.getSweeplineY()) {
@@ -118,7 +115,7 @@ public class Arc extends TreeNode {
 		Breakpoint newBreakpoint = null;
 		Arc newArc = null;
 		
-		if (this.site.getY() == site.getY()) {
+		if (this.site.pos.y == site.pos.y) {
 			// Y coordinates equal, single breakpoint between sites
 			// new arc has greater X coordinate because it came from
 			// a priority queue that ensures so

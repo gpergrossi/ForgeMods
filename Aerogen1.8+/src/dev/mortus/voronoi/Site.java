@@ -1,40 +1,28 @@
 package dev.mortus.voronoi;
 
-import java.awt.geom.Point2D;
+import dev.mortus.util.math.Vec2;
 
 public class Site {
 
-	public static int IDCounter = 0;
-	
-	final Point2D.Double position;
+	public final Voronoi voronoi;
 	public final int id;
+	public final Vec2 pos;
 
-	public Site (Point2D position) {
-		this.id = IDCounter++;
-		this.position = new Point2D.Double(position.getX(), position.getY());
+	Site (Voronoi v, int id, Vec2 pos) {
+		this.voronoi = v;
+		this.id = id;
+		this.pos = pos;
 	}
 	
-	public Point2D getPos() {
-		return position;
-	}
-	
-	public double getX() {
-		return position.x;
-	}
-	
-	public double getY() {
-		return position.y;
-	}
-	
-	public boolean equals(Site o) {
-		if (position.x != o.position.x) return false;
-		if (position.y != o.position.y) return false;
-		return true;
-	}
+//	public boolean equals(Site o) {
+//		if (voronoi != o.voronoi) return false;
+//		if (id != o.id) return false;
+//		return true;
+//	}
 	
 	@Override
 	public String toString() {
-		return "Site[ID="+id+", X="+position.x+", Y="+position.y+"]";
+		return "Site[ID="+id+", X="+pos.x+", Y="+pos.y+"]";
 	}
 	
 }

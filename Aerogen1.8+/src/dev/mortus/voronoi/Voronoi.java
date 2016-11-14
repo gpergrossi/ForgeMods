@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import dev.mortus.util.math.Vec2;
 import dev.mortus.voronoi.internal.BuildState;
 
 public class Voronoi {
@@ -22,17 +23,19 @@ public class Voronoi {
 
 	Rectangle2D inputBounds; // Bounds to be used in next build
 
+	private int siteIDCounter;
 	List<Site> sites; // Sites included in the last build
 
 	public Voronoi() {
 		this.inputBounds = null;
 		sites = new ArrayList<Site>();
+		siteIDCounter = 0;
 	}
 
 	public Site addSite(Point2D point) {
 		state = null;
 
-		Site site = new Site(point);
+		Site site = new Site(this, newSiteID(), new Vec2(point));
 		sites.add(site);
 		
 		Rectangle2D.Double pointRect = new Rectangle2D.Double(point.getX()-5, point.getY()-5, 10, 10);
@@ -45,6 +48,10 @@ public class Voronoi {
 		return site;
 	}
 	
+	private int newSiteID() {
+		return siteIDCounter++;
+	}
+
 	public void buildInit() {
 		state = new BuildState(this, inputBounds);
 		state.initSiteEvents(sites);
@@ -85,7 +92,7 @@ public class Voronoi {
 		if (inputBounds != null) g.drawRect((int) inputBounds.getX(), (int) inputBounds.getY(), (int) inputBounds.getWidth(), (int) inputBounds.getHeight());
 		if (state == null) {
 			for (Site site : sites) {
-				Ellipse2D ellipse = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
+				Ellipse2D ellipse = new Ellipse2D.Double(site.pos.x-1, site.pos.y-1, 2, 2);
 				g.fill(ellipse);
 			}
 			return;
@@ -113,8 +120,8 @@ public class Voronoi {
 		
 		dos.writeInt(sites.size());
 		for (Site site : sites) {
-			dos.writeDouble(site.getX());
-			dos.writeDouble(site.getY());
+			dos.writeDouble(site.pos.x);
+			dos.writeDouble(site.pos.y);
 		}
 
 		System.out.println("Saved "+sites.size()+" sites");
@@ -141,6 +148,7 @@ public class Voronoi {
 		sites.clear();		
 		inputBounds = null;
 		state = null;
+		siteIDCounter = 0;
 	}
 
 	public void removeSite(Site site) {
@@ -150,7 +158,7 @@ public class Voronoi {
 		state = null;
 		
 		for (Site s : sites) {
-			Point2D point = s.getPos();
+			Point2D point = s.pos.toPoint2D();
 			Rectangle2D.Double pointRect = new Rectangle2D.Double(point.getX()-5, point.getY()-5, 10, 10);
 			if(inputBounds == null) {
 				inputBounds = pointRect;

@@ -1,8 +1,7 @@
 package dev.mortus.voronoi.internal;
 
-import java.awt.geom.Point2D;
-
 import dev.mortus.util.math.Circle;
+import dev.mortus.util.math.Vec2;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.internal.tree.Arc;
 
@@ -13,7 +12,7 @@ public final class Event {
 	}
 	
 	public final Type type;
-	public final Point2D point;
+	public final Vec2 position;
 	public final Circle circle;
 	
 	public final Site site;
@@ -29,7 +28,7 @@ public final class Event {
 	
 	private Event(Site site) {
 		this.type = Type.SITE;
-		this.point = new Point2D.Double(site.getX(), site.getY());
+		this.position = site.pos;
 		this.site = site;
 		this.arc = null;
 		this.circle = null;
@@ -37,14 +36,14 @@ public final class Event {
 
 	private Event(Arc arc, Circle circle) {
 		this.type = Type.CIRCLE;
-		this.point = new Point2D.Double(Double.NEGATIVE_INFINITY, circle.y + circle.radius);
+		this.position = new Vec2(Double.NEGATIVE_INFINITY, circle.y + circle.radius);
 		this.site = arc.site;
 		this.arc = arc;
 		this.circle = circle;
 	}
 
-	public Point2D getPosition() {
-		return point;
+	public Vec2 getPos() {
+		return position;
 	}
 
 	public Site getSite() {
@@ -66,10 +65,6 @@ public final class Event {
 		} else {
 			return "Event[Type='Site', "+site+"]";
 		}
-	}
-	
-	public boolean equals(Event e) {
-		return type == e.type && point.equals(e.point);
 	}
 	
 }
