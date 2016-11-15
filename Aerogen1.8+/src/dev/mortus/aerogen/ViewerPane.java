@@ -18,11 +18,20 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 public class ViewerPane extends JPanel implements Runnable {
 
+	public String recordingFilePrefix = "recording/frame.";
+	public int recordingFrame = 0;
+	public int recordingMaxFrames = 9999;
+	public boolean recording = false;
+	public double recordingFPS = 24.0;
+	
 	public boolean showFPS = false;
 	
 	private static final long serialVersionUID = 5091243043686433403L;
@@ -163,10 +172,31 @@ public class ViewerPane extends JPanel implements Runnable {
 		// Show old buffer
 		g.drawImage(bufferLast, 0, 0, this);
 		
+		// Recording?
+		if (recording) {
+			try {
+				ImageIO.write(bufferLast, "png", new File(recordingFilePrefix+getFrameNumber()+".png"));
+			} catch (IOException e) {
+				e.printStackTrace();
+				recording = false;
+			}
+		}
+		
 		// Render new buffer
 		drawFrame(bufferG2D);
 	}
 	
+	private String getFrameNumber() {
+		this.recordingFrame++;
+		if (recordingFrame > recordingMaxFrames) {
+			throw new RuntimeException("recorded too many frames");
+		}
+		String frame = String.valueOf(this.recordingFrame);
+		String max = String.valueOf(recordingMaxFrames);
+		while (frame.length() < max.length()) frame = "0"+frame;
+		return frame;
+	}
+
 	public void start() {
 		running = true;
 		view.start();
@@ -225,7 +255,9 @@ public class ViewerPane extends JPanel implements Runnable {
 				if (showFPS) System.out.println("FPS = "+FPS);
 			}
 			
-			view.update((double) delta/nanosPerSecond);
+			double updateDelta = (double) delta/nanosPerSecond;
+			if (recording) updateDelta = 1.0/recordingFPS;
+			view.update(updateDelta);
 			
 			this.repaint();
 			
@@ -283,5 +315,18 @@ public class ViewerPane extends JPanel implements Runnable {
 	
 	public Point2D.Double deproject(Point2D.Double pt) {
 		return (Double) deviewTransform.transform(pt, pt);
+	}
+
+	public boolean isRecording() {
+		return recording;
+	}
+
+	public void startRecording() {
+		this.recording = true;
+		this.recordingFrame = 0;
+	}
+
+	public void stopRecording() {
+		this.recording = false;
 	}
 }

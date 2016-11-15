@@ -84,7 +84,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		}
 		
 		for (Edge edge : state.getEdges()) {
-			Line2D line = new Line2D.Double(edge.start.toPoint2D(), edge.end.toPoint2D());
+			Line2D line = new Line2D.Double(edge.start().toPoint2D(), edge.end().toPoint2D());
 			g.draw(line);
 		}
 		
@@ -194,9 +194,9 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 	private void drawPartialEdge(Graphics2D g, Breakpoint bp, BuildState state) {
 		Edge edge = bp.edge;
 		if (edge != null) {
-			Vec2 start = edge.start.getPosition();
+			Vec2 start = edge.start().getPosition();
 			Vec2 end;
-			if (edge.isFinished()) end = edge.end.getPosition();
+			if (edge.isFinished()) end = edge.end().getPosition();
 			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);

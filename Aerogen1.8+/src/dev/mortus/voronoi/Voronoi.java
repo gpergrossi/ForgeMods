@@ -18,13 +18,15 @@ import dev.mortus.voronoi.internal.BuildState;
 
 public class Voronoi {
 
-	public static final double VERY_SMALL = 0.000001;
+	public static final double VERY_SMALL = 0.000000001;
 	public static boolean DEBUG = false;
 
 	Rectangle2D inputBounds; // Bounds to be used in next build
-
 	private int siteIDCounter;
-	List<Site> sites; // Sites included in the last build
+	
+	public List<Site> sites;
+	public List<Edge> edges;
+	public List<Vertex> vertices;
 
 	public Voronoi() {
 		this.inputBounds = null;
@@ -33,6 +35,7 @@ public class Voronoi {
 	}
 
 	public Site addSite(Point2D point) {
+		boolean rebuild = state != null && state.isFinished();
 		state = null;
 
 		Site site = new Site(this, newSiteID(), new Vec2(point));
@@ -45,6 +48,7 @@ public class Voronoi {
 			Rectangle2D.union(inputBounds, pointRect, inputBounds);
 		}
 		
+		if (rebuild) build();
 		return site;
 	}
 	
@@ -53,6 +57,7 @@ public class Voronoi {
 	}
 
 	public void buildInit() {
+		if (inputBounds == null) return;
 		state = new BuildState(this, inputBounds);
 		state.initSiteEvents(sites);
 	}
@@ -89,7 +94,9 @@ public class Voronoi {
 	}
 	
 	public void draw(Graphics2D g) {
-		if (inputBounds != null) g.drawRect((int) inputBounds.getX(), (int) inputBounds.getY(), (int) inputBounds.getWidth(), (int) inputBounds.getHeight());
+		if (inputBounds != null && (state == null || !state.isFinished())) {
+			g.drawRect((int) inputBounds.getX(), (int) inputBounds.getY(), (int) inputBounds.getWidth(), (int) inputBounds.getHeight());
+		}
 		if (state == null) {
 			for (Site site : sites) {
 				Ellipse2D ellipse = new Ellipse2D.Double(site.pos.x-1, site.pos.y-1, 2, 2);
@@ -104,6 +111,7 @@ public class Voronoi {
 	
 	public void build() {
 		if (state == null) buildInit();
+		if (state == null) return;
 
 		while (state.hasNextEvent()) {
 			state.processNextEvent();
@@ -129,6 +137,9 @@ public class Voronoi {
 	}
 	
 	public void loadPoints() throws IOException {
+		boolean rebuild = state != null && state.isFinished();
+		state = null;
+		
 		FileInputStream fis = new FileInputStream("saved");
 		DataInputStream dis = new DataInputStream(fis);
 		
@@ -142,6 +153,8 @@ public class Voronoi {
 		
 		dis.close();
 		System.out.println("Loaded "+numSites+" sites");
+		
+		if (rebuild) build();
 	}
 
 	public void clearSites() {
@@ -152,6 +165,7 @@ public class Voronoi {
 	}
 
 	public void removeSite(Site site) {
+		boolean rebuild = state != null && state.isFinished();
 		this.sites.remove(site);
 		
 		inputBounds = null;
@@ -166,6 +180,12 @@ public class Voronoi {
 				Rectangle2D.union(inputBounds, pointRect, inputBounds);
 			}
 		}
+		
+		if (rebuild) build();
+	}
+
+	public boolean isComplete() {
+		return false;
 	}
 	
 }

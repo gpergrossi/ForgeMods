@@ -2,7 +2,7 @@ package dev.mortus.util.math;
 
 public class LineSeg extends Line {
 
-	public final double length;
+	private final double length;
 	public final Vec2 end;
 	
 	public LineSeg(Vec2 a, Vec2 b) {
@@ -19,6 +19,10 @@ public class LineSeg extends Line {
 		return length;
 	}
 
+	public double length() {
+		return length;
+	}
+	
 	public Line toLine() {
 		return new Line(pos, dir);
 	}

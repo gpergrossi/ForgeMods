@@ -59,6 +59,11 @@ public class Line {
 	protected double tmax() {
 		return Double.POSITIVE_INFINITY;
 	}
+	
+	public double length() {
+		if (dir.length() == 0) return 0;
+		return Double.POSITIVE_INFINITY;
+	}
 
 	/**
 	 * <p>This line slices the given line into two parts and returns the results in a Pair.</p>
@@ -87,6 +92,7 @@ public class Line {
 		}
 		
 		double t = intersect.second;
+		
 		Line lower = null, upper = null;
 		
 		if (t >= line.tmin()) lower = line.redefine(line.tmin(), t);

@@ -2,10 +2,12 @@ package dev.mortus.util.math;
 
 import java.awt.geom.Point2D;
 
-public class Vec2 {
+public class Vec2 implements Comparable<Vec2> {
 
 	public final double x, y;
-	private double length = -1;
+	private double length = Double.MAX_VALUE;
+	private double angle = Double.MAX_VALUE;
+	public static final double EPSILON = 0.000001;
 	
 	public Vec2(double x, double y) {
 		this.x = x;
@@ -40,9 +42,16 @@ public class Vec2 {
 	public double cross(Vec2 other) {
 		return this.x*other.y - this.y*other.x;
 	}
+
+	public double angle() {
+		if (angle == Double.MAX_VALUE) {
+			angle = Math.atan2(y, x);
+		}
+		return angle;
+	}
 	
 	public double length() {
-		if (length < 0) {
+		if (length == Double.MAX_VALUE) {
 			length = Math.sqrt(x*x + y*y);
 		}
 		return length;
@@ -54,12 +63,25 @@ public class Vec2 {
 	}
 	
 	public boolean equals(Vec2 other) {
-		return this.x == other.x && this.y == other.y;
+		if (this.subtract(other).length() < EPSILON) return true;
+		return false;
+//		return this.x == other.x && this.y == other.y;
 	}
 	
 	@Override
 	public String toString() {
 		return "Vec2[x="+x+", y="+y+"]";
+	}
+
+	@Override
+	public int compareTo(Vec2 other) {
+		if (this.y < other.y) return -1;
+		if (this.y > other.y) return 1;
+		
+		if(this.x < other.x) return -1;
+		if(this.x > other.x) return 1;
+		
+		return Integer.compare(this.hashCode(), other.hashCode());
 	}
 	
 }

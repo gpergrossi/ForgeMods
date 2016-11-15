@@ -11,9 +11,9 @@ import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
+import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
-import dev.mortus.voronoi.internal.tree.TreeNode;
 
 public class View {
 	
@@ -21,10 +21,14 @@ public class View {
 	public static final int MIDDLE_CLICK = 2;
 	public static final int RIGHT_CLICK = 4;
 	
+	ViewerPane pane; // access the recording feature
+	
 	double x, y;
 	double velocityX, velocityY;
 	double halfWidth, halfHeight;
 	double printTime;
+	
+	double slowZoom = 1.0;
 	
 	boolean useChunkLoader = false;
 	
@@ -58,6 +62,9 @@ public class View {
 		this.velocityX *= decay;
 		this.velocityY *= decay;
 
+		halfWidth *= Math.pow(slowZoom, secondsPassed);
+		halfHeight *= Math.pow(slowZoom, secondsPassed);
+		
 		if (useChunkLoader) {
 			printTime += secondsPassed;
 			if (printTime > 1) {
@@ -171,7 +178,7 @@ public class View {
 			
 			boolean removed = false;
 			for (Site site : voronoi.getSites()) {
-				Point2D point = site.getPos();
+				Point2D point = site.pos.toPoint2D();
 				if (clickP.distance(point) < 2) {
 					voronoi.removeSite(site);
 					removed = true;
@@ -236,13 +243,27 @@ public class View {
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_C) {
 			System.out.println("Clearing");
-			TreeNode.IDCounter = 0;
-			Site.IDCounter = 0;
+			LinkedBinaryNode.IDCounter = 0;
 			voronoi.clearSites();
+		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
+			slowZoom = 9.0/14.0;
+		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
+			slowZoom = 14.0/9.0;
+		} else if (e.getKeyCode() == KeyEvent.VK_R) {
+			if (pane != null) {
+				if (!pane.isRecording()) pane.startRecording();
+				else pane.stopRecording();
+			}
 		}
 	}
 	
-	public void keyReleased(KeyEvent e) {}
+	public void keyReleased(KeyEvent e) {
+		if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
+			slowZoom = 1.00;
+		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
+			slowZoom = 1.00;
+		}
+	}
 	
 	public void keyTyped(KeyEvent e) {}
 	

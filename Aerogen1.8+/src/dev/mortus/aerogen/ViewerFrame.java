@@ -40,9 +40,12 @@ public class ViewerFrame extends JFrame {
 		
 		view = new View(10, 10, 100, 100);
 		viewPane = new ViewerPane(view);
+		view.pane = viewPane;
 		
 		viewPane.setFocusable(true);
+		viewPane.setPreferredSize(new Dimension(1280, 720));
 		add(viewPane);
+		pack();
 		
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {

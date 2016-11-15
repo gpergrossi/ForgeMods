@@ -40,7 +40,7 @@ public class HalfEdge extends MutableEdge {
 	}
 
 	@Override
-	boolean isTwin() {
+	boolean isHalf() {
 		return true;
 	}
 	
