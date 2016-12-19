@@ -1,6 +1,7 @@
 package dev.mortus.test;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
 
 import dev.mortus.util.data.LinkedBinaryNode;
@@ -61,13 +62,18 @@ public class LinkedTreeTest {
 		}
 		
 		@Override
+		public Iterator<TestNode> subtreeIterator() {
+			return super.<TestNode>castedSubtreeIterator();
+		}
+		
+		@Override
 		public String toString() {
 			return "TestNode[ID="+id+" value="+value+"]";
 		}
 		
 	}
 	
-	public static class TestTree implements LinkedBinaryNode.Tree {
+	public static class TestTree implements LinkedBinaryNode.Tree<TestNode> {
 
 		TestNode root;
 		
@@ -102,6 +108,11 @@ public class LinkedTreeTest {
 		public void setRoot(LinkedBinaryNode node) {
 			if (!(node instanceof TestNode)) throw new RuntimeException("TestTree can only reference TestNode roots.");
 			this.root = (TestNode) node;			
+		}
+
+		@Override
+		public Iterator<TestNode> iterator() {
+			return this.root.subtreeIterator();
 		}
 		
 	}

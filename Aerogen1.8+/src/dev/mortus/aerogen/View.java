@@ -9,11 +9,13 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
+
 import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
 import dev.mortus.util.data.LinkedBinaryNode;
-import dev.mortus.voronoi.Site;
-import dev.mortus.voronoi.Voronoi;
+import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.voronoi.diagram.VoronoiBuilder;
+import dev.mortus.voronoi.internal.WorkerDebug;
 
 public class View {
 	
@@ -23,7 +25,7 @@ public class View {
 	
 	ViewerPane pane; // access the recording feature
 	
-	double x, y;
+	double viewX, viewY;
 	double velocityX, velocityY;
 	double halfWidth, halfHeight;
 	double printTime;
@@ -32,18 +34,19 @@ public class View {
 	
 	boolean useChunkLoader = false;
 	
-	Voronoi voronoi;
+	VoronoiBuilder voronoiBuilder;
+	WorkerDebug voronoiWorker;
 	
 	ChunkLoader<SimulationChunk> chunkLoader;
 	ChunkManager<SimulationChunk> chunkManager;
 
 	public View (double x, double y, double width, double height) {
-		this.x = x;
-		this.y = y;
+		this.viewX = x;
+		this.viewY = y;
 		this.halfWidth = width/2.0;
 		this.halfHeight = height/2.0;
 		
-		voronoi = new Voronoi();
+		voronoiBuilder = new VoronoiBuilder();
 		
 		if (useChunkLoader) {
 			chunkLoader = new SimulationChunkLoader(100);
@@ -56,12 +59,17 @@ public class View {
 	
 	public void update(double secondsPassed) {
 		seconds += secondsPassed;
-		this.x += this.velocityX*secondsPassed;
-		this.y += this.velocityY*secondsPassed;
+		this.viewX += this.velocityX*secondsPassed;
+		this.viewY += this.velocityY*secondsPassed;
+		
 		double decay = Math.pow(0.5, secondsPassed);
 		this.velocityX *= decay;
 		this.velocityY *= decay;
-
+		
+	    decay = Math.pow(0.5, secondsPassed*60.0);
+		this.mVelX *= decay;
+		this.mVelY *= decay;
+		
 		halfWidth *= Math.pow(slowZoom, secondsPassed);
 		halfHeight *= Math.pow(slowZoom, secondsPassed);
 		
@@ -74,11 +82,15 @@ public class View {
 		}
 	}
 	
+	AffineTransform identity = new AffineTransform();
+	
 	public void drawFrame(Graphics2D g2d, AffineTransform viewTransform) {		
 		AffineTransform before = g2d.getTransform();
 		
 		g2d.setTransform(viewTransform);
-		
+
+		// Clock dots
+		g2d.setColor(Color.WHITE);
 		for (int i = 0; i < 60; i++) {
 			double an = i * (Math.PI / 30.0);
 			double ew = 5, eh = 5;
@@ -91,28 +103,40 @@ public class View {
 			g2d.setColor(Color.WHITE);
 		}
 		
-
+		// Clock center
 		Ellipse2D.Double ellipse2 = new Ellipse2D.Double(-5.0, -5.0, 10.0, 10.0);
 		if (ellipse2.contains(mX, mY)) g2d.setColor(Color.YELLOW);
 		g2d.fill(ellipse2);
 		g2d.setColor(Color.WHITE);
 		
-		if (useChunkLoader) { 
-			Rectangle2D.Double bounds = new Rectangle2D.Double(x-halfWidth, y-halfHeight, halfWidth*2, halfHeight*2);
-			chunkManager.update(bounds);
-			chunkManager.draw(g2d);
-		}
-		
-		voronoi.draw(g2d);
-		
+		// Clock hand
 		Path2D.Double path = new Path2D.Double();
 		path.moveTo(100, 0);
 		path.lineTo(0, 2);
 		path.lineTo(0, -2);
 		path.closePath();
-		
 		g2d.rotate(seconds*(Math.PI / 30.0));
 		g2d.fill(path);
+		g2d.setTransform(viewTransform);
+		
+		if (useChunkLoader) { 
+			Rectangle2D.Double bounds = new Rectangle2D.Double(viewX-halfWidth, viewY-halfHeight, halfWidth*2, halfHeight*2);
+			chunkManager.update(bounds);
+			chunkManager.draw(g2d);
+		}
+		
+		if (voronoiWorker != null) voronoiWorker.debugDraw(g2d);
+		else {
+			for (Vec2 site : voronoiBuilder.getSites()) {
+				Ellipse2D ellipse = new Ellipse2D.Double(site.x-1, site.y-1, 2, 2);
+				g2d.fill(ellipse);
+			}
+		}
+		
+//		// Mouse velocity trail
+//		g2d.setColor(Color.WHITE);
+//		Line2D mVel = new Line2D.Double(mX, mY, mX+mVelX, mY+mVelY);
+//		g2d.draw(mVel);
 		
 		g2d.setTransform(before);
 		
@@ -132,10 +156,10 @@ public class View {
 	
 	public void mousePressed(int click, double px, double py) {
 		if (click == View.LEFT_CLICK) {
-			mDX = 0; mVelX = 0; mX = px;
-			mDY = 0; mVelY = 0; mY = py;
+			mDX = 0; mVelX = 0; mX = px; velocityX = 0;
+			mDY = 0; mVelY = 0; mY = py; velocityY = 0;
 			startPX = px; startPY = py;
-			startViewX = x; startViewY = y;
+			startViewX = viewX; startViewY = viewY;
 			panning = true;
 		}
 		//System.out.println("Click pressed: "+click);
@@ -143,25 +167,25 @@ public class View {
 
 	public void mouseDragged(int click, double px, double py) {
 		if (click == View.LEFT_CLICK) {
-			mDX = (mX - px); mVelX = (mVelX*4 + mDX) / 5.0; mX = px;
-			mDY = (mY - py); mVelY = (mVelY*4 + mDY) / 5.0; mY = py;
+			mDX = (mX - px); 
+			mDY = (mY - py); 
+			mVelX += mDX;
+			mVelY += mDY; 
+			mX = px;
+			mY = py;
 			this.velocityX = 0;
 			this.velocityY = 0;
 			
-			this.x = startViewX + startPX - px;
-			this.y = startViewY + startPY - py;
-			//System.out.println((px-startPX)+", "+(py-startPY));
+			this.viewX = startViewX + startPX - px;
+			this.viewY = startViewY + startPY - py;
 		}
 		//System.out.println("Click dragged: "+click);
 	}
 
 	public void mouseReleased(int click, double px, double py) {
 		if (click == View.LEFT_CLICK) {
-			boolean doThrow = (mDX * mDX + mDY * mDY > 5); 
-			mVelX = (mVelX*4 + mDX) / 5.0; mX = px;
-			mVelY = (mVelY*4 + mDY) / 5.0; mY = py;
-			this.x = startViewX + startPX - px;
-			this.y = startViewY + startPY - py;
+			mouseDragged(View.LEFT_CLICK, px, py);
+			boolean doThrow = (mVelX * mVelX + mVelX * mVelX > 3.0*540.0/halfWidth);
 			if (doThrow) {
 				this.velocityX = mVelX*60;
 				this.velocityY = mVelY*60;
@@ -177,24 +201,29 @@ public class View {
 			clickP = new Point2D.Double(x*8, y*8);
 			
 			boolean removed = false;
-			for (Site site : voronoi.getSites()) {
-				Point2D point = site.pos.toPoint2D();
-				if (clickP.distance(point) < 2) {
-					voronoi.removeSite(site);
+			for (Vec2 site : voronoiBuilder.getSites()) {
+				Point2D point = site.toPoint2D();
+				if (clickP.distance(point) < 8) {
+					voronoiBuilder.removeSite(site);
 					removed = true;
 					break;
 				}
 			}
 			if (!removed) {
-				voronoi.addSite(clickP);
+				voronoiBuilder.addSite(new Vec2(clickP));
 			}
+			voronoiWorker = null;
 		}
 		//System.out.println("Click released: "+click);
 	}
 	
 	public void mouseMoved(double px, double py) {
-		mDX = (mX - py); mVelX = (mVelX*4 + mDX) / 5.0; mX = px;
-		mDY = (mY - py); mVelY = (mVelY*4 + mDY) / 5.0; mY = py;
+		mDX = (mX - px); 
+		mDY = (mY - py); 
+		mVelX += mDX; 
+		mVelY += mDY; 
+		mX = px;
+		mY = py;
 	}
 
 	public void scroll(double clicks) {
@@ -218,33 +247,43 @@ public class View {
 
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			voronoi.buildStep();
+			if (voronoiWorker == null) voronoiWorker = voronoiBuilder.getBuildWorkerDebug();
+			else voronoiWorker.doWork();
 		} else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-			voronoi.build();
+			if (voronoiWorker == null) voronoiWorker = voronoiBuilder.getBuildWorkerDebug();
+			while (!voronoiWorker.isDone()) {
+				voronoiWorker.doWork();
+			}
 		} else if (e.getKeyCode() == KeyEvent.VK_UP) {
-			voronoi.debugAdvanceSweepline(-1);
+			if (voronoiWorker != null) { 
+				voronoiWorker.debugAdvanceSweepline(-1);
+			}
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-			voronoi.debugAdvanceSweepline(+1);
+			if (voronoiWorker != null) { 
+				voronoiWorker.debugAdvanceSweepline(+1);
+			}
 		} else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-			voronoi.stepBack();
+			if (voronoiWorker != null) { 
+				voronoiWorker.stepBack();
+			}
 		} else if (e.getKeyCode() == KeyEvent.VK_S) {
 			System.out.println("Saving");
 			try {
-				voronoi.savePoints();
+				voronoiBuilder.savePoints();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_L) {
 			System.out.println("Loading");
 			try {
-				voronoi.loadPoints();
+				voronoiBuilder.loadPoints();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_C) {
 			System.out.println("Clearing");
 			LinkedBinaryNode.IDCounter = 0;
-			voronoi.clearSites();
+			voronoiBuilder.clearSites();
 		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
 			slowZoom = 9.0/14.0;
 		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
@@ -253,6 +292,12 @@ public class View {
 			if (pane != null) {
 				if (!pane.isRecording()) pane.startRecording();
 				else pane.stopRecording();
+			}
+		} else if (e.getKeyCode() == KeyEvent.VK_SLASH) {
+			for (double d = Math.PI/2.0; d < Math.PI*1.0; d += Math.PI/17.3) {
+				voronoiBuilder.addSite(new Vec2(Math.cos(d)*d*100, Math.sin(d)*d*100));
+				voronoiBuilder.addSite(new Vec2(Math.cos(d+Math.PI*2.0/3.0)*d*100, Math.sin(d+Math.PI*2.0/3.0)*d*100));
+				voronoiBuilder.addSite(new Vec2(Math.cos(d-Math.PI*2.0/3.0)*d*100, Math.sin(d-Math.PI*2.0/3.0)*d*100));
 			}
 		}
 	}

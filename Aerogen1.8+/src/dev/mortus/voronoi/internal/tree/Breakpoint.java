@@ -1,10 +1,10 @@
 package dev.mortus.voronoi.internal.tree;
 
-import dev.mortus.util.data.Pair;
-import dev.mortus.util.math.Parabola;
-import dev.mortus.util.math.Ray;
-import dev.mortus.util.math.Vec2;
-import dev.mortus.voronoi.Voronoi;
+import dev.mortus.util.math.func.Function;
+import dev.mortus.util.math.func.Quadratic;
+import dev.mortus.util.math.geom.Ray;
+import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.MutableEdge;
 
@@ -41,22 +41,6 @@ public class Breakpoint extends TreeNode {
 			// the requested breakpoint to exist.
 			throw new RuntimeException("There is no such breakpoint!");
 		}
-	}
-	
-	private double lastRequest = Double.NaN;
-	private Vec2 lastResult = null;
-	
-	public Vec2 getPosition(final BuildState state) {
-		if (state.getSweeplineY() != lastRequest) {
-			lastRequest = state.getSweeplineY();
-			lastResult = calculatePosition(state.getSweeplineY());
-		}
-		if (lastResult == null) {
-			double x = (arcLeft.site.pos.x + arcRight.site.pos.x) / 2.0;
-			double y = state.getBounds().getMinY()-10;
-			lastResult = new Vec2(x, y);
-		}
-		return lastResult;
 	}
 	
 	/**
@@ -115,50 +99,27 @@ public class Breakpoint extends TreeNode {
 		return intersection;
 	}
 
-	private Vec2 calculatePosition(double sweeplineY) {
-		Parabola leftParabola = arcLeft.getParabola(sweeplineY);
-		Parabola rightParabola = arcRight.getParabola(sweeplineY);
-		
-		Pair<Vec2> intersects = leftParabola.intersect(rightParabola);
-		double leftY = arcLeft.site.pos.y;
-		double rightY = arcRight.site.pos.y;
-			
-		// Case either parabola is a vertical line (focus y coord = directrix y coord)
-		if (leftParabola.isVertical) {
-			if (rightParabola.isVertical) return null; // Both parabolas are vertical, no valid intersection
-			if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
-			return intersects.first;
-		} else if (rightParabola.isVertical) {
-			if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
-			return intersects.first;
-		} 
-		
-		if (leftY == rightY) {
-			// Parabolas are exactly side by side. There is only one intersect, 
-			// the desired left/right relationship may not exist.
-			if (arcLeft.site.pos.x < arcRight.site.pos.x) {
-				if (intersects.second != null) throw new RuntimeException("There should only be one intersect in this situation");
-				return intersects.first;
-			} else {
-				throw new RuntimeException("There is no such breakpoint!");
-			}
+	private double lastRequest = Double.NaN;
+	private Vec2 lastResult = null;
+	
+	public Vec2 getPosition(final BuildState state) {
+		if (state.getSweeplineY() != lastRequest) {
+			lastRequest = state.getSweeplineY();
+			lastResult = calculatePosition(state.getSweeplineY());
 		}
-
-		// if focii are on different sides of the sweepline, there are no intersections
-		if (leftY < sweeplineY && rightY > sweeplineY) return null;
-		if (leftY > sweeplineY && rightY < sweeplineY) return null;
-		
-		if (leftY > rightY) {
-			// The left parabola is steeper than right. There are 2 intersections between them, but 
-			// the X+ most intersect (index: 1) is the intersect for which the desired left/right relationship is correct
-			if (intersects.first == null) throw new RuntimeException("There should be 2 intersections in this situation");
-			return intersects.second;
-		} else {
-			// The right parabola is steeper than left. There are 2 intersections between them, but 
-			// the X- most intersect (index: 0) is the intersect for which the desired left/right relationship is correct
-			if (intersects.second == null) throw new RuntimeException("There should be 2 intersections in this situation");
-			return intersects.first;
+		if (lastResult == null) {
+			double x = (arcLeft.site.pos.x + arcRight.site.pos.x) / 2.0;
+			double y = state.getBounds().minY()-10;
+			lastResult = new Vec2(x, y);
 		}
+		return lastResult;
+	}
+	
+	private Vec2 calculatePosition(double sweeplineY) {		
+		Function leftParabola = arcLeft.getParabola(sweeplineY);
+		Function rightParabola = arcRight.getParabola(sweeplineY);
+		
+		return Quadratic.getIntersect(leftParabola, rightParabola);
 	}
 
 	@Override

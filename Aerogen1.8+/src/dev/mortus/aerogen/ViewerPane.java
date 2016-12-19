@@ -35,14 +35,14 @@ public class ViewerPane extends JPanel implements Runnable {
 	public boolean showFPS = false;
 	
 	private static final long serialVersionUID = 5091243043686433403L;
-	private ComponentListener componentListener
-    = new ComponentAdapter() {
+	
+	private ComponentListener componentListener = new ComponentAdapter() {
 		public void componentResized(ComponentEvent e) {
 			ViewerPane.this.onResize(e.getComponent().getSize());
 		}
 	};
-	private MouseAdapter mouseListener
-	= new MouseAdapter() {
+	
+	private MouseAdapter mouseListener = new MouseAdapter() {
 		int click = 0;
 		private AffineTransform panTransform = new AffineTransform();
 		public void mousePressed(MouseEvent e) {
@@ -69,14 +69,14 @@ public class ViewerPane extends JPanel implements Runnable {
 			view.mouseMoved(pt.getX(), pt.getY());
 		}
 	};
-	private MouseWheelListener mouseWheelListener
-	= new MouseWheelListener() {
+	
+	private MouseWheelListener mouseWheelListener = new MouseWheelListener() {
 		public void mouseWheelMoved(MouseWheelEvent e) {
 			view.scroll(e.getPreciseWheelRotation());			
 		}
 	};
-	private KeyAdapter keyListener
-	= new KeyAdapter() {
+	
+	private KeyAdapter keyListener = new KeyAdapter() {
 		public void keyPressed(KeyEvent e) {
 			view.keyPressed(e);
 		}
@@ -130,7 +130,8 @@ public class ViewerPane extends JPanel implements Runnable {
 		// Anti-aliasing on
 		g2d.setRenderingHint(
 			RenderingHints.KEY_ANTIALIASING, 
-			RenderingHints.VALUE_ANTIALIAS_ON);
+			RenderingHints.VALUE_ANTIALIAS_ON
+		);
 		
 		// Background Black
 		g2d.setBackground(new Color(0,0,0,255));
@@ -274,12 +275,12 @@ public class ViewerPane extends JPanel implements Runnable {
 		viewTransform.setTransform(freshTransform);
 		viewTransform.scale(getWidth()/(view.halfWidth*2), 
 							getHeight()/(view.halfHeight*2));
-		viewTransform.translate(-view.x, -view.y);
+		viewTransform.translate(-view.viewX, -view.viewY);
 		viewTransform.translate(view.halfWidth, view.halfHeight);
 		
 		deviewTransform.setTransform(freshTransform);
 		deviewTransform.translate(-view.halfWidth, -view.halfHeight);
-		deviewTransform.translate(view.x, view.y);
+		deviewTransform.translate(view.viewX, view.viewY);
 		deviewTransform.scale((view.halfWidth*2)/getWidth(),
 							(view.halfHeight*2)/getHeight());
 	}
@@ -289,8 +290,8 @@ public class ViewerPane extends JPanel implements Runnable {
 		resetTransform(g2d);
 		g2d.clearRect(0, 0, getWidth(), getHeight());
 
+		// Request draw from view object
 		calculateViewTransform();
-		
 		view.drawFrame(g2d, viewTransform);
 	}
 

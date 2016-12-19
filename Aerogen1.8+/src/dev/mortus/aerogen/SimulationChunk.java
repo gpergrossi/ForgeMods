@@ -22,8 +22,8 @@ public class SimulationChunk extends Chunk {
 	@Override
 	public void load() {
 		bounds = new Rectangle2D.Double(chunkX*chunkSize, chunkY*chunkSize, chunkSize, chunkSize);
-		double x = Math.random()*(chunkSize-10) + chunkX*chunkSize+5;
-		double y = Math.random()*(chunkSize-10) + chunkY*chunkSize+5;
+		double x = Math.random()*(chunkSize-10) + chunkX*chunkSize + 5;
+		double y = Math.random()*(chunkSize-10) + chunkY*chunkSize + 5;
 		dot = new Ellipse2D.Double(x-5, y-5, 10, 10);
 		center = new Point2D.Double(chunkX*chunkSize+chunkSize/2, chunkY*chunkSize+chunkSize/2);
 		try {

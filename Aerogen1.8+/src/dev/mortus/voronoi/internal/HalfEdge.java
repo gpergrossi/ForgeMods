@@ -1,14 +1,13 @@
 package dev.mortus.voronoi.internal;
 
 import dev.mortus.util.data.Pair;
-import dev.mortus.voronoi.Vertex;
 import dev.mortus.voronoi.internal.tree.Breakpoint;
 
 public class HalfEdge extends MutableEdge {
 
 	private HalfEdge twin;
 	
-	static Pair<HalfEdge> createTwinPair(Pair<Breakpoint> bps, Vertex vert) {
+	static Pair<HalfEdge> createTwinPair(Pair<Breakpoint> bps, MutableVertex vert) {
 		if (bps.size() != 2) throw new RuntimeException("Cannot construct twin pair with a partial pair of breakpoints");
 		
 		HalfEdge edge = new HalfEdge(bps.first, vert);
@@ -21,11 +20,11 @@ public class HalfEdge extends MutableEdge {
 		return twins;
 	}
 	
-	private HalfEdge(Breakpoint bp, Vertex start) {
+	private HalfEdge(Breakpoint bp, MutableVertex start) {
 		super(bp, start);
 	}
 	
-	private HalfEdge(HalfEdge edge, Vertex end) {
+	private HalfEdge(HalfEdge edge, MutableVertex end) {
 		super(edge, end);
 		this.twin = edge.twin;
 		this.twin.twin = this;
@@ -44,7 +43,7 @@ public class HalfEdge extends MutableEdge {
 		return true;
 	}
 	
-	HalfEdge finish(Vertex end) {
+	HalfEdge finish(MutableVertex end) {
 		return new HalfEdge(this, end);
 	}
 	

@@ -15,7 +15,7 @@ package dev.mortus.util.data;
 
 public abstract class LinkedBinaryNode {
 
-	public static interface Tree {
+	public static interface Tree<T extends LinkedBinaryNode> extends Iterable<T> {
 		public LinkedBinaryNode getRoot();
 		public void setRoot(LinkedBinaryNode node);
 	}
@@ -55,7 +55,7 @@ public abstract class LinkedBinaryNode {
 	
 	public static int IDCounter = 0;
 
-	private Tree rootParent;
+	private Tree<?> rootParent;
 	private LinkedBinaryNode parent;
 	private LinkedBinaryNode leftChild, rightChild;
 	private LinkedBinaryNode predecessor, successor;
@@ -67,7 +67,7 @@ public abstract class LinkedBinaryNode {
 		this.id = IDCounter++;
 	}
 
-	protected LinkedBinaryNode(Tree rootParent) {
+	protected LinkedBinaryNode(Tree<?> rootParent) {
 		this();
 		this.rootParent = rootParent;
 		rootParent.setRoot(this);
@@ -279,7 +279,6 @@ public abstract class LinkedBinaryNode {
 		return this.rightChild != null;
 	}
 	
-	
 	/**
 	 * Returns this node's sibling, or null if it does not have one.
 	 */
@@ -289,7 +288,6 @@ public abstract class LinkedBinaryNode {
 		return null;
 	}
 	
-
 	/**
 	 * Forces this node to be disconnected from its tree.
 	 * Will call removeLeftChild, removeRightChild, or promoteToRoot(null).
@@ -428,6 +426,19 @@ public abstract class LinkedBinaryNode {
 			if (n != null) return n.parent;
 		}
 		return null;
+	}
+	
+	public Pair<Integer> getBreadthAndDepth() {
+		Pair<Integer> left, right;
+		if (this.hasLeftChild()) left = this.getLeftChild().getBreadthAndDepth();
+		else left = new Pair<>(0, 0);
+		if (this.hasRightChild()) right = this.getRightChild().getBreadthAndDepth();
+		else right = new Pair<>(0, 0);
+		
+		int depth = Math.max(left.second, right.second)+1;
+		int breadth = left.first + right.first + 1;
+		
+		return new Pair<>(breadth, depth);
 	}
 	
 	/**

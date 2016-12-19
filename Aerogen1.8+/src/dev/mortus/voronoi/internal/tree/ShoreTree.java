@@ -7,18 +7,28 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import dev.mortus.util.data.LinkedBinaryNode;
-import dev.mortus.util.math.Circle;
-import dev.mortus.util.math.Parabola;
-import dev.mortus.util.math.Vec2;
-import dev.mortus.voronoi.Edge;
-import dev.mortus.voronoi.Site;
-import dev.mortus.voronoi.Voronoi;
+import dev.mortus.util.data.Pair;
+import dev.mortus.util.math.func.Function;
+import dev.mortus.util.math.func.Quadratic;
+import dev.mortus.util.math.func.Vertical;
+import dev.mortus.util.math.geom.Circle;
+import dev.mortus.util.math.geom.Rect;
+import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.voronoi.diagram.Edge;
+import dev.mortus.voronoi.diagram.Site;
+import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
+import dev.mortus.voronoi.internal.MutableEdge;
 
-public class ShoreTree implements LinkedBinaryNode.Tree {
+public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 	TreeNode root;
 	
 
@@ -54,43 +64,23 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 		boolean debug = Voronoi.DEBUG;
 		Voronoi.DEBUG = false;
 		
-		AffineTransform transform = g.getTransform();
-		AffineTransform identity = new AffineTransform();
-		
 		g.setColor(Color.BLUE);
 		
 		drawCircleEvents(state, g, root.subtreeIterator());
 		drawParabolas(state, g, root.subtreeIterator());
+		drawBreakpoints(state, g, root.subtreeIterator());
 		
-		for (TreeNode n : root.subtreeIterator()) {
-			if (!(n instanceof Breakpoint)) continue;
-			Breakpoint breakpoint = (Breakpoint) n;
-			
-			Vec2 posVec = breakpoint.getPosition(state);
-			if (posVec == null) continue;
-			Point2D pos = posVec.toPoint2D();
-
-			g.setColor(new Color(128,0,0));
-			Ellipse2D bpe = new Ellipse2D.Double(pos.getX()-2.5, pos.getY()-2.5, 5.0, 5.0);
-			g.draw(bpe);
-			g.setTransform(identity);
-			transform.transform(pos, pos);
-			g.setColor(new Color(255,0,0));
-			g.drawString(breakpoint.getArcLeft().site.id+":"+breakpoint.getArcRight().site.id, (int) pos.getX(), (int) pos.getY());
-			g.setTransform(transform);
-			
-			g.setColor(new Color(64,64,64));
-			drawPartialEdge(g, breakpoint, state);
-		}
-		
+		// Draw edges
 		for (Edge edge : state.getEdges()) {
-			Line2D line = new Line2D.Double(edge.start().toPoint2D(), edge.end().toPoint2D());
+			Line2D line = new Line2D.Double(edge.getStart().toPoint2D(), edge.getEnd().toPoint2D());
 			g.draw(line);
 		}
 		
+		drawTree(state, g);
+		
 		Voronoi.DEBUG = debug;
 	}
-	
+
 	private void drawCircleEvents(BuildState state, Graphics2D g, Iterable<TreeNode> nodes) {
 		for (TreeNode n : nodes) {
 			if (!(n instanceof Arc)) continue;
@@ -135,12 +125,12 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 			if (!(n instanceof Arc)) continue;
 			Arc arc = (Arc) n;
 			
-			Parabola par = Parabola.fromPointAndLine(arc.site.pos, state.getSweeplineY());
+			Function par = Quadratic.fromPointAndLine(arc.site.pos, state.getSweeplineY());
 			
-			Rectangle2D bounds = state.getBounds();
-			double minX = bounds.getMinX();
-			double maxX = bounds.getMaxX();
-			double minY = bounds.getMinY();
+			Rect bounds = state.getBounds();
+			double minX = bounds.minX();
+			double maxX = bounds.maxX();
+			double minY = bounds.minY();
 			
 			TreeNode pred = n.getPredecessor(); 
 			Vec2 predBreakpoint = null;
@@ -149,7 +139,6 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 				predBreakpoint = breakpoint.getPosition(state);
 				if (predBreakpoint != null) {
 					minX = predBreakpoint.x;
-					if (predBreakpoint.y > bounds.getMinY()) minY = predBreakpoint.y;
 				}
 			}
 			
@@ -160,22 +149,21 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 				succBreakpoint = breakpoint.getPosition(state);
 				if (succBreakpoint != null) {
 					maxX = succBreakpoint.x;
-					if (succBreakpoint.y > bounds.getMinY() && succBreakpoint.y < minY) minY = succBreakpoint.y;
 				}
 			}
 			
-			if (minX < bounds.getMinX()) minX = bounds.getMinX();
-			if (maxX > bounds.getMaxX()) maxX = bounds.getMaxX();
+			if (minX < bounds.minX()) minX = bounds.minX();
+			if (maxX > bounds.maxX()) maxX = bounds.maxX();
 			
 			g.setColor(Color.GRAY);
 			int step = 1;
-			if (!par.isVertical) {
+			if (!(par instanceof Vertical)) {
 				for (int s = (int) minX; s < maxX; s += step) {
 					double x = s;
 					if (s >= maxX) x = maxX;
-					if (s == (int) minX) x = minX;
-					double y0 = par.get(x);
-					double y1 = par.get(x + step);
+					if (s <= minX) x = minX;
+					double y0 = par.getValue(x);
+					double y1 = par.getValue(x + step);
 					
 					// do not exceed bounds
 					if (y0 < minY && y1 < minY) continue;
@@ -185,23 +173,136 @@ public class ShoreTree implements LinkedBinaryNode.Tree {
 					g.draw(line);
 				}
 			} else {
-				Line2D line = new Line2D.Double(par.verticalX, minY, par.verticalX, state.getSweeplineY());
+				Vertical vert = (Vertical) par;
+				Line2D line = new Line2D.Double(vert.getX(), minY, vert.getX(), state.getSweeplineY());
 				g.draw(line);
 			}
 		}
 	}
 	
 	private void drawPartialEdge(Graphics2D g, Breakpoint bp, BuildState state) {
-		Edge edge = bp.edge;
+		MutableEdge edge = bp.edge;
 		if (edge != null) {
-			Vec2 start = edge.start().getPosition();
+			Vec2 start = edge.getStart().getPosition();
 			Vec2 end;
-			if (edge.isFinished()) end = edge.end().getPosition();
+			if (edge.isFinished()) end = edge.getEnd().getPosition();
 			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);
 		}
 	}
+	
+	private void drawBreakpoints(BuildState state, Graphics2D g, Iterable<TreeNode> nodes) {
+		AffineTransform transform = g.getTransform();
+		AffineTransform identity = new AffineTransform();
+		for (TreeNode n : nodes) {
+			if (!(n instanceof Breakpoint)) continue;
+			Breakpoint breakpoint = (Breakpoint) n;
+			
+			Vec2 posVec = breakpoint.getPosition(state);
+			if (posVec == null) continue;
+			Point2D pos = posVec.toPoint2D();
 
+			g.setColor(new Color(128,0,0));
+			Ellipse2D bpe = new Ellipse2D.Double(pos.getX()-2.5, pos.getY()-2.5, 5.0, 5.0);
+			g.draw(bpe);
+			g.setTransform(identity);
+			transform.transform(pos, pos);
+			g.setColor(new Color(255,0,0));
+			g.drawString(breakpoint.getArcLeft().site.id+":"+breakpoint.getArcRight().site.id, (int) pos.getX(), (int) pos.getY());
+			g.setTransform(transform);
+			
+			g.setColor(new Color(64,64,64));
+			drawPartialEdge(g, breakpoint, state);
+		}
+	}
+
+	private void drawTree(BuildState state, Graphics2D g) {
+		AffineTransform transform = g.getTransform();
+		AffineTransform identity = new AffineTransform();
+		
+		Pair<Integer> breadthAndDepth = this.getRoot().getBreadthAndDepth();
+		double dy = 50.0;
+		double minY = state.getBounds().maxY()+dy;
+		double minX = state.getBounds().minX();
+		
+		g.setColor(Color.BLACK);
+		Rectangle2D rect = new Rectangle2D.Double(minX, minY, state.getBounds().width(), dy*(breadthAndDepth.second+1));
+		g.fill(rect);
+		
+		List<LinkedBinaryNode> layer = new ArrayList<>();
+		List<LinkedBinaryNode> next = new ArrayList<>();
+		layer.add(this.getRoot());
+		
+		Map<LinkedBinaryNode, Vec2> positions = new HashMap<>();
+		Map<LinkedBinaryNode, Double> splitWidth = new HashMap<>();
+
+		g.setColor(Color.ORANGE);
+		int depth = 0;
+		while (layer.size() > 0) {
+			next.clear();
+			
+			for (LinkedBinaryNode n : layer) {
+				double x;
+				if (n.getParent() == null) {
+					x = state.getBounds().centerX();
+					double width = state.getBounds().width();
+					splitWidth.put(n, width);
+				} else {
+					double parX = positions.get(n.getParent()).x;
+					double parW = splitWidth.get(n.getParent());
+					double xShare = parW / (n.getParent().getBreadthAndDepth().first);
+					double width = (n.getBreadthAndDepth().first)*xShare;
+					splitWidth.put(n, width);
+					
+					if (n.isLeftChild()) {
+						x = parX - parW/2 + width/2.0;
+					} else {
+						double sibW = (n.getSibling().getBreadthAndDepth().first+1)*xShare;
+						x = parX - parW/2 + sibW + width/2.0;
+					}
+				}
+				
+				Vec2 pos = new Vec2(x, minY + dy*depth);
+				positions.put(n, pos);
+
+				if (n.getParent() != null) {
+					Line2D line = new Line2D.Double(pos.toPoint2D(), positions.get(n.getParent()).toPoint2D());
+					g.draw(line);
+				}
+				
+				Point2D label = pos.toPoint2D();
+				g.setTransform(identity);
+				transform.transform(label, label);
+				g.setColor(Color.RED);
+				
+				if (n instanceof Breakpoint) {
+					Breakpoint bp = (Breakpoint) n;
+					g.drawString("BP:"+bp.getArcLeft().site.id+":"+bp.getArcRight().site.id, (int) label.getX(), (int) label.getY());
+				}
+
+				if (n instanceof Arc) {
+					Arc arc = (Arc) n;
+					g.drawString("Arc:"+arc.site.id, (int) label.getX(), (int) label.getY());
+				}
+
+				g.setTransform(transform);
+				g.setColor(Color.ORANGE);
+				
+				if (n.getLeftChild() != null) next.add(n.getLeftChild());
+				if (n.getRightChild() != null) next.add(n.getRightChild());
+			}
+			
+			List<LinkedBinaryNode> swap = layer;
+			layer = next;
+			next = swap;
+			depth++;
+		}
+	}
+
+	@Override
+	public Iterator<TreeNode> iterator() {
+		return this.root.subtreeIterator();
+	}
 	
 }

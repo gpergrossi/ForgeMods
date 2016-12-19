@@ -1,11 +1,12 @@
 package dev.mortus.voronoi.internal.tree;
 
 import dev.mortus.util.data.Pair;
-import dev.mortus.util.math.Circle;
-import dev.mortus.util.math.Parabola;
-import dev.mortus.util.math.Vec2;
-import dev.mortus.voronoi.Site;
-import dev.mortus.voronoi.Voronoi;
+import dev.mortus.util.math.func.Function;
+import dev.mortus.util.math.func.Quadratic;
+import dev.mortus.util.math.geom.Circle;
+import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.voronoi.diagram.Site;
+import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
 
@@ -46,8 +47,8 @@ public class Arc extends TreeNode {
 		return circleEvent;
 	}
 	
-	public Parabola getParabola(double sweeplineY) {
-		return Parabola.fromPointAndLine(site.pos, sweeplineY);
+	public Function getParabola(double sweeplineY) {
+		return Quadratic.fromPointAndLine(site.pos, sweeplineY);
 	}
 
 	@Override

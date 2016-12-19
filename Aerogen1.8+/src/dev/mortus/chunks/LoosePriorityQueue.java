@@ -21,6 +21,7 @@ public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implement
 	T currentNextBest;
 	Comparator<T> comparator;
 	Random random;
+	T peeked;
 	int searchIters = 4;
 	
 	public LoosePriorityQueue(int initialCapacity) {
@@ -34,6 +35,7 @@ public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implement
 	}
 	
 	private int compare(T o1, T o2) {
+		if (o1 == null && o2 == null) return 0;
 		if (o1 == null) return 1;
 		if (o2 == null) return -1;
 		if (comparator != null) return comparator.compare(o1, o2);
@@ -65,7 +67,11 @@ public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implement
 	}
 
 	public T poll() {
-		T head = peek();
+		T head;
+		if (peeked == null) head = peek();
+		else head = peeked;
+		peeked = null;
+		
 		if (head == currentNextBest) {
 			currentNextBest = null;
 		}
@@ -95,6 +101,7 @@ public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implement
 			}
 		}
 		
+		peeked = localBest; // peek guarantees next poll returns peeked value
 		return localBest;
 	}
 

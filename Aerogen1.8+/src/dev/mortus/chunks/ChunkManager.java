@@ -225,8 +225,8 @@ public class ChunkManager<T extends Chunk> {
 	
 	static void acquire(String resource, Lock... locks) {
 		boolean allAcquired = false;
-		//String msg = "\t\t\t\t\t\t\t"+Thread.currentThread().getName()+" acquiring "+resource+" ("+locks.length+" locks)";
-		//debug(msg);
+		String msg = Thread.currentThread().getName()+" acquiring "+resource+" ("+locks.length+" locks)";
+		debug(msg);
 		while (!allAcquired) {
 			int i;
 			allAcquired = true;
@@ -259,8 +259,8 @@ public class ChunkManager<T extends Chunk> {
 	}
 	
 	static void release(String resource, Lock... locks) {
-		//String msg = "\t\t\t\t\t\t\t"+Thread.currentThread().getName()+" releasing "+resource+" ("+locks.length+" locks)";
-		//debug(msg);
+		String msg = Thread.currentThread().getName()+" releasing "+resource+" ("+locks.length+" locks)";
+		debug(msg);
 		for (Lock lock : locks) {
 			lock.unlock();
 			synchronized (lock) {
@@ -317,7 +317,7 @@ public class ChunkManager<T extends Chunk> {
 		}
 		
 		private void debug(String msg) {
-			// ChunkManager.debug(msg);
+			ChunkManager.debug(msg);
 		}
 		
 		private void doWork() {
@@ -392,7 +392,7 @@ public class ChunkManager<T extends Chunk> {
 		}
 		
 		private void debug(String msg) {
-			// ChunkManager.debug(msg);
+			ChunkManager.debug(msg);
 		}
 		
 		public void complete() {

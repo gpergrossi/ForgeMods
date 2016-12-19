@@ -1,47 +1,46 @@
 package dev.mortus.voronoi.internal;
 
-import dev.mortus.voronoi.Edge;
-import dev.mortus.voronoi.Site;
-import dev.mortus.voronoi.Vertex;
+import dev.mortus.util.data.Pair;
+import dev.mortus.voronoi.diagram.Edge;
 import dev.mortus.voronoi.internal.tree.Breakpoint;
 
 public class MutableEdge extends Edge {
 	
-	MutableEdge(Vertex start, Vertex end, Site left, Site right) {
+	MutableEdge(MutableVertex start, MutableVertex end, MutableSite left, MutableSite right) {
 		super(start, end, left, right);
 	}
 	
 	// Start unfinished edge
-	protected MutableEdge(Breakpoint bp, Vertex start) {
+	protected MutableEdge(Breakpoint bp, MutableVertex start) {
 		super(start, null, bp.getArcRight().site, bp.getArcLeft().site);
 	}
 	
 	// Finish unfinished edge
-	protected MutableEdge(MutableEdge edge, Vertex end) {
-		super(edge.start(), end, edge.sites.first, edge.sites.second);
+	protected MutableEdge(MutableEdge edge, MutableVertex end) {
+		super(edge.getStart(), end, edge.sites.first, edge.sites.second);
 	}
 	
 	// Clip mutable edge
-	private MutableEdge(MutableEdge edge, Vertex start, Vertex end) {
+	private MutableEdge(MutableEdge edge, MutableVertex start, MutableVertex end) {
 		super(start, end, edge.sites.first, edge.sites.second);
 	}
 
 	// Combine half edges
 	private MutableEdge(HalfEdge edge, HalfEdge twin) {
-		super(twin.end(), edge.end(), edge.sites.first, edge.sites.second);
-		if (edge.end() == null) throw new RuntimeException("Cannot combine, edge has null end");
-		if (twin.end() == null) throw new RuntimeException("Cannot combine, twin has null end");
-	}
+		super(twin.getEnd(), edge.getEnd(), edge.sites.first, edge.sites.second);
+		if (edge.getEnd() == null) throw new RuntimeException("Cannot combine, edge has null end");
+		if (twin.getEnd() == null) throw new RuntimeException("Cannot combine, twin has null end");
+	}	
 	
 	MutableEdge combine(HalfEdge edge, HalfEdge twin) {
 		return new MutableEdge(edge, twin);
 	}
 	
-	MutableEdge clip(Vertex start, Vertex end) {
+	MutableEdge clip(MutableVertex start, MutableVertex end) {
 		return new MutableEdge(this, start, end);
 	}
 	
-	MutableEdge finish(Vertex end) {
+	MutableEdge finish(MutableVertex end) {
 		return new MutableEdge(this, end);
 	}
 	
@@ -49,12 +48,34 @@ public class MutableEdge extends Edge {
 		return false;
 	}
 	
-	Site getSiteLeft() {
-		return sites.first;
+	public boolean isFinished() {
+		return vertices.size() == 2;
 	}
 	
-	Site getSiteRight() {
-		return sites.second;
+	MutableSite getSiteLeft() {
+		return (MutableSite) sites.first;
+	}
+	
+	MutableSite getSiteRight() {
+		return (MutableSite) sites.second;
+	}
+	
+	@Override
+	public MutableVertex getStart() {
+		return (MutableVertex) vertices.first;
+	}
+	
+	@Override
+	public MutableVertex getEnd() {
+		return (MutableVertex) vertices.second;
+	}
+
+	public Pair<MutableSite> getSites() {
+		return new Pair<>(getSiteLeft(), getSiteRight());
+	}
+
+	public Pair<MutableVertex> getVertices() {
+		return new Pair<>(getStart(), getEnd());
 	}
 	
 }
