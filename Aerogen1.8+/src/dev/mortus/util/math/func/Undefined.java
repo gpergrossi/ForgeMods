@@ -1,8 +1,5 @@
 package dev.mortus.util.math.func;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Undefined extends Function {
 
 	public Undefined() {}
@@ -13,7 +10,7 @@ public class Undefined extends Function {
 	}
 
 	@Override
-	public Function add(Function f) {
+	public Function tryAdd(Function f) {
 		return this;
 	}
 
@@ -23,7 +20,7 @@ public class Undefined extends Function {
 	}
 
 	@Override
-	public Function multiply(Function f) {
+	public Function tryMultiply(Function f) {
 		return this;
 	}
 
@@ -38,8 +35,8 @@ public class Undefined extends Function {
 	}
 
 	@Override
-	public List<Double> zeros() {
-		return new ArrayList<>(0);
+	public double[] zeros() {
+		return new double[0];
 	}
 	
 	public String toString() {

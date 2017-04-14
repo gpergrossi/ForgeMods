@@ -1,24 +1,29 @@
 package dev.mortus.test;
 
+import java.util.Iterator;
 import java.util.Queue;
-import java.util.function.IntFunction;
-
 import dev.mortus.util.data.queue.FixedSizeArrayQueue;
+import dev.mortus.util.data.queue.GrowingArrayQueue;
 
 public class QueueTest {
 
 
 	public static void main(String[] args) {
-		
-		IntFunction<String[]> allocator = (size -> { return new String[size]; });
-		
-		Queue<String> queue = new FixedSizeArrayQueue<>(allocator, 10);
-		
-		test(queue);
-		
+		testFixedSizeArrayQueue();
+		testGrowingArrayQueue();
 		System.out.println("All tests passed");
 	}
 
+	private static void testFixedSizeArrayQueue() {
+		Queue<String> queue = new FixedSizeArrayQueue<>(size -> new String[size], 10);
+		test(queue);
+	}
+
+	private static void testGrowingArrayQueue() {
+		Queue<String> queue = new GrowingArrayQueue<>(size -> new String[size], 1);
+		test2(queue);
+	}
+	
 	public static void test(Queue<String> q) {
 
 		for (int j = 0; j < 2; j++) {
@@ -57,6 +62,36 @@ public class QueueTest {
 				assertEquals(q.poll(), null);
 			}
 			
+		}
+		
+	}
+	
+	public static void test2(Queue<String> q) {
+
+		q.clear();
+		assertEquals(q.size(), 0);
+		
+		System.out.println("Offering...");
+		for (int j = 1; j <= 10000000; j++) {
+			String str = Integer.toHexString(j);
+			
+			q.offer(str);
+			assertEquals(q.size(), j);
+			
+			if (j % 1000000 == 0) System.out.println("progress: "+j+"/10000000");
+		}
+		
+		System.out.println("Iterating...");
+		Iterator<String> iter = q.iterator();
+		for (int j = 1; j <= 10000000; j++) {
+			String str = Integer.toHexString(j);
+			assertEquals(iter.next(), str);
+		}
+
+		System.out.println("Polling...");
+		for (int j = 1; j <= 10000000; j++) {
+			String str = Integer.toHexString(j);
+			assertEquals(q.poll(), str);
 		}
 		
 	}

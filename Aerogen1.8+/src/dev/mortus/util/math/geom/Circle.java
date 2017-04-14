@@ -1,24 +1,27 @@
 package dev.mortus.util.math.geom;
 
 public final class Circle {
+	
 	public final double x, y, radius;
 	
 	public static Circle fromPoints(Vec2 a, Vec2 b, Vec2 c) {
-		double abx = a.x - b.x;
-		double aby = a.y - b.y;
-		double bcx = b.x - c.x;
-		double bcy = b.y - c.y;
+		double abx = a.getX() - b.getX();
+		double aby = a.getY() - b.getY();
+		double bcx = b.getX() - c.getX();
+		double bcy = b.getY() - c.getY();
 		
 		double d = abx*bcy - bcx*aby;
 		if (d == 0) return null;
 		
-		double u = (a.x*a.x - b.x*b.x + a.y*a.y - b.y*b.y) / 2.0;
-		double v = (b.x*b.x - c.x*c.x + b.y*b.y - c.y*c.y) / 2.0;
+		double u = (a.getX()*a.getX() - b.getX()*b.getX() + a.getY()*a.getY() - b.getY()*b.getY()) / 2.0;
+		double v = (b.getX()*b.getX() - c.getX()*c.getX() + b.getY()*b.getY() - c.getY()*c.getY()) / 2.0;
 		
 		double x = (u*bcy - v*aby) / d;
 		double y = (v*abx - u*bcx) / d;
 		
-		return new Circle(x, y, Math.sqrt((a.x-x)*(a.x-x) + (a.y-y)*(a.y-y)));
+		double dx = a.getX()-x;
+		double dy = a.getY()-y;
+		return new Circle(x, y, Math.sqrt(dx*dx + dy*dy));
 	}
 	
 	public Circle(double x, double y, double r) {

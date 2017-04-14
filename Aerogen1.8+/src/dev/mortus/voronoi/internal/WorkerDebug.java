@@ -4,18 +4,18 @@ import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 
+import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.VoronoiBuilder.InitialState;
 
 public class WorkerDebug extends Worker {
 
-	public WorkerDebug(InitialState init) {
-		super(init);
+	public WorkerDebug(Rect bounds, Vec2[] siteArray) {
+		super(bounds, siteArray);
 	}
 
 	public void doWorkVerbose() {
 		if (state == null) {
-			state = new BuildState(init);
+			state = new BuildState(bounds, siteArray);
 			System.out.println("Build Init");
 			System.out.println("\nBuild Step 0 (out of <"+state.getTheoreticalMaxSteps()+")");
 			return;
@@ -29,7 +29,7 @@ public class WorkerDebug extends Worker {
 		int step = state.getNumEventsProcessed();
 		if (step == 0) return;
 		
-		state = new BuildState(init);
+		state = new BuildState(bounds, siteArray);
 
 		while (state.getNumEventsProcessed() < step-1) {		
 			System.out.println("Rewind: "+state.getNumEventsProcessed()+"/"+(step-1));
@@ -44,12 +44,12 @@ public class WorkerDebug extends Worker {
 	
 	public void debugDraw(Graphics2D g) {
 		if (state == null || !state.isFinished()) {
-			Rectangle2D rect2d = init.bounds.toRectangle2D();
+			Rectangle2D rect2d = bounds.toRectangle2D();
 			g.draw(rect2d);
 		}
 		if (state == null) {
-			for (Vec2 site : init.sites) {
-				Ellipse2D ellipse = new Ellipse2D.Double(site.x-1, site.y-1, 2, 2);
+			for (Vec2 site : siteArray) {
+				Ellipse2D ellipse = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
 				g.fill(ellipse);
 			}
 			return;

@@ -4,8 +4,9 @@ import java.util.AbstractQueue;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.function.IntFunction;
 
-public class FixedSizeArrayQueue<T extends Comparable<T>> extends AbstractQueue<T> {
+public class FixedSizeArrayQueue<T> extends AbstractQueue<T> {
 
 	private int writeIndex;
 	private int readIndex;
@@ -14,19 +15,23 @@ public class FixedSizeArrayQueue<T extends Comparable<T>> extends AbstractQueue<
 	private final T[] items;
 	
 	public static <T extends Comparable<T>> FixedSizeArrayQueue<T> consume(T[] items) {
-		return new FixedSizeArrayQueue<>(items, true);
+		return new FixedSizeArrayQueue<>(items, true, 0, items.length);
 	}
 	
-	private FixedSizeArrayQueue(T[] items, boolean consume) {
+	private FixedSizeArrayQueue(T[] items, boolean consume, int start, int length) {
 		if (consume) {
 			this.items = items;
 		} else {
 			this.items = Arrays.copyOf(items, items.length);
 		}
-		itemsLeft = items.length;
-		writeIndex = 0;
-		readIndex = 0;
+		itemsLeft = length-start;
+		readIndex = start;
+		writeIndex = (start + length) % items.length;
 		modifyCount = 0;
+	}
+	
+	public FixedSizeArrayQueue(IntFunction<T[]> allocator, int capacity) {
+		this(allocator.apply(capacity), true, 0, 0);
 	}
 	
 	/**
@@ -54,6 +59,7 @@ public class FixedSizeArrayQueue<T extends Comparable<T>> extends AbstractQueue<
 	@Override
 	public synchronized T poll() {
 		T item = peek();
+		if (item == null) return null;
 		
 		readIndex = (readIndex + 1) % items.length;
 		itemsLeft--;

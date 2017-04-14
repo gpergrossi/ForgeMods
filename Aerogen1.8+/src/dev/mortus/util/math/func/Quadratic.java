@@ -1,100 +1,144 @@
 package dev.mortus.util.math.func;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import dev.mortus.util.math.geom.Vec2;
 
-public final class Quadratic extends Polynomial {
+public final class Quadratic extends Function {
 
-	public static Function fromPointAndLine(Vec2 point, double lineY) {
-		double den = (point.y - lineY)*2;
-		if (den == 0) {
-			return new Vertical(point.x);
+	public static Function fromPointAndLine(double x, double y, double lineY) {
+		double den = (y - lineY) * 2;
+		if (Math.abs(den) < 0.0001) { //TODO: EPSILON?
+			return new Vertical(x);
 		}
-		
+
 		double a = 1 / den;
-		double b = -(2*point.x) / den;
-		double c = (point.x*point.x + point.y*point.y - lineY*lineY) / den;
+		double b = -(2 * x) / den;
+		double c = (x*x + y*y - lineY*lineY) / den;
 		return new Quadratic(a, b, c);
 	}
-	
-	public Quadratic(double a, double b, double c) {
-		super(1.0, 0, c, b, a);
+
+	public final double a, b, c;
+
+	public static Function create(double a, double b, double c) {
+		if (a == 0) {
+			if (b == 0)
+				return new Constant(c);
+			return new Linear(b, c);
+		}
+		return new Quadratic(a, b, c);
 	}
-	
-	/**
-	 * Returns a list of the one or two X coordinates of the zeroes of this parabola.
-	 * If the equation is constant and equal to zero (I.E. y = 0), there are an unlimited
-	 * number of zeros. To represent this case, null is returned. If two zeros exist,
-	 * they are added to the list with the lower X coordinate first.
-	 * @return list of x coordinates resulting in a zero output, or null if there 
-	 * are an unlimited number
-	 */
+
+	Quadratic(double a, double b, double c) {
+		this.a = a;
+		this.b = b;
+		this.c = c;
+	}
+
 	@Override
-	public List<Double> zeros() {
-		double a = getCoef(2);
-		double b = getCoef(1);
-		double c = getCoef(0);
-		double range = b*b - 4*a*c;
-		
+	public double[] zeros() {
+		double range = b * b - 4 * a * c;
+
 		// No real zeros
-		if (range < 0) return new ArrayList<Double>(0);
-		
+		if (range < 0)
+			return new double[0];
+
 		// Normal quadratic
 		if (range == 0) {
 			// Parabola touches zero exactly once
-			List<Double> zeros = new ArrayList<>(1);
-			zeros.add(-b / (2 * a));
-			return zeros;
+			return new double[] { -b / (2 * a) };
 		} else {
 			range = Math.sqrt(range);
-			
-			List<Double> zeros = new ArrayList<>(1);
-			zeros.add((-b - range) / (2 * a));
-			zeros.add((-b + range) / (2 * a));
-			return zeros;
+
+			return new double[] { (-b - range) / (2 * a), (-b + range) / (2 * a) };
 		}
 	}
-	
+
 	@Override
 	public double getValue(double x) {
-		double a = getCoef(2);
-		double b = getCoef(1);
-		double c = getCoef(0);
-		return a*x*x + b*x + c;
+		return a * x * x + b * x + c;
 	}
-	
+
 	public static Vec2 getIntersect(Function leftGreater, Function rightGreater) {
 		Function difference = rightGreater.subtract(leftGreater);
-		
-		List<Double> zeros = difference.zeros();
-		if (zeros.size() == 0) return null;
-		
+
+		double[] zeros = difference.zeros();
+		if (zeros.length == 0) return null;
+
 		Function derivative = difference.derivative();
 		if (derivative instanceof Undefined) {
 			if (rightGreater instanceof Undefined) {
-				return leftGreater.getPoint(zeros.get(0));
+				double x = zeros[0];
+				double y = leftGreater.getValue(x);
+				return Vec2.create(x, y);
 			} else {
-				return rightGreater.getPoint(zeros.get(0));
+				double x = zeros[0];
+				double y = rightGreater.getValue(x);
+				return Vec2.create(x, y);
 			}
 		}
-		
-		// Assuming the functions given are quadratic, we only 
+
+		// Assuming the functions given are quadratic, we only
 		// care about a single intersect with a positive derivative
 		for (double zero : zeros) {
 			if (derivative.getValue(zero) > 0) {
-				return rightGreater.getPoint(zero);
+				double x = zero;
+				double y = rightGreater.getValue(zero);
+				return Vec2.create(x, y);
 			}
 		}
-		
+
 		return null;
 	}
 
 	public String toString() {
-		double a = getCoef(2);
-		double b = getCoef(1);
-		double c = getCoef(0);
-		return "Quadratic[equation="+a+"x^2 + "+b+"x + "+c+"]";
+		return "Quadratic[equation=" + a + "x^2 + " + b + "x + " + c + "]";
+	}
+
+	@Override
+	public Function tryAdd(Function f) {
+		if (f instanceof Constant)
+			return this.add((Constant) f);
+		if (f instanceof Linear)
+			return this.add((Linear) f);
+		if (f instanceof Quadratic)
+			return this.add((Quadratic) f);
+		return null;
+	}
+
+	public Function add(Constant other) {
+		return create(a, b, c + other.c);
+	}
+
+	public Function add(Linear other) {
+		return create(a, b + other.m, c + other.b);
+	}
+
+	public Function add(Quadratic other) {
+		return create(a + other.a, b + other.b, c + other.c);
+	}
+
+	@Override
+	public Function negate() {
+		return new Quadratic(-a, -b, -c);
+	}
+
+	@Override
+	public Function tryMultiply(Function f) {
+		if (f instanceof Constant)
+			return this.multiply((Constant) f);
+		return null;
+	}
+
+	public Function multiply(Constant other) {
+		return create(a * other.c, b * other.c, c * other.c);
+	}
+
+	@Override
+	public Function inverse() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Function derivative() {
+		return new Linear(2 * this.a, this.b);
 	}
 }

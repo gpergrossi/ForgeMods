@@ -2,6 +2,7 @@ package dev.mortus.voronoi.internal;
 
 import dev.mortus.util.data.Pair;
 import dev.mortus.voronoi.diagram.Edge;
+import dev.mortus.voronoi.diagram.Vertex;
 import dev.mortus.voronoi.internal.tree.Breakpoint;
 
 public class MutableEdge extends Edge {
@@ -20,24 +21,15 @@ public class MutableEdge extends Edge {
 		super(edge.getStart(), end, edge.sites.first, edge.sites.second);
 	}
 	
-	// Clip mutable edge
-	private MutableEdge(MutableEdge edge, MutableVertex start, MutableVertex end) {
-		super(start, end, edge.sites.first, edge.sites.second);
-	}
-
-	// Combine half edges
-	private MutableEdge(HalfEdge edge, HalfEdge twin) {
-		super(twin.getEnd(), edge.getEnd(), edge.sites.first, edge.sites.second);
-		if (edge.getEnd() == null) throw new RuntimeException("Cannot combine, edge has null end");
+	void combineWith(HalfEdge twin) {
+		if (this.getEnd() == null) throw new RuntimeException("Cannot combine, edge has null end");
 		if (twin.getEnd() == null) throw new RuntimeException("Cannot combine, twin has null end");
-	}	
-	
-	MutableEdge combine(HalfEdge edge, HalfEdge twin) {
-		return new MutableEdge(edge, twin);
+		this.vertices = new Pair<Vertex>(twin.getEnd(), this.getEnd());
 	}
 	
-	MutableEdge clip(MutableVertex start, MutableVertex end) {
-		return new MutableEdge(this, start, end);
+	void redefine(MutableVertex start, MutableVertex end) {
+		if (this.getStart() == start && this.getEnd() == end) return;
+		this.vertices = new Pair<Vertex>(start, end);
 	}
 	
 	MutableEdge finish(MutableVertex end) {
@@ -70,11 +62,11 @@ public class MutableEdge extends Edge {
 		return (MutableVertex) vertices.second;
 	}
 
-	public Pair<MutableSite> getSites() {
+	Pair<MutableSite> getMutableSites() {
 		return new Pair<>(getSiteLeft(), getSiteRight());
 	}
 
-	public Pair<MutableVertex> getVertices() {
+	Pair<MutableVertex> getMutableVertices() {
 		return new Pair<>(getStart(), getEnd());
 	}
 	

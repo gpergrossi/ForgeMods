@@ -1,22 +1,47 @@
 package dev.mortus.voronoi.diagram;
 
-import java.awt.geom.Rectangle2D;
+import java.util.List;
+import java.util.Map;
 
 import dev.mortus.util.math.geom.Rect;
+import dev.mortus.util.math.geom.Vec2;
 
 public class Voronoi {
 
-	public static final double VERY_SMALL = 0.0000001;
+	/** 
+	 * A very small number that is still at a good precision in the floating point
+	 * format. All inter-site distances should be much larger than this (> 100x for safety)
+	 */
+	public static final double VERY_SMALL = 0.0001;
 	public static boolean DEBUG = false;
+	public static boolean DEBUG_FINISH = false;
 	
-	Rect bounds;
-	boolean isComplete;
+	protected Rect bounds;
 	
-	Voronoi() {}
+	protected Map<Vec2, Site> sites;
+	protected List<Edge> edges;
+	protected List<Vertex> vertices;
+	
+	protected Voronoi() {}
+	
+	public Rect getBounds() {
+		return bounds;
+	}
 
-	public Rectangle2D getBounds() {
-		return null;
+	public Map<Vec2, Site> getSites() {
+		return sites;
 	}
 	
+	public List<Edge> getEdges() {
+		return edges;
+	}
+
+	public List<Vertex> getVertices() {
+		return vertices;
+	}
+
+	public int numSites() {
+		return sites.size();
+	}
 	
 }

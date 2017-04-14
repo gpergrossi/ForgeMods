@@ -8,43 +8,51 @@ import dev.mortus.util.data.Pair;
 
 public final class Rect {
 
-	public final Vec2 pos;
-	public final Vec2 size;
-	private Vec2 extent = null;
+	public final double x, y;
+	public final double width, height;
+	private List<LineSeg> sides;
 	
 	public Rect(Rectangle2D rect2d) {
-		this.pos = new Vec2(rect2d.getX(), rect2d.getY());
-		this.size = new Vec2(rect2d.getWidth(), rect2d.getHeight());
+		this.x = rect2d.getX();
+		this.y = rect2d.getY();
+		this.width = rect2d.getWidth();
+		this.height = rect2d.getHeight();
 	}
 	
 	public Rect(Vec2 pos, Vec2 size) {
-		this.pos = pos;
-		this.size = size;
+		this.x = pos.getX();
+		this.y = pos.getY();
+		this.width = size.getX();
+		this.height = size.getY();
 	}
 	
 	public Rect(double x, double y, Vec2 size) {
-		this.pos = new Vec2(x, y);
-		this.size = size;
+		this.x = x;
+		this.y = y;
+		this.width = size.getX();
+		this.height = size.getY();
 	}
 	
-	public Rect(Vec2 pos, double width, double height) {
-		this.pos = pos;
-		this.size = new Vec2(width, height);
+	public Rect(Vec2 pos, double width, double height) {		
+		this.x = pos.getX();
+		this.y = pos.getY();
+		this.width = width;
+		this.height = height;
 	}
 	
 	public Rect(double x, double y, double width, double height) {
-		this.pos = new Vec2(x, y);
-		this.size = new Vec2(width, height);
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
 	}
 	
 	public Rect union(Rect r) {
-		double minX = Math.min(pos.x, r.pos.x);
-		double minY = Math.min(pos.y, r.pos.y);
+		double minX = Math.min(minX(), r.minX());
+		double minY = Math.min(minY(), r.minY());
 		
-		Vec2 ext = extent();
-		Vec2 rext = r.extent();
-		double maxX = Math.max(ext.x, rext.x);
-		double maxY = Math.max(ext.y, rext.y);
+		double maxX = Math.max(maxX(), r.maxX());
+		double maxY = Math.max(maxY(), r.maxY());
 		
 		return new Rect(minX, minY, maxX-minX, maxY-minY);
 	}
@@ -69,16 +77,16 @@ public final class Rect {
 			}
 		}
 		
-		// Correct ordering first is first along line direction
+		// Correct ordering: first is first along line direction
 		if (first == null) {
 			first = second; second = null;
 		} else if (second != null) {
-			if (line.dir.x != 0) {
-				if ((second.x - first.x) / line.dir.x < 0) {
+			if (line.dir.getX() != 0) {
+				if ((second.getX() - first.getX()) / line.dir.getX() < 0) {
 					Vec2 swap = first; first = second; second = swap;
 				}
-			} else if (line.dir.y != 0) {
-				if ((second.y - first.y) / line.dir.y < 0) {
+			} else if (line.dir.getY() != 0) {
+				if ((second.getY() - first.getY()) / line.dir.getY() < 0) {
 					Vec2 swap = first; first = second; second = swap;
 				}
 			}
@@ -87,18 +95,9 @@ public final class Rect {
 		return new Pair<Vec2>(first, second);
 	}
 	
-	/**
-	 * returns the max X, max Y position of this rectangle
-	 */
-	public Vec2 extent() {
-		if (extent == null) extent = pos.add(size);
-		return extent;
-	}
-	
 	public boolean contains(Vec2 p) {
-		if (p.x < pos.x || p.y < pos.y) return false;
-		Vec2 ext = extent();
-		if (p.x > ext.x || p.y > ext.y) return false;
+		if (p.getX() < minX() || p.getY() < minY()) return false;
+		if (p.getX() > maxX() || p.getY() > maxY()) return false;
 		return true;
 	}
 	
@@ -106,6 +105,11 @@ public final class Rect {
 		if (line.length() == 0) {
 			if (this.contains(line.pos)) return (LineSeg) line.redefine(0, 0);
 			return null;
+		}
+		
+		if (line instanceof LineSeg) {
+			LineSeg lineseg = (LineSeg) line;
+			if (this.contains(lineseg.getStart()) && this.contains(lineseg.getEnd())) return lineseg;
 		}
 		
 		List<LineSeg> sides = getSides();
@@ -119,65 +123,67 @@ public final class Rect {
 	}
 	
 	public List<LineSeg> getSides() {
-		List<LineSeg> sides = new ArrayList<LineSeg>();
-		
-		Vec2 x0y0 = pos;
-		Vec2 x1y0 = new Vec2(pos.x+size.x, pos.y);
-		Vec2 x0y1 = new Vec2(pos.x, pos.y+size.y);
-		Vec2 x1y1 = pos.add(size);
-		
-		// interior is LEFT of all line segments (counter clockwise winding order in right handed system)
-		sides.add(new LineSeg(x0y0, x1y0));
-		sides.add(new LineSeg(x1y0, x1y1));
-		sides.add(new LineSeg(x1y1, x0y1));
-		sides.add(new LineSeg(x0y1, x0y0));
+		if (sides == null) {
+			sides = new ArrayList<LineSeg>();
+			
+			Vec2 x0y0 = Vec2.create(minX(), minY());
+			Vec2 x1y0 = Vec2.create(maxX(), minY());
+			Vec2 x0y1 = Vec2.create(minX(), maxY());
+			Vec2 x1y1 = Vec2.create(maxX(), maxY());
+			
+			// interior is LEFT of all line segments (counter clockwise winding order in right handed system)
+			sides.add(new LineSeg(x0y0, x1y0));
+			sides.add(new LineSeg(x1y0, x1y1));
+			sides.add(new LineSeg(x1y1, x0y1));
+			sides.add(new LineSeg(x0y1, x0y0));
+		}
 		
 		return sides;
 	}
 	
 	@Override
 	public String toString() {
-		return "Rect[x0="+pos.x+", y0="+pos.y+", x1="+extent().x+", y1="+extent().y+"]";
+		return "Rect[x0="+minX()+", y0="+minY()+", x1="+maxX()+", y1="+maxY()+"]";
 	}
 
 	public Rect expand(double padding) {
-		return new Rect(pos.x - padding, pos.y - padding, size.x + padding*2, size.y + padding*2);
+		return new Rect(minX() - padding, minY() - padding, width() + padding*2, height() + padding*2);
 	}
 
 	public Rectangle2D toRectangle2D() {
-		return new Rectangle2D.Double(pos.x, pos.y, size.x, size.y);
+		return new Rectangle2D.Double(x, y, width, height);
 	}
 
 	public double minX() {
-		return pos.x;
+		return x;
 	}
 	
 	public double maxX() {
-		return extent().x;
+		return x+width;
 	}
 	
 	public double minY() {
-		return pos.y;
+		return y;
 	}
 	
 	public double maxY() {
-		return extent().y;
+		return y+height;
 	}
 
 	public double width() {
-		return size.x;
+		return width;
 	}
 	
 	public double height() {
-		return size.y;
+		return height;
 	}
 	
 	public double centerX() {
-		return pos.x + size.x / 2;
+		return x + width/2;
 	}
 	
 	public double centerY() {
-		return pos.x + size.x / 2;
+		return y + height/2;
 	}
 	
 }

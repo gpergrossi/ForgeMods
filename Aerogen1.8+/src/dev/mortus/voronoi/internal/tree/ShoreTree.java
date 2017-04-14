@@ -21,7 +21,6 @@ import dev.mortus.util.math.func.Vertical;
 import dev.mortus.util.math.geom.Circle;
 import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.Edge;
 import dev.mortus.voronoi.diagram.Site;
 import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
@@ -55,7 +54,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 	
 	public Arc getArcUnderSite(final BuildState state, Site site) {
 		if (root == null) throw new RuntimeException("Tree has not yuet been initialized");
-		return root.getArc(state, site.pos.x);
+		return root.getArc(state, site.x);
 	}
 		
 	public void draw(final BuildState state, Graphics2D g) {
@@ -64,17 +63,9 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 		boolean debug = Voronoi.DEBUG;
 		Voronoi.DEBUG = false;
 		
-		g.setColor(Color.BLUE);
-		
 		drawCircleEvents(state, g, root.subtreeIterator());
 		drawParabolas(state, g, root.subtreeIterator());
 		drawBreakpoints(state, g, root.subtreeIterator());
-		
-		// Draw edges
-		for (Edge edge : state.getEdges()) {
-			Line2D line = new Line2D.Double(edge.getStart().toPoint2D(), edge.getEnd().toPoint2D());
-			g.draw(line);
-		}
 		
 		drawTree(state, g);
 		
@@ -82,6 +73,8 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 	}
 
 	private void drawCircleEvents(BuildState state, Graphics2D g, Iterable<TreeNode> nodes) {
+		g.setColor(Color.BLUE);
+		
 		for (TreeNode n : nodes) {
 			if (!(n instanceof Arc)) continue;
 			Arc arc = (Arc) n;
@@ -125,7 +118,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 			if (!(n instanceof Arc)) continue;
 			Arc arc = (Arc) n;
 			
-			Function par = Quadratic.fromPointAndLine(arc.site.pos, state.getSweeplineY());
+			Function par = Quadratic.fromPointAndLine(arc.site.x, arc.site.y, state.getSweeplineY());
 			
 			Rect bounds = state.getBounds();
 			double minX = bounds.minX();
@@ -138,7 +131,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 				Breakpoint breakpoint = (Breakpoint) pred;
 				predBreakpoint = breakpoint.getPosition(state);
 				if (predBreakpoint != null) {
-					minX = predBreakpoint.x;
+					minX = predBreakpoint.getX();
 				}
 			}
 			
@@ -148,7 +141,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 				Breakpoint breakpoint = (Breakpoint) succ;
 				succBreakpoint = breakpoint.getPosition(state);
 				if (succBreakpoint != null) {
-					maxX = succBreakpoint.x;
+					maxX = succBreakpoint.getX();
 				}
 			}
 			
@@ -183,9 +176,9 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 	private void drawPartialEdge(Graphics2D g, Breakpoint bp, BuildState state) {
 		MutableEdge edge = bp.edge;
 		if (edge != null) {
-			Vec2 start = edge.getStart().getPosition();
+			Vec2 start = edge.getStart().toVec2();
 			Vec2 end;
-			if (edge.isFinished()) end = edge.getEnd().getPosition();
+			if (edge.isFinished()) end = edge.getEnd().toVec2();
 			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);
@@ -203,17 +196,22 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 			if (posVec == null) continue;
 			Point2D pos = posVec.toPoint2D();
 
+			// Draw edge line
+			g.setColor(new Color(64,64,64));
+			drawPartialEdge(g, breakpoint, state);
+			
+			// Draw breakpoint circle
 			g.setColor(new Color(128,0,0));
-			Ellipse2D bpe = new Ellipse2D.Double(pos.getX()-2.5, pos.getY()-2.5, 5.0, 5.0);
+			Ellipse2D bpe = new Ellipse2D.Double(pos.getX()-1, pos.getY()-1, 2.0, 2.0);
 			g.draw(bpe);
+			
+			// draw breakpoint label
 			g.setTransform(identity);
 			transform.transform(pos, pos);
 			g.setColor(new Color(255,0,0));
 			g.drawString(breakpoint.getArcLeft().site.id+":"+breakpoint.getArcRight().site.id, (int) pos.getX(), (int) pos.getY());
 			g.setTransform(transform);
 			
-			g.setColor(new Color(64,64,64));
-			drawPartialEdge(g, breakpoint, state);
 		}
 	}
 
@@ -249,7 +247,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 					double width = state.getBounds().width();
 					splitWidth.put(n, width);
 				} else {
-					double parX = positions.get(n.getParent()).x;
+					double parX = positions.get(n.getParent()).getX();
 					double parW = splitWidth.get(n.getParent());
 					double xShare = parW / (n.getParent().getBreadthAndDepth().first);
 					double width = (n.getBreadthAndDepth().first)*xShare;
@@ -263,32 +261,38 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 					}
 				}
 				
-				Vec2 pos = new Vec2(x, minY + dy*depth);
+				Vec2 pos = Vec2.create(x, minY + dy*depth);
 				positions.put(n, pos);
 
+				// Draw line from parent
+				g.setColor(Color.ORANGE);
 				if (n.getParent() != null) {
 					Line2D line = new Line2D.Double(pos.toPoint2D(), positions.get(n.getParent()).toPoint2D());
 					g.draw(line);
 				}
 				
+				// Draw dot
+				g.setColor(Color.WHITE);
+				Ellipse2D dot = new Ellipse2D.Double(pos.getX()-0.25, pos.getY()-0.25, 0.5, 0.5);
+				g.draw(dot);
+				
+				// Draw text label
 				Point2D label = pos.toPoint2D();
 				g.setTransform(identity);
 				transform.transform(label, label);
 				g.setColor(Color.RED);
-				
 				if (n instanceof Breakpoint) {
 					Breakpoint bp = (Breakpoint) n;
-					g.drawString("BP:"+bp.getArcLeft().site.id+":"+bp.getArcRight().site.id, (int) label.getX(), (int) label.getY());
+					g.drawString("  BP:"+bp.getArcLeft().site.id+":"+bp.getArcRight().site.id, (int) label.getX(), (int) label.getY());
 				}
-
 				if (n instanceof Arc) {
 					Arc arc = (Arc) n;
-					g.drawString("Arc:"+arc.site.id, (int) label.getX(), (int) label.getY());
+					g.drawString("  Arc:"+arc.site.id, (int) label.getX(), (int) label.getY());
 				}
-
 				g.setTransform(transform);
-				g.setColor(Color.ORANGE);
 				
+				
+				// Draw children next
 				if (n.getLeftChild() != null) next.add(n.getLeftChild());
 				if (n.getRightChild() != null) next.add(n.getRightChild());
 			}

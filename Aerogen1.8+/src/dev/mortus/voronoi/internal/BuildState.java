@@ -9,18 +9,19 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import dev.mortus.util.data.Pair;
+import dev.mortus.util.math.geom.Circle;
 import dev.mortus.util.math.geom.LineSeg;
 import dev.mortus.util.math.geom.Ray;
 import dev.mortus.util.math.geom.Rect;
@@ -29,8 +30,6 @@ import dev.mortus.voronoi.diagram.Edge;
 import dev.mortus.voronoi.diagram.Site;
 import dev.mortus.voronoi.diagram.Vertex;
 import dev.mortus.voronoi.diagram.Voronoi;
-import dev.mortus.voronoi.diagram.VoronoiBuilder;
-import dev.mortus.voronoi.exception.OverlappingSiteException;
 import dev.mortus.voronoi.internal.Event.Type;
 import dev.mortus.voronoi.internal.tree.*;
 
@@ -42,35 +41,6 @@ import dev.mortus.voronoi.internal.tree.*;
  *
  */
 public final class BuildState {
-	
-	/**
-	 * <p>Sorts events so that lower Y-coordinate events come first, ties are broken
-	 * by giving priority to lower X-coordinates, further ties return 0 (equal).</p>
-	 * <p>Since parabola calculations involved in the construction of the diagram
-	 * rely on this sorting order, it cannot easily be changed.</p>
-	 */
-	private static final Comparator<Event> EVENT_ORDER = new Comparator<Event>() {
-		public int compare(Event o1, Event o2) {
-			// Lowest Y value first
-			double y1 = o1.getPos().y;
-			double y2 = o2.getPos().y;
-			if(y1 < y2) return -1;
-			if(y1 > y2) return 1;
-			
-			// Lowest X value first
-			double x1 = o1.getPos().x;
-			double x2 = o2.getPos().x;
-			if(x1 < x2) return -1;
-			if(x1 > x2) return 1;
-			
-			// Allow equal priority circle events
-			if (o1.type == Type.CIRCLE) return 0;
-			if (o2.type == Type.CIRCLE) return 0;
-			
-			// We cannot allow multiple site events with the same exact position
-			throw new OverlappingSiteException(o1.site, o2.site);
-		}
-	};
 
 	private static final Predicate<Breakpoint> NEW_BREAKPOINTS = (bp -> bp != null && bp.edge == null);
 
@@ -84,38 +54,102 @@ public final class BuildState {
 
 	private int numEventsProcessed;
 	
-	private Voronoi voronoi;
-	private List<MutableEdge> edges;
-	private List<MutableVertex> vertices;
-	private List<MutableSite> sites;
+	private MutableVoronoi voronoi;
+	private Set<MutableEdge> edges;
+	private Set<MutableVertex> vertices;
+	private Map<Vec2, MutableSite> sites;
 
 	private boolean finished;
 	
-	public BuildState (VoronoiBuilder.InitialState init) {
-		if (init == null) throw new NullPointerException();
-		
-		this.bounds = init.bounds;
-		this.eventQueue = new PriorityQueue<Event>(EVENT_ORDER);
+	public BuildState (Rect bounds, Vec2[] sites) {
+		this.bounds = bounds;
+		this.eventQueue = new PriorityQueue<Event>(sites.length*2);
 		this.shoreTree = new ShoreTree();
+
+		this.voronoi = new MutableVoronoi(bounds);
 		
-		this.voronoi = init.voronoi;
-		this.edges = new ArrayList<>();
-		this.vertices = new ArrayList<>();
-		this.sites = new ArrayList<>();
+		this.sites = new HashMap<>(sites.length);
+		this.edges = new HashSet<>(10*sites.length);
+		this.vertices = new HashSet<>(8*sites.length);
 		
-		this.initSiteEvents(init.sites);
+		this.initSiteEvents(sites);
 		this.finished = false;
 	}
 	
 	
 	
-	public boolean hasNextEvent() {
-		return !finished;
-	}
+	
 
+	public void processEvents(int ms) {
+		if (ms == 0) {
+			processNextEvent();
+			return;
+		}
+		
+		if (ms == -1) {
+			while (!isFinished()) {
+				processNextEvent();
+			}
+		}
+		
+		long start = System.currentTimeMillis();
+		while (!isFinished() && (System.currentTimeMillis() - start) < ms) {
+			processNextEvent();
+		}
+	}
+	
+	int totalCircleEvents = 0;
+	int invalidCircleEvents = 0;
+	
+	public void processNextEvent() {
+		if (!shoreTree.isInitialized()) throw new RuntimeException("Shore Tree has not yet been initialized");
+		
+		Event e;
+		while (true) {
+			e = eventQueue.poll();
+			if (e == null) break;
+			if (e.isValid()) break;
+			invalidCircleEvents++;
+		}
+		
+		if (e == null) {
+			finish();
+			return;
+		}
+		advanceSweepLine(e);
+
+		// Process the event
+		switch(e.getType()) {
+			case SITE:		processSiteEvent(e.getSite());	break;
+			case CIRCLE:	processCircleEvent(e.getArc());	break;
+		}
+		
+		numEventsProcessed++;
+		if (Voronoi.DEBUG) printDebugEvent(e);
+	}	
+	
+	public void processNextEventVerbose() {
+		boolean hold = Voronoi.DEBUG;
+		Voronoi.DEBUG = true;
+		processNextEvent();
+		Voronoi.DEBUG = hold;
+	}
+	
+	public boolean isFinished() {
+		return finished;
+	}
+	
+	public Voronoi getDiagram() {
+		return this.voronoi;
+	}
+	
+	
+	
+	
+	
 	public int getNumEventsProcessed() {
 		return numEventsProcessed;
-	}	
+	}
 
 	public int getTheoreticalMaxSteps() {
 		int numSites = sites.size();
@@ -130,505 +164,9 @@ public final class BuildState {
 		this.sweeplineY += v;
 	}
 	
-	private void initSiteEvents(Vec2[] sites) {
-		try {
-			int id = 0;
-			for(Vec2 sitePos : sites) {
-				MutableSite site = new MutableSite(this.voronoi, id++, sitePos);
-				this.sites.add(site);
-				addEvent(Event.createSiteEvent(site));
-			}
-		} catch (IllegalArgumentException e) {
-			throw new RuntimeException("Cannot build, multiple sites with same position");
-		}
-
-		// Create tree with first site
-		Event e = eventQueue.poll();
-		shoreTree.initialize(e.site);
-		this.numEventsProcessed = 1;
-	}
 	
-	public void processNextEvent() {
-		if (!shoreTree.isInitialized()) throw new RuntimeException("Shore Tree has not yet been initialized");
-
-		Event e = eventQueue.poll();
-		if (e == null) {
-			finish();
-			return;
-		}
-		advanceSweepLine(e);
-		
-		// Process the event
-		switch(e.type) {
-			case SITE:		processSiteEvent(e.site);	break;
-			case CIRCLE:	processCircleEvent(e.arc);	break;
-		}
-		
-		numEventsProcessed++;
-		if (Voronoi.DEBUG) printDebugEvent(e);
-	}	
 	
-	private void advanceSweepLine(Event e) {
-		if (e == null) return;
-		
-		// Restore debug sweep line
-		if (debugSweeplineAdjust) {
-			debugSweeplineAdjust = false;
-			sweeplineY = backupSweeplineY;
-		}
-		
-		// Advance sweep line
-		if (sweeplineY <= e.getPos().y) {
-			sweeplineY = e.getPos().y;
-		} else {
-			// An event may be above the sweep line by a VERY_SMALL amount if it is a circle event 
-			// Such circle events are created when a site event that lands on top of a breakpoint.
-			if (sweeplineY > e.getPos().y+Voronoi.VERY_SMALL) {
-				throw new RuntimeException("Event inserted after it should have already been processed. Event="+e+", sweeplineY="+sweeplineY);
-			}
-		}
-	}
 	
-	private void printDebugEvent(Event e) {
-		int siteCount = 0, circleCount = 0;
-		for (Event event : eventQueue) {
-			if (event.type == Event.Type.SITE) siteCount++;
-			if (event.type == Event.Type.CIRCLE) circleCount++;
-		}
-		System.out.println("processed: "+numEventsProcessed+" events. "+siteCount+" site events and "+circleCount+" circle events remaining.");
-		System.out.println("just processed: "+e+", next: "+eventQueue.peek());
-		
-		TreeNode n = shoreTree.getRoot().getFirstDescendant();
-		System.out.println(" ========== TREELIST ==========");
-		while (n != null) {
-			System.out.println(n);
-			n = n.getSuccessor();
-		}
-	}
-	
-	public void processNextEventVerbose() {
-		boolean hold = Voronoi.DEBUG;
-		Voronoi.DEBUG = true;
-		processNextEvent();
-		Voronoi.DEBUG = hold;
-	}
-
-	private void processSiteEvent(Site site) {		
-		Arc arcUnderSite = shoreTree.getArcUnderSite(this, site);
-		
-		Event arcCircleEvent = arcUnderSite.getCircleEvent();
-		if (arcCircleEvent != null) removeEvent(arcCircleEvent);
-		
-		Arc newArc = arcUnderSite.insertArc(this, site);
-		
-		for (Arc neighbor : newArc.getNeighborArcs()) {
-			Event circleEvent = neighbor.checkCircleEvent(this);
-			if (circleEvent != null) addEvent(circleEvent);
-		}
-		
-		Pair<Breakpoint> bps = newArc.getBreakpoints();
-		bps = bps.filter(NEW_BREAKPOINTS);
-
-		// Check for errors
-		if (bps.size() == 0) throw new RuntimeException("Site event did not create any breakpoints");
-		
-		// Create vertex for new edges 
-		Vec2 pos = bps.get(0).getPosition(this);
-		MutableVertex vert = new MutableVertex(pos);
-		
-		// In the case that the new site was at the same Y coordinate as a previous site,
-		// there will be only one breakpoint formed.
-		if (bps.size() == 1) {
-			Breakpoint bp = bps.get(0);
-			bp.edge = new MutableEdge(bp, vert);
-			vertices.add(vert);
-			return;
-		}
-		
-		// Otherwise we expect two breakpoints that will move exactly opposite each other as the
-		// sweep line progresses. These two edges are "twin" edges and will be combined later.
-		if (bps.size() == 2) {
-			Pair<HalfEdge> twins = HalfEdge.createTwinPair(bps, vert);
-			bps.get(0).edge = twins.get(0);
-			bps.get(1).edge = twins.get(1);
-			return;
-		}
-	}
-	
-	private void processCircleEvent(Arc arc) {
-		// Save these, they will change
-		Pair<Arc> neighbors = arc.getNeighborArcs(); 
-		Breakpoint predecessor = arc.getPredecessor();
-		Breakpoint successor = arc.getSuccessor();
-		
-		// Step 1. Finish the edges of each breakpoint
-		MutableVertex sharedVertex = new MutableVertex(predecessor.getPosition(this));
-		vertices.add(sharedVertex);
-		for (Breakpoint bp : arc.getBreakpoints()) {
-			if (bp.edge == null) throw new RuntimeException("Circle event expected non-null edge");
-			if (bp.edge.isFinished()) throw new RuntimeException("Circle even expected unfinished edge");
-			
-			addEdge(bp.edge.finish(sharedVertex));
-			bp.edge = null;
-		}
-		
-		// Step 2. Remove arc and one of its breakpoints
-		TreeNode parentBreakpoint = arc.getParent();
-		TreeNode sibling = arc.getSibling();
-		if (parentBreakpoint != successor && parentBreakpoint != predecessor) {
-			if (arc.isLeftChild()) throw new RuntimeException("Unexpected successor! "+successor + ", should be "+parentBreakpoint);
-			if (arc.isRightChild()) throw new RuntimeException("Unexpected predecessor! "+predecessor + ", should be "+parentBreakpoint);
-			throw new RuntimeException("The parent of any arc should be its successor or its predecessor!");
-		}
-		sibling.disconnect();
-		parentBreakpoint.replaceWith(sibling);
-		
-		// Step 3. Update the remaining breakpoint
-		Breakpoint remainingBP = null;
-		if (parentBreakpoint == successor) remainingBP = predecessor;
-		if (parentBreakpoint == predecessor) remainingBP = successor;
-		remainingBP.updateArcs();
-		
-		// Step 4. Update circle events
-		for (Arc neighbor : neighbors) {
-			if (neighbor.circleEvent != null) removeEvent(neighbor.circleEvent);
-			Event newCircleEvent = neighbor.checkCircleEvent(this);
-			if (newCircleEvent != null) addEvent(newCircleEvent);
-		}
-		
-		// Step 5. Form new edge
-		remainingBP.edge = new MutableEdge(remainingBP, sharedVertex);
-	}
-	
-	private void finish() {
-		if (finished) return;
-		if (sweeplineY < bounds.minY()) sweeplineY = bounds.maxY();
-
-		// Finish any edges that have not been assigned a second vertex
-		// by projecting them on to the bounding rectangle
-		extendUnfinishedEdges();
-		
-		// Merge half edges into full edges
-		joinHalfEdges();
-		
-		// Clip edges against bounding rectangle
-		clipEdges();
-				
-		// combines vertices closer than Vec2.EPSILON (DANGER! EPSILON must
-		// be significantly smaller than the smallest distance between sites)
-		combineVertices();
-		
-		// Adds all edges, vertices, and sites to each others' lists using the 
-		// references already defined in edges
-		createLinks();
-
-		// Sorts the vertex and edge lists in each site to be in counterclockwise order
-		sortSiteLists();
-
-		// Finish boundaries
-		createBoundaryEdges();
-		
-		// Replaces the lists in each site and vertex with unmodifiable lists
-		finalizeLinks();
-
-		finished = true;
-	}
-
-	/**
-	 * Projects all unfinished edges out to the bounding box and gives them a closing vertex
-	 */
-	private void extendUnfinishedEdges() {
-		for (TreeNode node : shoreTree) {
-			if (!(node instanceof Breakpoint)) continue;
-			Breakpoint bp = (Breakpoint) node;
-			
-			MutableEdge edge = bp.edge;
-			if (edge == null || edge.isFinished()) {
-				throw new RuntimeException("All breakpoints in shore tree should have partial edges");
-			}
-			
-			
-			Ray edgeRay = new Ray(edge.getStart().getPosition(), bp.getDirection());
-			Pair<Vec2> intersect = bounds.intersect(edgeRay);
-
-			Vec2 endPoint = null;
-			if (bounds.contains(edge.getStart().getPosition())) {
-				// Ray starts inside bounds, intersection will be first point of intersection along ray
-				if (intersect.size() != 1) {
-					throw new RuntimeException("Expected 1 intersection between\n"+edgeRay+"\nand\n"+bounds+"\ngot\n"+intersect);
-				}
-				endPoint = intersect.get(0);
-			} else {
-				// Ray starts out of bounds, intersection will be second point of intersection along ray (if any intersections exist)
-				if (intersect.size() != 2 && intersect.size() != 0) {
-					throw new RuntimeException("Expected 0 or 2 intersections between "+edgeRay+" and "+bounds);
-				}
-				endPoint = intersect.get(1);
-			}
-			if (endPoint == null) endPoint = bp.getPosition(this);
-			
-			MutableVertex vert = new MutableVertex(endPoint, true);
-			vertices.add(vert);
-			addEdge(edge.finish(vert));
-			bp.edge = null;
-		}
-	}
-	
-	/**
-	 * Joins all half edges into full edges.
-	 * <pre>
-	 * before:  A.end <-- A.start == B.start --> B.end
-	 * after:   C.start -----------------------> C.end
-	 * </pre>
- 	 */
-	private void joinHalfEdges() {
-		List<MutableEdge> joined = new ArrayList<MutableEdge>();
-		for (MutableEdge e : edges) {
-			if (!e.isHalf()) {
-				joined.add(e);
-				continue;
-			}
-			
-			HalfEdge edge = (HalfEdge) e;
-			HalfEdge twin = edge.getTwin();
-			
-			if (edge.hashCode() > twin.hashCode()) continue;
-			
-			joined.add(edge.joinHalves());
-		}
-		edges = joined;
-	}
-
-	/**
-	 * Clip edges to bounding rectangle
-	 */
-	private void clipEdges() {
-		List<MutableEdge> remove = new ArrayList<MutableEdge>();
-		List<MutableEdge> add = new ArrayList<MutableEdge>();
-		
-		for (MutableEdge edge : edges) {
-			if (!edge.isFinished()) throw new RuntimeException("unfinished edge");
-			
-			LineSeg seg = edge.toLineSeg();
-			seg = bounds.clip(seg);
-			if (seg == null) {
-				vertices.remove(edge.getStart());
-				vertices.remove(edge.getEnd());
-				remove.add(edge);
-				continue;
-			}
-			
-			boolean sameStart = seg.pos.equals(edge.getStart().getPosition());
-			boolean sameEnd = seg.end.equals(edge.getEnd().getPosition());
-			
-			if (!sameStart || !sameEnd) {				
-				MutableVertex start = edge.getStart();
-				MutableVertex end = edge.getEnd();
-				if (!sameStart) {
-					vertices.remove(start);
-					start = new MutableVertex(seg.pos, true);
-					vertices.add(start);
-				}
-				if (!sameEnd) {
-					vertices.remove(end);
-					end = new MutableVertex(seg.end, true);
-					vertices.add(end);
-				}
-				
-				remove.add(edge);
-				add.add(edge.clip(start, end));
-			}
-		}
-		for (MutableEdge edge : remove) removeEdge(edge);
-		for (MutableEdge edge : add) addEdge(edge);
-	}
-
-	/**
-	 * Searches for edges with 0 length and deletes them, combining the vertices
-	 */
-	private void combineVertices() {
-		// Map vertices to the vertex that should replace them;
-		Map<MutableVertex, MutableVertex> replace = new HashMap<>();
-		for (MutableEdge e : edges) {
-			if (e.toLineSeg().length() > Vec2.EPSILON) continue;
-			MutableVertex v0 = e.getStart();
-			MutableVertex v1 = e.getEnd();
-			
-			// Replace greater hashcode vertex with smaller
-			if (v0.hashCode() < v1.hashCode()) replace.put(v1, v0);
-			else replace.put(v0, v1);
-		}
-		
-		if (replace.keySet().size() == 0) {
-			// No vertices to collapse
-			return;
-		}
-
-		List<MutableEdge> result = new ArrayList<MutableEdge>();
-		for (MutableEdge e : edges) {
-			MutableVertex start = e.getStart();			
-			MutableVertex replaceStart = replace.get(start);
-			if (replaceStart != null) start = replaceStart;
-			
-			MutableVertex end = e.getEnd();
-			MutableVertex replaceEnd = replace.get(end);
-			if (replaceEnd != null) end = replaceEnd;
-			
-			if (start == end) {
-				// edge should be eliminated, add nothing to result
-				continue;
-			}
-			
-			if (start != e.getStart() || end != e.getEnd()) {
-				// Add clipped edge to result
-				result.add(e.clip(start, end));
-			} else {
-				// Edge doesn't need clipping
-				result.add(e);
-			}
-		}
-		edges = result;
-	}
-	
-	/**
-	 * Adds all vertices and edges to site lists
-	 * Adds all edges and sites to vertex lists
-	 * Based on existing edges
-	 */
-	private void createLinks() {		
-		for (MutableEdge edge : edges) {
-			for (MutableVertex vertex : edge.getVertices()) {
-				vertex.addEdge(edge);
-				for (MutableSite site : edge.getSites()) {
-					if (!vertex.hasSite(site)) {
-						vertex.addSite(site);
-						site.addVertex(vertex);
-					}
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Sorts the vertex and edge lists in each site to be in counterclockwise order
-	 */
-	private void sortSiteLists() {	
-		for (MutableSite s : sites) sortSiteLists(s);
-	}	
-	
-	private Comparator<Vertex> getVertexOrder(Vec2 center) {
-		return (vertex0, vertex1) -> {
-			Vec2 v0 = vertex0.getPosition();
-			Vec2 v1 = vertex1.getPosition();
-			double theta1 = v0.subtract(center).angle();
-			double theta2 = v1.subtract(center).angle();
-			if (theta1 > theta2) return 1;
-			if (theta1 < theta2) return -1;
-			// consistent comparison between identical angles
-			return vertex0.hashCode() - vertex1.hashCode();
-		};
-	}
-	
-	private Comparator<Edge> getEdgeOrder(Vec2 center) {
-		return (edge0, edge1) -> {
-			Vec2 v0 = edge0.getCenter();
-			Vec2 v1 = edge1.getCenter();
-			double theta1 = v0.subtract(center).angle();
-			double theta2 = v1.subtract(center).angle();
-			if (theta1 > theta2) return 1;
-			if (theta1 < theta2) return -1;
-			// consistent comparison between identical angles
-			return edge0.hashCode() - edge1.hashCode();
-		};
-	}
-	
-	private void sortSiteLists(MutableSite s) {
-		Vec2 center = s.pos;
-		s.sortVertices(getVertexOrder(center));
-		s.sortEdges(getEdgeOrder(center));
-	}
-	
-	private void createBoundaryEdges() {
-		// Create corner vertices
-		List<MutableVertex> corners = new ArrayList<>(4);
-		MutableVertex v00 = new MutableVertex(new Vec2(bounds.minX(), bounds.minY()), true);
-		MutableVertex v10 = new MutableVertex(new Vec2(bounds.maxX(), bounds.minY()), true);
-		MutableVertex v11 = new MutableVertex(new Vec2(bounds.maxX(), bounds.maxY()), true);
-		MutableVertex v01 = new MutableVertex(new Vec2(bounds.minX(), bounds.maxY()), true);
-		corners.add(v00);
-		corners.add(v10);
-		corners.add(v11);
-		corners.add(v01);
-		
-		// Assign corner vertices to appropriate sites
-		for (MutableVertex corner : corners) {
-			vertices.add(corner);
-			MutableSite closest = null;
-			double distance = Double.MAX_VALUE;
-			for (MutableSite s : sites) {
-				double dist = s.pos.subtract(corner.getPosition()).length();
-				if (dist < distance) {
-					distance = dist;
-					closest = s;
-				}
-			}
-			corner.addSite(closest);
-			closest.addVertex(corner);
-			sortSiteLists(closest);
-		}
-
-		// Add new edges
-		for (MutableSite s : sites) {			
-			MutableVertex prev = null;
-			MutableVertex last = s.getLastVertex(); 
-			if (last.isBoundary()) prev = last;
-			boolean modified = false;
-			for (MutableVertex v : s.getVertexIterator()) {
-				if (!v.isBoundary()) {
-					prev = null;
-					continue;
-				}
-				if (prev != null) {		
-					MutableEdge edge = new MutableEdge(prev, v, s, null);
-					v.addEdge(edge);
-					prev.addEdge(edge);
-					s.addEdge(edge);
-					edges.add(edge);
-					modified = true;
-				}
-				prev = v;
-			}
-			if (modified) sortSiteLists(s);
-		}
-	}
-	
-	/**
-	 * Makes the edge and vertex lists in each site unmodifiable.
-	 * Makes the edge and site lists in each vertex unmodifiable.
-	 * The vertices and sites in each edge are already final. 
-	 */
-	private void finalizeLinks() {
-		for (MutableSite s : sites) s.makeListsUnmodifiable();
-		for (MutableVertex v : vertices) v.makeListsUnmodifiable();
-	}
-	
-	private void addEdge(MutableEdge edge) {
-		if (!edge.isFinished()) throw new RuntimeException("Cannot add unfinished edge");
-		this.edges.add(edge);
-	}
-	
-	private void removeEdge(MutableEdge edge) {
-		this.edges.remove(edge);
-	}
-
-	public List<Edge> getEdges() {
-		return Collections.unmodifiableList(edges);
-	}
-	
-	public boolean isFinished() {
-		return finished;
-	}
-
 	
 	public double getSweeplineY() {
 		return sweeplineY;
@@ -643,17 +181,17 @@ public final class BuildState {
 		if (this.isFinished()) {
 			// Draw polygons
 			Random r = new Random(0);
-			for (MutableSite s : sites) {
+			for (MutableSite s : sites.values()) {
 				Path2D shape = new Path2D.Double();
 				boolean started = false;
-				for (MutableVertex vert : s.getVertexIterator()) {
-					Vec2 v = vert.getPosition();
+				for (MutableVertex vert : s.getVertexIterable()) {
+					Vec2 v = vert.toVec2();
 					if (!started) {
-						shape.moveTo(v.x, v.y);
+						shape.moveTo(v.getX(), v.getY());
 						started = true;
 						continue;
 					}
-					shape.lineTo(v.x, v.y);
+					shape.lineTo(v.getX(), v.getY());
 				}
 				shape.closePath();
 				
@@ -686,12 +224,19 @@ public final class BuildState {
 			// Draw sites
 			g.setXORMode(Color.BLACK);
 			g.setColor(Color.WHITE);
-			for (Site s : sites) {
-				Ellipse2D sitedot = new Ellipse2D.Double(s.pos.x-1, s.pos.y-1, 2, 2);
+			for (Site s : sites.values()) {
+				Ellipse2D sitedot = new Ellipse2D.Double(s.x-1, s.y-1, 2, 2);
 				g.fill(sitedot);
 			}
 			g.setPaintMode();
 		} else {
+			// Draw edges
+			g.setColor(Color.WHITE);
+			for (Edge edge : edges) {
+				Line2D line = new Line2D.Double(edge.getStart().toPoint2D(), edge.getEnd().toPoint2D());
+				g.draw(line);
+			}
+			
 			// Draw shore tree (edges, circle events, parabolas)
 			this.shoreTree.draw(this, g);
 		
@@ -704,13 +249,14 @@ public final class BuildState {
 			AffineTransform transform = g.getTransform();
 			AffineTransform identity = new AffineTransform();
 			
-			for (Site s : sites) {
-				Ellipse2D sitedot = new Ellipse2D.Double(s.pos.x-1, s.pos.y-1, 2, 2);
+			for (Site s : sites.values()) {
+				Ellipse2D sitedot = new Ellipse2D.Double(s.x-1, s.y-1, 2, 2);
 				g.setColor(new Color(0,128,0));
+				if (pastCircleEvent(s)) g.setColor(Color.RED);				
 				g.draw(sitedot);
 				
 				g.setTransform(identity);
-				Point2D pt = s.pos.toPoint2D();
+				Point2D pt = new Point2D.Double(s.x, s.y);
 				transform.transform(pt, pt);
 				g.setColor(new Color(0,255,0));
 				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
@@ -718,15 +264,601 @@ public final class BuildState {
 			}
 		}
 	}
+	
+	private boolean pastCircleEvent(Site s) {
+		for (Event e : eventQueue) {
+			if (e.getCircle() == null) continue;
+			Circle c = e.getCircle();
+			double cy = c.getY()+c.getRadius();
+			if (sweeplineY < cy) continue;
+			if (e.getArc().site == s) return true;
+		}
+		return false;
+	}
+
+
+
+
+
+	private void initSiteEvents(Vec2[] sites) {
+		try {
+			int id = 0;
+			for(Vec2 sitePos : sites) {
+				MutableSite site = new MutableSite(this.voronoi, id++, sitePos);
+				this.sites.put(sitePos, site);
+				addEvent(Event.createSiteEvent(site));
+			}
+		} catch (IllegalArgumentException e) {
+			throw new RuntimeException("Cannot build, multiple sites with same position");
+		}
+
+		// Create tree with first site
+		Event e = eventQueue.poll();
+		if (e == null) throw new RuntimeException("Cannot initialize diagram, no sites provided");
+		shoreTree.initialize(e.getSite());
+		this.numEventsProcessed = 1;
+	}
+	
+	private void advanceSweepLine(Event e) {
+		if (e == null) return;
+		
+		// Restore debug sweep line
+		if (debugSweeplineAdjust) {
+			debugSweeplineAdjust = false;
+			sweeplineY = backupSweeplineY;
+		}
+
+		// Advance sweep line
+		sweeplineY = e.getY();
+		
+		// An event may be above the sweep line by a VERY_SMALL amount if it is a circle event 
+		// Such circle events are created when a site event lands on top of a breakpoint.
+		if (e.is(Type.CIRCLE) && sweeplineY > e.getY()+2*Voronoi.VERY_SMALL) {
+			throw new RuntimeException("Event inserted after it should have already been processed. Event="+e+", sweeplineY="+sweeplineY);
+		}
+	}
+	
+	private void printDebugEvent(Event e) {
+		int siteCount = 0, circleCount = 0;
+		for (Event event : eventQueue) {
+			if (event.is(Event.Type.SITE)) siteCount++;
+			if (event.is(Event.Type.CIRCLE)) circleCount++;
+		}
+		System.out.println("processed: "+numEventsProcessed+" events. "+siteCount+" site events and "+circleCount+" circle events remaining.");
+		System.out.println("just processed: "+e+", next: ");
+		Iterator<Event> next = eventQueue.iterator();
+		while (next.hasNext()) {
+			Event ev = next.next();
+			System.out.println(ev);
+		}
+		
+		TreeNode n = shoreTree.getRoot().getFirstDescendant();
+		System.out.println(" ========== TREELIST ==========");
+		while (n != null) {
+			System.out.println(n);
+			n = n.getSuccessor();
+		}
+		System.out.println();
+	}
+
+	private void processSiteEvent(Site site) {		
+		Arc arcUnderSite = shoreTree.getArcUnderSite(this, site);
+		
+		Event arcCircleEvent = arcUnderSite.getCircleEvent();
+		if (arcCircleEvent != null) removeEvent(arcCircleEvent);
+		
+		Arc newArc = arcUnderSite.insertArc(this, site);
+		
+		for (Arc neighbor : newArc.getNeighborArcs()) {
+			Event circleEvent = neighbor.checkCircleEvent(this);
+			if (circleEvent != null) {
+				if (Voronoi.DEBUG) System.out.println("New circle event arising from site event check on "+neighbor);
+				addEvent(circleEvent);
+			}
+		}
+		
+		Pair<Breakpoint> bps = newArc.getBreakpoints();
+		bps = bps.filter(NEW_BREAKPOINTS);
+
+		// Check for errors
+		if (bps.size() == 0) throw new RuntimeException("Site event did not create any breakpoints");
+		
+		// Create vertex for new edges 
+		Vec2 pos = bps.get(0).getPosition(this);
+		MutableVertex vert = new MutableVertex(pos.getX(), pos.getY());
+		
+		// In the case that the new site was at the same Y coordinate as a previous site,
+		// there will be only one breakpoint formed.
+		if (bps.size() == 1) {
+			Breakpoint bp = bps.get(0);
+			bp.edge = new MutableEdge(bp, vert);
+			vertices.add(vert);
+			return;
+		}
+		
+		// Otherwise we expect two breakpoints that will move exactly opposite each other as the
+		// sweep line progresses. These two edges are "twin" edges and will be combined later.
+		if (bps.size() == 2) {
+			Pair<HalfEdge> twins = HalfEdge.createTwinPair(bps, vert);
+			bps.get(0).edge = twins.get(0);
+			bps.get(1).edge = twins.get(1);
+			return;
+		}
+	}
+
+
+
+
+
+	private void processCircleEvent(Arc arc) {
+		// Save these, they will change and we need original values
+		Pair<Arc> neighbors = arc.getNeighborArcs(); 
+		Breakpoint predecessor = arc.getPredecessor();
+		Breakpoint successor = arc.getSuccessor();
+		
+		// Step 1. Finish the edges of each breakpoint
+		Vec2 predPos = predecessor.getPosition(this);
+		MutableVertex sharedVertex = new MutableVertex(predPos.getX(), predPos.getY());
+		vertices.add(sharedVertex);
+		for (Breakpoint bp : arc.getBreakpoints()) {
+			if (bp.edge == null) throw new RuntimeException("Circle event expected non-null edge");
+			if (bp.edge.isFinished()) throw new RuntimeException("Circle even expected unfinished edge");
+			
+			addEdge(bp.edge.finish(sharedVertex));
+			bp.edge = null;
+		}
+		
+		// Step 2. Remove arc and one of its breakpoints
+		TreeNode parentBreakpoint = arc.getParent();
+		TreeNode sibling = arc.getSibling();
+		if (parentBreakpoint != successor && parentBreakpoint != predecessor) {
+			if (arc.isLeftChild()) throw new RuntimeException("Unexpected successor! "+successor + ", should be "+parentBreakpoint);
+			if (arc.isRightChild()) throw new RuntimeException("Unexpected predecessor! "+predecessor + ", should be "+parentBreakpoint);
+			throw new RuntimeException("The parent of any arc should be its successor or its predecessor!");
+		}
+		sibling.disconnect();
+		parentBreakpoint.replaceWith(sibling);
+		
+		// Step 3. Update the remaining breakpoint
+		Breakpoint remainingBP = null;
+		if (parentBreakpoint == successor) remainingBP = predecessor;
+		if (parentBreakpoint == predecessor) remainingBP = successor;
+		remainingBP.updateArcs();
+		
+		// Step 4. Update circle events
+		for (Arc neighbor : neighbors) {
+			if (neighbor.circleEvent != null) removeEvent(neighbor.circleEvent);
+			Event newCircleEvent = neighbor.checkCircleEvent(this);
+			if (newCircleEvent != null) {
+				if (Voronoi.DEBUG) System.out.println("New circle event arising from circle event check on "+neighbor);
+				addEvent(newCircleEvent);
+			}
+		}
+		
+		// Step 5. Form new edge
+		remainingBP.edge = new MutableEdge(remainingBP, sharedVertex);
+	}
+	
+	
+	
+	
+	
+	private static interface FinishStep {
+		/**
+		 * Do some work, return true if finish, otherwise keep track of own state 
+		 * and return false so that this work can be resume by a later call to work()
+		 * @return finished?
+		 */
+		public boolean work(BuildState self);
+	}
+	
+	private static enum FinishingStep {
+		
+		BEGIN					("", self -> {return true;}),
+		EXTENDING_EDGES 		("Extending unfinished edges", self -> self.extendUnfinishedEdges()),
+		JOINING_HALF_EDGES		("Joining half edges", self -> self.joinHalfEdges()),
+		CLIPPING_EDGES			("Clipping edges against bounding box", self -> self.clipEdges()),
+		COMBINING_VERTICES		("Combining identical edge vertices", self -> self.combineVertices()),
+		CREATING_LINKS			("Creating links between diagram elements", self -> self.createLinks()),
+		SORTING_LISTS			("Sorting vertex and edge lists to counterclockwise order", self -> self.sortSiteLists()),
+		CREATING_BOUNDARY		("Creating boundary edges", self -> self.createBoundaryEdges()),
+		FINALIZING_LINKS		("Finalizing links between elements", self -> self.finalizeLinks()),
+		DONE					("Done", self -> self.finishComplete());
+		
+		String message;
+		FinishStep stepMethod;
+		
+		private FinishingStep(String msg, FinishStep stepMethod) {
+			this.message = msg;
+			this.stepMethod = stepMethod;
+		}
+		
+		public static FinishingStep next(FinishingStep step) {
+			int nextOrdinal = step.ordinal()+1;
+			if (nextOrdinal >= values().length) return DONE;
+			return values()[nextOrdinal];
+		}
+		
+		public boolean doWork(BuildState self) {
+			return stepMethod.work(self);
+		}
+		
+	}
+	
+	/**
+	 * Record incremental progress because finishing can take a long time and
+	 * ideally the worker threads will not stall significantly when calling doWork()
+	 * These allow us to return and come back later for more work
+	 */
+	private FinishingStep currentFinishStep = null;
+	private long iterationStartTime, totalStepTimeInvested;
+	
+	private void finish() {
+		if (finished) return;
+		
+		if (currentFinishStep == null) {
+			if (sweeplineY < bounds.maxY()) sweeplineY = bounds.maxY();
+			currentFinishStep = FinishingStep.BEGIN;
+		}
+		
+		long startTime = System.currentTimeMillis();
+		
+		while (!finished) {
+			iterationStartTime = System.currentTimeMillis();
+			
+			// Do some work on the current step
+			boolean stepComplete = currentFinishStep.doWork(this);
+			totalStepTimeInvested += (System.currentTimeMillis() - iterationStartTime);
+			
+			if (stepComplete) {
+				// If done with step, move to next step
+				FinishingStep previousStep = currentFinishStep;
+				currentFinishStep = FinishingStep.next(currentFinishStep);
+				
+				// Optionally print progress information
+				if (Voronoi.DEBUG_FINISH) {
+					if (previousStep != FinishingStep.BEGIN) {
+						System.out.println("Elapsed time: "+totalStepTimeInvested+" ms");
+					}
+					if (previousStep != FinishingStep.DONE) {
+						System.out.println(currentFinishStep.message+"...");
+					}
+				}
+				
+				// Reset step timer
+				totalStepTimeInvested = 0;
+			} else {
+				if (Voronoi.DEBUG_FINISH) System.out.print(".");
+			}
+			
+			if (System.currentTimeMillis() - startTime > 200) return;
+		}
+	}
+	
+	/**
+	 * Projects all unfinished edges out to the bounding box and gives them a closing vertex
+	 */
+	private boolean extendUnfinishedEdges() {
+		for (TreeNode node : shoreTree) {
+			if (!(node instanceof Breakpoint)) continue;
+			Breakpoint bp = (Breakpoint) node;
+			
+			MutableEdge edge = bp.edge;
+			if (edge == null || edge.isFinished()) {
+				throw new RuntimeException("All breakpoints in shore tree should have partial edges");
+			}
+			
+			Vec2 startPos = edge.getStart().toVec2();
+			
+			Ray edgeRay = new Ray(startPos, bp.getDirection());
+			Pair<Vec2> intersect = bounds.intersect(edgeRay);
+
+			Vec2 endPoint = null;
+			if (bounds.contains(startPos)) {
+				// Ray starts inside bounds, intersection will be first point of intersection along ray
+				if (intersect.size() != 1) {
+					throw new RuntimeException("Expected 1 intersection between\n"+edgeRay+"\nand\n"+bounds+"\ngot\n"+intersect);
+				}
+				endPoint = intersect.get(0);
+			} else {
+				// Ray starts out of bounds, intersection will be second point of intersection along ray (if any intersections exist)
+				if (intersect.size() != 2 && intersect.size() != 0) {
+					throw new RuntimeException("Expected 0 or 2 intersections between "+edgeRay+" and "+bounds);
+				}
+				endPoint = intersect.get(1);
+			}
+			if (endPoint == null) endPoint = bp.getPosition(this);
+			
+			MutableVertex vert = new MutableVertex(endPoint.getX(), endPoint.getY(), true);
+			vertices.add(vert);
+			addEdge(edge.finish(vert));
+			bp.edge = null;
+		}
+		
+		return true; // Step completed
+	}
+	
+	/**
+	 * Joins all half edges into full edges.
+	 * <pre>
+	 * before:  A.end <-- A.start == B.start --> B.end
+	 * after:   C.start -----------------------> C.end
+	 * </pre>
+ 	 */
+	private boolean joinHalfEdges() {
+		Iterator<MutableEdge> edgeIterator = edges.iterator();
+		while (edgeIterator.hasNext()) {
+			MutableEdge e = edgeIterator.next();
+			if (!e.isHalf()) continue;
+			
+			HalfEdge edge = (HalfEdge) e;
+			HalfEdge twin = edge.getTwin();
+			
+			if (edge.isSecondary()) continue;
+			
+			edge.joinHalves();
+			twin.setSecondary();
+		}
+		
+		return true; // Step completed
+	}
+
+	private Iterator<MutableEdge> clipEdgesProgress;
+	private Set<MutableEdge> validEdges;
+	private Set<MutableVertex> validVertices;
+	
+	/**
+	 * Clip edges to bounding rectangle
+	 */
+	private boolean clipEdges() {
+		if (clipEdgesProgress == null) {
+			clipEdgesProgress = edges.iterator();
+			validEdges = new HashSet<>();
+			validVertices = new HashSet<>();
+		}
+		
+		while(clipEdgesProgress.hasNext()) {
+			// Return to working thread and indicate that we are not yet finished
+			if (System.currentTimeMillis() - iterationStartTime > 200) return false;
+			
+			MutableEdge edge = clipEdgesProgress.next();
+			if (!edge.isFinished()) throw new RuntimeException("unfinished edge");
+			
+			LineSeg seg = edge.toLineSeg();
+			seg = bounds.clip(seg);
+			if (seg == null) continue;
+			
+			boolean sameStart = seg.pos.equals(edge.getStart().toVec2());
+			boolean sameEnd = seg.end.equals(edge.getEnd().toVec2());
+			
+			MutableVertex start = edge.getStart();
+			MutableVertex end = edge.getEnd();
+			if (!sameStart) {
+				start = new MutableVertex(seg.pos.getX(), seg.pos.getY(), true);
+				validVertices.add(start);
+			} else {
+				validVertices.add(edge.getStart());
+			}
+			if (!sameEnd) {
+				end = new MutableVertex(seg.end.getX(), seg.end.getY(), true);
+				validVertices.add(end);
+			} else {
+				validVertices.add(edge.getEnd());
+			}
+			
+			edge.redefine(start, end);
+			validEdges.add(edge);
+		}
+		this.edges = validEdges;
+		this.vertices = validVertices;
+		
+		return true; // Step completed
+	}
+
+	/**
+	 * Combines vertices closer than Voronoi.VERY_SMALL (DANGER! VERY_SMALL must
+	 * be significantly smaller than the smallest distance between sites or they
+	 * will be chain combined in a nondeterministic way)
+	 */
+	private boolean combineVertices() {
+		// Map vertices to the vertex that should replace them;
+		Map<MutableVertex, MutableVertex> replace = new HashMap<>();		
+		
+		Iterator<MutableEdge> edgeIterator = edges.iterator();
+		while (edgeIterator.hasNext()) {
+			MutableEdge e = edgeIterator.next();
+			
+			// Edge is long enough, skip it
+			if (e.toLineSeg().length() > Voronoi.VERY_SMALL) continue;
+			
+			// Edge is too short, remove it
+			edgeIterator.remove();
+			MutableVertex oldVertex = e.getEnd();
+			MutableVertex newVertex = e.getStart();
+			replace.put(oldVertex, newVertex);
+			vertices.remove(oldVertex);
+		}
+
+		for (MutableEdge e : edges) {
+			MutableVertex start = e.getStart();			
+			while (replace.containsKey(start)) start = replace.get(start);
+			
+			MutableVertex end = e.getEnd();
+			while (replace.containsKey(end)) end = replace.get(end);
+			
+			e.redefine(start, end);
+		}
+		
+		return true; // Step completed
+	}
+	
+	/**
+	 * Adds all edges, vertices, and sites to each others' lists using the
+	 * references already defined in edges
+	 */
+	private boolean createLinks() {		
+		for (MutableEdge edge : edges) {
+			for (MutableVertex vertex : edge.getMutableVertices()) {
+				vertex.addEdge(edge);
+				for (MutableSite site : edge.getMutableSites()) {
+					if (!vertex.hasSite(site)) {
+						vertex.addSite(site);
+						site.addVertex(vertex);
+					}
+				}
+			}
+		}
+		return true; // Step completed
+	}
+	
+	/**
+	 * Sorts the vertex and edge lists in each site to be in counterclockwise order
+	 */
+	private boolean sortSiteLists() {	
+		for (MutableSite s : sites.values()) sortSiteLists(s);
+		
+		return true; // Step completed
+	}	
+	
+	private Comparator<Vertex> getVertexOrder(final Map<Vertex, Double> angles) {		
+		return (vertex0, vertex1) -> {
+			double theta0 = angles.get(vertex0);
+			double theta1 = angles.get(vertex1);
+			if (theta0 > theta1) return 1;
+			if (theta0 < theta1) return -1;
+			// consistent comparison between identical angles
+			return vertex0.hashCode() - vertex1.hashCode();
+		};
+	}
+	
+	private Comparator<Edge> getEdgeOrder(final Map<Edge, Double> angles) {
+		return (edge0, edge1) -> {
+			double theta0 = angles.get(edge0);
+			double theta1 = angles.get(edge1);
+			if (theta0 > theta1) return 1;
+			if (theta0 < theta1) return -1;
+			// consistent comparison between identical angles
+			return edge0.hashCode() - edge1.hashCode();
+		};
+	}
+	
+	private void sortSiteLists(MutableSite s) {
+		Vec2 siteCenter = s.toVec2();
+
+		final Map<Vertex, Double> vertexAngles = new HashMap<>();
+		for (Vertex vertex : s.getVertices()) {
+			vertexAngles.put(vertex, vertex.toVec2().subtract(siteCenter).angle());
+		}
+		
+		final Map<Edge, Double> edgeAngles = new HashMap<>();
+		for (Edge edge : s.getEdges()) {
+			edgeAngles.put(edge, edge.getCenter().subtract(siteCenter).angle());
+		}
+		
+		s.sortVertices(getVertexOrder(vertexAngles));
+		s.sortEdges(getEdgeOrder(edgeAngles));
+	}
+	
+	/**
+	 * Forms a new edge or edges for sites along the boundary of the diagram.	
+	 */
+	private boolean createBoundaryEdges() {
+		// Create corner vertices
+		MutableVertex[] corners = new MutableVertex[4];
+		corners[0] = new MutableVertex(bounds.minX(), bounds.minY(), true);
+		corners[1] = new MutableVertex(bounds.maxX(), bounds.minY(), true);
+		corners[2] = new MutableVertex(bounds.maxX(), bounds.maxY(), true);
+		corners[3] = new MutableVertex(bounds.minX(), bounds.maxY(), true);
+		
+		// Assign corner vertices to appropriate sites
+		for (MutableVertex corner : corners) {
+			vertices.add(corner);
+			MutableSite closest = null;
+			double distance2 = Double.MAX_VALUE;
+			for (MutableSite s : sites.values()) {
+				double dx = s.x - corner.x;
+				double dy = s.y - corner.y;
+				double dist2 = dx*dx + dy*dy;
+				if (dist2 < distance2) {
+					distance2 = dist2;
+					closest = s;
+				}
+			}
+			corner.addSite(closest);
+			closest.addVertex(corner);
+			sortSiteLists(closest);
+		}
+
+		// Add new edges
+		for (MutableSite s : sites.values()) {			
+			MutableVertex prev = null;
+			MutableVertex last = s.getLastVertex();
+			if (last == null) continue;
+			if (last.isBoundary()) prev = last;
+			boolean modified = false;
+			for (MutableVertex v : s.getVertexIterable()) {
+				if (!v.isBoundary()) {
+					prev = null;
+					continue;
+				}
+				if (prev != null) {		
+					MutableEdge edge = new MutableEdge(prev, v, s, null);
+					v.addEdge(edge);
+					prev.addEdge(edge);
+					s.addEdge(edge);
+					edges.add(edge);
+					modified = true;
+				}
+				prev = v;
+			}
+			if (modified) sortSiteLists(s);
+		}
+		
+		return true; // Step completed
+	}
+	
+	/**
+	 * Makes the edge and vertex lists in each site unmodifiable.
+	 * Makes the edge and site lists in each vertex unmodifiable.
+	 * The vertices and sites in each edge are already final. 
+	 */
+	private boolean finalizeLinks() {
+		for (MutableSite s : sites.values()) s.makeListsUnmodifiable();
+		for (MutableVertex v : vertices) v.makeListsUnmodifiable();
+		
+		return true; // Step completed
+	}
+
+	private boolean finishComplete() {
+		this.voronoi.setMutableSites(this.sites);
+		this.voronoi.setMutableVertices(this.vertices);
+		this.voronoi.setMutableEdges(this.edges);
+		finished = true;
+		
+		double p = ((double) invalidCircleEvents) / ((double) totalCircleEvents) * 100.0;
+		int percent = (int) Math.round(p);
+		System.out.println("Invalid circle events: "+invalidCircleEvents+" / "+totalCircleEvents+" ("+percent+"%)");
+		
+		return true; // Step completed
+	}
+	
+	
+	
+	
+	
+	private void addEdge(MutableEdge edge) {
+		if (!edge.isFinished()) throw new RuntimeException("Cannot add unfinished edge");
+		this.edges.add(edge);
+	}
 
 	private void addEvent(Event e) {
 		 if (e == null) throw new RuntimeException("Cannot add null event");
 		 eventQueue.offer(e);
+		 if (e.is(Type.CIRCLE)) totalCircleEvents++;
 	}
 	
 	private void removeEvent(Event e) {
-		 if (e == null) throw new RuntimeException("Cannot remove null event");
-		 eventQueue.remove(e);
+		e.invalidate();
 	}
 	
 }

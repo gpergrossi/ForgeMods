@@ -35,7 +35,7 @@ public class Breakpoint extends TreeNode {
 	}
 	
 	private void checkPossible() {
-		if ( arcLeft.site.pos.y == arcRight.site.pos.y &&  arcLeft.site.pos.x > arcRight.site.pos.x) {
+		if ( arcLeft.site.y == arcRight.site.y &&  arcLeft.site.x > arcRight.site.x) {
 			// The parabolas are exactly side by side, there is only one intersection between
 			// them and the X coordinates of the parabola's focii are in the wrong order for
 			// the requested breakpoint to exist.
@@ -49,51 +49,77 @@ public class Breakpoint extends TreeNode {
 	 * @return
 	 */
 	public Vec2 getDirection() {
-		double dy = arcRight.site.pos.y - arcLeft.site.pos.y;
-		double dx = arcRight.site.pos.x - arcLeft.site.pos.x;
+		double dy = arcRight.site.y - arcLeft.site.y;
+		double dx = arcRight.site.x - arcLeft.site.x;
 		
 		if (dy == 0) {
-			if (dx == 0) return new Vec2(0, 0);
-			return new Vec2(0, 1);
+			if (dx == 0) return Vec2.create(0, 0);
+			return Vec2.create(0, 1);
 		}
 		if (dy < 0) {
-			return new Vec2(1, -dx/dy);
+			return Vec2.create(1, -dx/dy);
 		} else {
-			return new Vec2(-1, dx/dy);
+			return Vec2.create(-1, dx/dy);
 		}
 	}
 	
-	public static Vec2 getIntersection(final BuildState state, Breakpoint left, Breakpoint right) {		
-		Vec2 pos0 = left.getPosition(state);
-		Vec2 pos1 = right.getPosition(state);
+	public static Vec2 getIntersection(final BuildState state, Breakpoint left, Breakpoint right) {	
 		
-		if (pos0 == null || pos1 == null) {
+		Vec2 posL = left.getPosition(state);
+		Vec2 posR = right.getPosition(state);
+		
+		if (posL == null || posR == null) {
 			if (Voronoi.DEBUG) {
-				if (pos0 == null) System.err.println("breakpoint position undefined: "+left);
-				if (pos1 == null) System.err.println("breakpoint position undefined: "+right);
+				if (posL == null) System.err.println("breakpoint position undefined: "+left);
+				if (posR == null) System.err.println("breakpoint position undefined: "+right);
 			}
 			return null;
 		}
 		
-		Vec2 dir0 = left.getDirection();
-		Vec2 dir1 = right.getDirection();
+		Vec2 dirL = left.getDirection();
+		Vec2 dirR = right.getDirection();
 		
-		Ray ray0 = new Ray(pos0, dir0).extend(Voronoi.VERY_SMALL);
-		Ray ray1 = new Ray(pos1, dir1).extend(Voronoi.VERY_SMALL);
+		if (Voronoi.DEBUG) {
+			System.out.println("Checking intersect on");
+			System.out.println("left:  "+left);
+			System.out.println("       pos:"+posL+" dir:"+dirL);
+			System.out.println("right: "+right);
+			System.out.println("       pos:"+posR+" dir:"+dirR);
+		}
+		
+		Vec2 delta = posR.subtract(posL);
+		if (delta.length() < Voronoi.VERY_SMALL) {
+			// special case, the breakpoints are currently intersecting: 
+			// return null only if they are diverging with respect to Y+
+			if (dirL.getX() < dirR.getX()) {
+				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Diverging (left.dx="+dirL.getX()+", right.dx="+dirR.getX()+"). Special case denied.");
+				return null;
+			} else {
+				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Converging (left.dx="+dirL.getX()+", right.dx="+dirR.getX()+"). Special case accepted.");
+				return posR.add(posL).divide(2);
+			}
+		}
+		
+		Ray ray0 = new Ray(posL, dirL).extend(Voronoi.VERY_SMALL);
+		Ray ray1 = new Ray(posR, dirR).extend(Voronoi.VERY_SMALL);
 		
 		Vec2 intersection = ray0.intersect(ray1);
 		if (intersection == null) {
-			if (Voronoi.DEBUG) System.out.println("No intersection between "+left+" and "+right);
-			return null;
-		}
-		
-		if (intersection.subtract(pos0).length() < Voronoi.VERY_SMALL) {
-			// special case, the breakpoints are currently intersecting: 
-			// return null only if they are diverging with respect to Y+
-			if (dir0.x < dir1.x) {
-				if (Voronoi.DEBUG) System.out.println("Currently intersecting. Diverging (left.dx="+dir0.x+", right.dx="+dir1.x+"). Special case denied.");
+			// very special case, lines are exactly parallel, could still intersect
+			Vec2 deltaNorm = delta.normalize();
+			Vec2 dirLNorm = dirL.normalize();
+			Vec2 dirRNorm = dirR.normalize();
+			if (deltaNorm.dot(dirLNorm) > 1-Voronoi.VERY_SMALL && deltaNorm.dot(dirRNorm) < -1+Voronoi.VERY_SMALL) {
+				intersection = posL.add(posR).divide(2.0);
+				if (Voronoi.DEBUG) {
+					System.out.println("Parallel intersection between "+left+" and "+right+". Special case accepted.");
+				}
+			} else {
+				if (Voronoi.DEBUG) {
+					System.out.println("No intersection between "+left+" and "+right);
+				}
 				return null;
-			} else if (Voronoi.DEBUG) System.out.println("Currently intersecting. Converging (left.dx="+dir0.x+", right.dx="+dir1.x+"). Special case accepted.");
+			}
 		}
 		
 		return intersection;
@@ -108,9 +134,10 @@ public class Breakpoint extends TreeNode {
 			lastResult = calculatePosition(state.getSweeplineY());
 		}
 		if (lastResult == null) {
-			double x = (arcLeft.site.pos.x + arcRight.site.pos.x) / 2.0;
+			// null occurs when sites are on the same y value and have no intersection of their "parabolas"
+			double x = (arcLeft.site.x + arcRight.site.x) / 2.0;
 			double y = state.getBounds().minY()-10;
-			lastResult = new Vec2(x, y);
+			lastResult = Vec2.create(x, y);
 		}
 		return lastResult;
 	}
@@ -128,8 +155,8 @@ public class Breakpoint extends TreeNode {
 		Vec2 pos = this.getPosition(state);
 		
 		double posX;
-		if (pos == null) posX = (this.arcLeft.site.pos.x + this.arcRight.site.pos.x) / 2.0;
-		else posX = pos.x;
+		if (pos == null) posX = (this.arcLeft.site.x + this.arcRight.site.x) / 2.0;
+		else posX = pos.getX();
 				
 		if (siteX <= posX) {
 			if (Voronoi.DEBUG) System.out.println("X:"+siteX+" <= "+this);
@@ -181,7 +208,7 @@ public class Breakpoint extends TreeNode {
 		Vec2 currentPosition = this.getPosition(state);
 		if (currentPosition == null) {
 			double x = (arcLeft.site.pos.x + arcRight.site.pos.x) / 2.0;
-			currentPosition = new Vec2(x, state.getBounds().getMinY() - 10);
+			currentPosition = Vec2.create(x, state.getBounds().getMinY() - 10);
 		}
 		
 		// Find or create a vertex

@@ -1,4 +1,4 @@
-package dev.mortus.util.data;
+package dev.mortus.util.data.storage;
 
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
@@ -27,6 +27,13 @@ public class FixedSizeStorage<T extends StorageItem> {
 		return (size == 0);
 	}
 
+	public boolean contains(T o) {
+		if (o == null) return false;
+		int index = o.getStorageIndex();
+		if (index < 0 || index >= size) return false;
+		return (items[index].equals(o));
+	}
+	
 	public Iterator<T> iterator() {
 		return new Iterator<T>() {
 			int expectedModifyCount = modifyCount;
@@ -63,6 +70,7 @@ public class FixedSizeStorage<T extends StorageItem> {
 		if (size >= items.length) return false;
 		
 		items[size] = e;
+		e.setStorageIndex(size);
 		
 		size++;
 		modifyCount++;
@@ -80,6 +88,7 @@ public class FixedSizeStorage<T extends StorageItem> {
 			items[size-1] = null;
 		}
 		
+		items[index].setStorageIndex(-1);
 		items[index] = replace;
 		
 		size--;
@@ -95,6 +104,6 @@ public class FixedSizeStorage<T extends StorageItem> {
 	public void clear() {
 		size = 0;	
 		modifyCount++;
-	}	
+	}
 	
 }

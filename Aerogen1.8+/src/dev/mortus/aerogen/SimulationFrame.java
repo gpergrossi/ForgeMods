@@ -44,9 +44,9 @@ public class SimulationFrame extends JFrame {
 		});
 	}
 
-	public static int NUM_WORKER_THREADS = 5;
-	public static int LOADING_TIME = 10;
-	public static int UNLOADING_TIME = 10;
+	public static int NUM_WORKER_THREADS = 16;
+	public static int LOADING_TIME = 0;
+	public static int UNLOADING_TIME = 0;
 	
 	/**
 	 * Create the frame.

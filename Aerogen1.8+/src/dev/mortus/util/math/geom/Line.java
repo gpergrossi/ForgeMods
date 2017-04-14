@@ -16,6 +16,14 @@ public class Line {
 		return pos.add(dir.multiply(t));
 	}
 	
+	public Vec2 getStart() {
+		return getPoint(tmin());
+	}
+	
+	public Vec2 getEnd() {
+		return getPoint(tmax());
+	}
+	
 	protected Line redefine(double tmin, double tmax) {
 		if (tmin == this.tmin() && tmax == this.tmax()) return this;
 		
@@ -45,8 +53,8 @@ public class Line {
 		double u = second.dir.cross(delta) / det;
 		double v = first.dir.cross(delta) / det;
 		
-		if (u < first.tmin() || u > first.tmax()) return null;
-		if (v < second.tmin() || v > second.tmax()) return null;
+		if (u+Vec2.EPSILON < first.tmin()  || u-Vec2.EPSILON > first.tmax() ) return null;
+		if (v+Vec2.EPSILON < second.tmin() || v-Vec2.EPSILON > second.tmax()) return null;
 	
 		return new Pair<Double>(u, v); // u is t for first, v is t for second
 	}

@@ -37,7 +37,7 @@ public class Arc extends TreeNode {
 	}
 	
 	public void setCircleEvent(Event circleEvent) {
-		if (circleEvent != null && circleEvent.type != Event.Type.CIRCLE) {
+		if (circleEvent != null && !circleEvent.is(Event.Type.CIRCLE)) {
 			throw new RuntimeException("Event is not a Circle Event!");
 		}
 		this.circleEvent = circleEvent;
@@ -48,7 +48,7 @@ public class Arc extends TreeNode {
 	}
 	
 	public Function getParabola(double sweeplineY) {
-		return Quadratic.fromPointAndLine(site.pos, sweeplineY);
+		return Quadratic.fromPointAndLine(site.x, site.y, sweeplineY);
 	}
 
 	@Override
@@ -98,7 +98,7 @@ public class Arc extends TreeNode {
 			Vec2 intersection = Breakpoint.getIntersection(state, leftBP, rightBP);
 			if (intersection == null) break;
 			
-			Circle circle = Circle.fromPoints(leftNeighbor.site.pos, this.site.pos, rightNeighbor.site.pos);
+			Circle circle = Circle.fromPoints(leftNeighbor.site.toVec2(), this.site.toVec2(), rightNeighbor.site.toVec2());
 			if (circle == null) break;
 			
 			if (circle.y + circle.radius + Voronoi.VERY_SMALL >= state.getSweeplineY()) {
@@ -116,12 +116,15 @@ public class Arc extends TreeNode {
 		Breakpoint newBreakpoint = null;
 		Arc newArc = null;
 		
-		if (this.site.pos.y == site.pos.y) {
+		if (Math.abs(this.site.y - site.y) < Voronoi.VERY_SMALL) {
 			// Y coordinates equal, single breakpoint between sites
-			// new arc has greater X coordinate because it came from
-			// a priority queue that ensures so
 			Arc left = new Arc(this.site);
 			Arc right = newArc = new Arc(site);
+			if (this.site.x > site.x) {
+				Arc swap = left;
+				left = right;
+				right = swap;
+			}
 			newBreakpoint = new Breakpoint(left, right);
 			
 		} else {

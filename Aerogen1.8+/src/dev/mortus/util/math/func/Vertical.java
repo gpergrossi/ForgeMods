@@ -1,8 +1,5 @@
 package dev.mortus.util.math.func;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Vertical extends Undefined {
 
 	double verticalX;
@@ -12,9 +9,9 @@ public class Vertical extends Undefined {
 	}
 
 	@Override
-	public Function add(Function f) {
+	public Function tryAdd(Function f) {
 		if (f instanceof Vertical) return add((Vertical) f);
-		return super.add(f);
+		return super.tryAdd(f);
 	}
 	
 	public Function add(Vertical f) {
@@ -23,10 +20,8 @@ public class Vertical extends Undefined {
 	}
 
 	@Override
-	public List<Double> zeros() {
-		List<Double> zeros = new ArrayList<>(1);
-		zeros.add(verticalX);
-		return zeros;
+	public double[] zeros() {
+		return new double[] { verticalX };
 	}
 
 	public String toString() {

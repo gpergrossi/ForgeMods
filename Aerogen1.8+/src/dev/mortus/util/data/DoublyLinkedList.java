@@ -1,12 +1,13 @@
 package dev.mortus.util.data;
 
-import java.util.AbstractSequentialList;
 import java.util.ConcurrentModificationException;
 import java.util.ListIterator;
 
-public class DoublyLinkedList<T> extends AbstractSequentialList<T> {
+import dev.mortus.util.data.queue.AbstractDeque;
 
-	private int modCount;
+public class DoublyLinkedList<T> extends AbstractDeque<T> {
+
+	private int modifyCount;
 	private int size;
 	private Node<T> sentinel;
 	
@@ -47,7 +48,7 @@ public class DoublyLinkedList<T> extends AbstractSequentialList<T> {
 			this.next.prev = this.prev;
 		}
 	}
-
+	
 	private Node<T> getNodeInternal(int index) {
 		if (index < 0 || index > size) throw new IndexOutOfBoundsException();
 		
@@ -76,10 +77,10 @@ public class DoublyLinkedList<T> extends AbstractSequentialList<T> {
 			int nextIndex = index;
 			Node<T> nextNode = getNodeInternal(index);
 			Node<T> recentNode = nextNode.prev;
-			int expectedModCount = DoublyLinkedList.this.modCount;
+			int expectedModCount = DoublyLinkedList.this.modifyCount;
 			
 			private void checkConcurrentModification() {
-				if (modCount != expectedModCount) throw new ConcurrentModificationException();
+				if (modifyCount != expectedModCount) throw new ConcurrentModificationException();
 			}
 			
 			@Override
@@ -138,7 +139,7 @@ public class DoublyLinkedList<T> extends AbstractSequentialList<T> {
 				
 				// Keep track of number of modifications made to detect concurrent modification
 				expectedModCount++;
-				DoublyLinkedList.this.modCount++;
+				DoublyLinkedList.this.modifyCount++;
 				
 				// No longer allowed to remove/set elements until next call to next() or prev()
 				recentNode = null;
@@ -164,7 +165,7 @@ public class DoublyLinkedList<T> extends AbstractSequentialList<T> {
 				
 				// Keep track of number of modifications made to detect concurrent modification
 				expectedModCount++;
-				DoublyLinkedList.this.modCount++;
+				DoublyLinkedList.this.modifyCount++;
 				
 				// No longer allowed to remove/set elements until next call to next() or prev()
 				recentNode = null;
@@ -175,9 +176,6 @@ public class DoublyLinkedList<T> extends AbstractSequentialList<T> {
 	@Override
 	public int size() {
 		return size;
-	}	
-	
-	// Fibinacci heap
-	// https://en.wikipedia.org/wiki/Fibonacci_heap
-	
+	}
+
 }

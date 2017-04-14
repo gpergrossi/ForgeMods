@@ -10,32 +10,32 @@ public class Vertex implements Comparable<Vertex> {
 
 	public static final double VERY_SMALL_2 = Voronoi.VERY_SMALL * Voronoi.VERY_SMALL;
 
-	final boolean isBoundary;
-	final Vec2 position;
+	public final boolean isBoundary;
+	public final double x, y;
 	
 	protected List<Edge> edges;
 	protected List<Site> sites;
 	
 	protected String debug = "";
 
-	protected Vertex(Vec2 pos, boolean isBoundary) {
-		if (pos == null) throw new RuntimeException("null position");
-		this.position = pos;
+	protected Vertex(double x, double y, boolean isBoundary) {
+		this.x = x;
+		this.y = y;
 		this.isBoundary = isBoundary;
 		this.edges = new ArrayList<Edge>();
 		this.sites = new ArrayList<Site>();
 	}
 	
-	protected Vertex(Vec2 pos) {
-		this(pos, false);
+	protected Vertex(double x, double y) {
+		this(x, y, false);
 	}
 	
-	public Vec2 getPosition() {
-		return position;
+	public double getX() {
+		return x;
 	}
 	
-	public Point2D toPoint2D() {
-		return position.toPoint2D();
+	public double getY() {
+		return y;
 	}
 	
 	public boolean isBoundary() {
@@ -43,12 +43,26 @@ public class Vertex implements Comparable<Vertex> {
 	}
 	
 	public String toString() {
-		return "Vertex[pos="+position+"]";
+		return "Vertex[x="+x+", y="+y+"]";
 	}
 
 	@Override
 	public int compareTo(Vertex o) {
-		return this.position.compareTo(o.position);
+		if (y < o.y) return -1;
+		if (y > o.y) return 1;
+		
+		if (x < o.x) return -1;
+		if (x > o.x) return 1;
+		
+		return Integer.compare(this.hashCode(), o.hashCode());
+	}
+
+	public Point2D toPoint2D() {
+		return new Point2D.Double(x, y);
+	}
+
+	public Vec2 toVec2() {
+		return Vec2.create(x, y);
 	}
 	
 }

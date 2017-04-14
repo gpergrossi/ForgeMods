@@ -1,32 +1,40 @@
 package dev.mortus.util.data;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.TreeSet;
+import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 
+import dev.mortus.util.data.queue.GrowingArrayQueue;
+
+/**
+ * A list implementation based on an array. Its primary feature is that
+ * removal of elements does not cause an update in the position of any
+ * other element.
+ */
 public class StableArrayList<T> implements List<T> {
 
 	protected int initialCapacity;
 	protected int capacity;
 	protected int lastIndexUsed;
-	protected Class<T> clazz;
 	protected T[] elements;
+	private IntFunction<T[]> arrayAllocator;
 	
-	protected TreeSet<Integer> removedIndices;
+	protected Queue<Integer> removedIndices;
 	
-	public StableArrayList(Class<T> clazz, int initialCapacity) {
+	public StableArrayList(IntFunction<T[]> arrayAllocator, int initialCapacity) {
 		this.initialCapacity = initialCapacity;
+		this.arrayAllocator = arrayAllocator;
+		
 		this.capacity = initialCapacity;
 		this.lastIndexUsed = -1;
-		this.clazz = clazz;
 		this.elements = null;
 		
-		this.removedIndices = new TreeSet<>();
+		this.removedIndices = new GrowingArrayQueue<>((t -> new Integer[t]), initialCapacity/3+1);
 	}
 	
 	@Override
@@ -82,7 +90,6 @@ public class StableArrayList<T> implements List<T> {
 		return -1;
 	}
 
-	@SuppressWarnings("unchecked")
 	public T set(int index, T element, boolean grow) {
 		if (index < 0) throw new IndexOutOfBoundsException();
 		
@@ -93,7 +100,7 @@ public class StableArrayList<T> implements List<T> {
 		if (neededCap > capacity) {
 			if (grow == false) throw new IndexOutOfBoundsException();
 			if (elements != null) {
-				T[] bigger = (T[]) Array.newInstance(clazz, neededCap); 
+				T[] bigger = arrayAllocator.apply(neededCap);
 				if (lastIndexUsed >= 0) {
 					System.arraycopy(elements, 0, bigger, 0, lastIndexUsed+1);
 				}
@@ -104,7 +111,7 @@ public class StableArrayList<T> implements List<T> {
 		
 		// Create fresh?
 		if (elements == null) {
-			elements = (T[]) Array.newInstance(clazz, neededCap);
+			elements = arrayAllocator.apply(neededCap);
 			capacity = neededCap;
 		}
 		
@@ -170,8 +177,7 @@ public class StableArrayList<T> implements List<T> {
 
 	@Override
 	public Object[] toArray() {
-		@SuppressWarnings("unchecked")
-		T[] out = (T[]) Array.newInstance(clazz, size());
+		T[] out = arrayAllocator.apply(size());
 		int i = 0;
 		Iterator<T> it = iterator();
 		while (it.hasNext()) {
@@ -196,7 +202,7 @@ public class StableArrayList<T> implements List<T> {
 	
 	private int getFirstFreeIndex() {
 		if (removedIndices.size() > 0) {
-			return removedIndices.pollFirst();
+			return removedIndices.poll();
 		}
 		return lastIndexUsed+1;
 	}

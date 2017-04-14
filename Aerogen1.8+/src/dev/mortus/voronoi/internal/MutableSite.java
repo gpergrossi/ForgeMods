@@ -1,6 +1,5 @@
 package dev.mortus.voronoi.internal;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -13,12 +12,21 @@ import dev.mortus.voronoi.diagram.Voronoi;
 
 public class MutableSite extends Site {
 
+	protected boolean isFinished;
+	
 	MutableSite(Voronoi voronoi, int id, Vec2 pos) {
-		super(voronoi, id, pos);
-		this.edges = new ArrayList<>();
-		this.vertices = new ArrayList<>();
+		super(voronoi, id, pos.getX(), pos.getY());
 		this.isFinished = false;
 		this.isClosed = false;
+	}
+	
+	public boolean isClosed() {
+		if (isFinished) return isClosed;
+		if (vertices == null) return false;
+		for (Vertex v : vertices) {
+			if (v.isBoundary()) return false;
+		}
+		return true;
 	}
 
 	void addVertex(MutableVertex vertex) {
@@ -38,10 +46,11 @@ public class MutableSite extends Site {
 	}
 
 	MutableVertex getLastVertex() {
+		if (vertices.size() == 0) return null;
 		return (MutableVertex) vertices.get(vertices.size()-1);
 	}
 
-	Iterable<MutableVertex> getVertexIterator() {
+	Iterable<MutableVertex> getVertexIterable() {
 		Iterator<Vertex> iter = vertices.iterator();
 		
 		return new Iterable<MutableVertex>() {

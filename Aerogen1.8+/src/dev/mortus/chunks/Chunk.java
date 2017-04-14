@@ -8,8 +8,8 @@ public abstract class Chunk {
 	
 	long lastSeen;
 	boolean loaded, loading, unloading;
-	protected int chunkX, chunkY;
-	Lock lock = new ReentrantLock(true);
+	protected final int chunkX, chunkY;
+	protected final Lock lock = new ReentrantLock(true);
 	
 	public Chunk(int chunkX, int chunkY) {
 		this.chunkX = chunkX;

@@ -6,6 +6,7 @@ import dev.mortus.voronoi.internal.tree.Breakpoint;
 public class HalfEdge extends MutableEdge {
 
 	private HalfEdge twin;
+	private boolean isSecondary;
 	
 	static Pair<HalfEdge> createTwinPair(Pair<Breakpoint> bps, MutableVertex vert) {
 		if (bps.size() != 2) throw new RuntimeException("Cannot construct twin pair with a partial pair of breakpoints");
@@ -34,8 +35,8 @@ public class HalfEdge extends MutableEdge {
 		return this.twin;
 	}
 	
-	MutableEdge joinHalves() {
-		return super.combine(this, this.twin);
+	void joinHalves() {
+		this.combineWith(this.twin);
 	}
 
 	@Override
@@ -45,6 +46,14 @@ public class HalfEdge extends MutableEdge {
 	
 	HalfEdge finish(MutableVertex end) {
 		return new HalfEdge(this, end);
+	}
+
+	void setSecondary() {
+		this.isSecondary = true;
+	}
+	
+	boolean isSecondary() {
+		return isSecondary;
 	}
 	
 }

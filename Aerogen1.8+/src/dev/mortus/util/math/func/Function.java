@@ -1,18 +1,17 @@
 package dev.mortus.util.math.func;
 
-import java.util.List;
-
-import dev.mortus.util.math.geom.Vec2;
-
 public abstract class Function {
 
 	public abstract double getValue(double x);
 	
-	public Vec2 getPoint(double x) {
-		return new Vec2(x, getValue(x));
+	public Function add(Function f) {
+		Function result = this.tryAdd(f);
+		if (result == null) result = f.tryAdd(this);
+		if (result == null) throw new UnsupportedOperationException("No addition between "+this.getClass().getName()+" and "+f.getClass().getName());
+		return result;
 	}
 	
-	public abstract Function add(Function f);
+	protected abstract Function tryAdd(Function f);
 	
 	public Function subtract(Function f) {
 		if (f == null) return null;
@@ -21,8 +20,15 @@ public abstract class Function {
 	
 	public abstract Function negate();
 	
-	public abstract Function multiply(Function f);
-
+	public Function multiply(Function f) {
+		Function result = this.tryMultiply(f);
+		if (result == null) result = f.tryMultiply(this);
+		if (result == null) throw new UnsupportedOperationException("No multiplication between "+this.getClass().getName()+" and "+f.getClass().getName());
+		return result;
+	}
+	
+	protected abstract Function tryMultiply(Function f);
+	
 	public Function divide(Function f) {
 		if (f == null) return null;
 		return add(f.negate());
@@ -32,6 +38,6 @@ public abstract class Function {
 	
 	public abstract Function derivative();
 	
-	public abstract List<Double> zeros();
+	public abstract double[] zeros();
 	
 }
