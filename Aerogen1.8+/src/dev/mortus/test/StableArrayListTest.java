@@ -1,25 +1,26 @@
 package dev.mortus.test;
 
+import java.util.List;
 import java.util.Scanner;
+import java.util.function.IntFunction;
 
 import dev.mortus.util.data.StableArrayList;
 
 public class StableArrayListTest {
-	
-	static class Dummy {}
-	
+		
 	public static void main(String[] args) {
 		
 		System.out.println("Press enter to continue");
 		Scanner sc = new Scanner(System.in);
 		sc.nextLine();
 		sc.close();
+
+		IntFunction<String[]> allocator = (size -> { return new String[size]; });
 		
 		for (int num = 100; num <= 1000000; num += 500) {
-			
-			StableArrayList<Dummy> all = new StableArrayList<>(Dummy.class, 8);
+			List<String> all = new StableArrayList<>(allocator, 8);
 			for (int i = 0; i < num; i++) {
-				Dummy d = new Dummy();
+				String d = Integer.toHexString(i);
 				all.add(d);
 			}
 			

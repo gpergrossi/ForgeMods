@@ -3,12 +3,15 @@ package dev.mortus.test;
 import java.util.Random;
 import java.util.Scanner;
 
-import be.humphreys.simplevoronoi.Voronoi;
 import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.diagram.VoronoiBuilder;
+import dev.mortus.voronoi.internal.Worker;
 
 public class VoronoiBruteTest {
 
+	private static Random r = new Random();
+	
 	public static void main(String[] args) {
 		
 		Scanner s = new Scanner(System.in);
@@ -16,69 +19,94 @@ public class VoronoiBruteTest {
 		s.close();
 		
 		if (line.contains("o")) {
-			other();
+			for (int num = 500000; num > 0;  num /= 1.5) test2(num, false);
 			System.exit(0);
 		}
 		
-		Random r = new Random();
-		for (int num = 100; num <= 30000; num += 100) {
-			VoronoiBuilder v = new VoronoiBuilder();
-			
-			boolean success = false;
-			
-			long start = 0, end = 0;
-			System.gc();
-			while (success == false) {
-				try {
-					start = System.nanoTime();
-					for (int i = 0; i < num; i++) {
-						v.addSite(new Vec2(r.nextDouble()*10000.0, r.nextDouble()*10000.0));
-					}
-					v.build();
-					end = System.nanoTime();
-					success = true;
-				} catch (RuntimeException re) {
-					System.out.println("FAIL");
-				}
-			}
-
-			long dur = end-start;
-			double time = dur*0.000000001;
-			System.out.println(num+", "+time);
-		}
+		for (int num = 500000; num > 0;  num /= 1.5) test(num, false);
 		
 	}
 	
-	public static void other() {
-		Random r = new Random();
-		for (int num = 100; num <= 30000; num += 100) {
-			be.humphreys.simplevoronoi.Voronoi vor = new Voronoi(0.0000001);
-			
-			boolean success = false;
-			
-			long start = 0, end = 0;
-			System.gc();
-			while (success == false) {
-				try {
-					start = System.nanoTime();
-					double[] xValuesIn = new double[num];
-					double[] yValuesIn = new double[num];
-					for (int i = 0; i < num; i++) {
-						xValuesIn[i] = r.nextDouble()*10000.0;
-						yValuesIn[i] = r.nextDouble()*10000.0;
-					}
-					vor.generateVoronoi(xValuesIn, yValuesIn, 0, 10000.0, 0, 10000.0);
-					end = System.nanoTime();
-					success = true;
-				} catch (RuntimeException re) {
-					System.out.println("FAIL");
-				}
-			}
+	private static void test(int num, boolean verbose) {		
+		boolean success = false;
+		long start = 0, end = 0;
+		long update = 0;
 
-			long dur = end-start;
-			double time = dur*0.000000001;
-			System.out.println(num+", "+time);
+		VoronoiBuilder vb = new VoronoiBuilder();
+		Worker w = null;
+		
+		while (success == false) {
+			if (verbose) System.out.println("GC...");
+			System.gc();
+			
+			try {
+				if (verbose) System.out.println("Generating "+num+" points...");
+				for (int i = 0; i < num; i++) {
+					vb.addSite(Vec2.create(r.nextDouble()*10000.0, r.nextDouble()*10000.0));
+				}
+				
+				if (verbose) System.out.println("Constructing diagram...");
+				update = System.currentTimeMillis();
+				start = System.nanoTime();
+				
+				int numResponses = 0;
+				w = vb.getBuildWorker();
+				while (!w.isDone()) {
+					w.doWork(1000);
+					if (verbose) {
+						numResponses++;
+						if (System.currentTimeMillis() - update > 1000) {
+							System.out.println("Progress: "+w.getProgressEstimate()+" ("+numResponses+" returns)");
+							update = System.currentTimeMillis();
+							numResponses = 0;
+						}
+					}
+				}
+				
+				end = System.nanoTime();
+				success = true;
+			} catch (RuntimeException re) {
+				System.out.println("FAIL");
+				re.printStackTrace();
+			}
 		}
+
+		Voronoi v = w.getResult();
+		
+		long dur = end-start;
+		double time = dur*0.000000001;
+		System.out.println(num+", "+time+", "+v.getSites().size()+", "+v.getVertices().size()+", "+v.getEdges().size());
+	}
+	
+	private static void test2(int num, boolean verbose) {
+		be.humphreys.simplevoronoi.Voronoi vor = new be.humphreys.simplevoronoi.Voronoi(0.0001);
+		boolean success = false;
+		long start = 0, end = 0;
+		
+		while (success == false) {
+			System.gc();
+			try {
+				if (verbose) System.out.println("Generating "+num+" points...");
+				double[] xValuesIn = new double[num];
+				double[] yValuesIn = new double[num];
+				for (int i = 0; i < num; i++) {
+					xValuesIn[i] = r.nextDouble()*10000.0;
+					yValuesIn[i] = r.nextDouble()*10000.0;
+				}
+
+				if (verbose) System.out.println("Constructing diagram...");
+				start = System.nanoTime();
+				vor.generateVoronoi(xValuesIn, yValuesIn, 0, 10000.0, 0, 10000.0);
+				end = System.nanoTime();
+				success = true;
+			} catch (RuntimeException re) {
+				System.out.println("FAIL");
+			}
+		}
+
+		long dur = end-start;
+		double time = dur*0.000000001;
+		System.out.println(num+", "+time);
 	}
 	
 }
