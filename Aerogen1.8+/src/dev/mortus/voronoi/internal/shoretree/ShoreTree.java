@@ -1,4 +1,4 @@
-package dev.mortus.voronoi.internal.tree;
+package dev.mortus.voronoi.internal.shoretree;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -21,11 +21,11 @@ import dev.mortus.util.math.func.Vertical;
 import dev.mortus.util.math.geom.Circle;
 import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.Site;
 import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
-import dev.mortus.voronoi.internal.MutableEdge;
+import dev.mortus.voronoi.internal.Edge;
+import dev.mortus.voronoi.internal.Site;
 
 public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 	TreeNode root;
@@ -102,7 +102,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 				g.setColor(Color.RED);
 			}
 			
-			Circle circle = circleEvent.getCircle();
+			Circle circle = circleEvent.circle;
 			
 			Ellipse2D bpe = new Ellipse2D.Double(circle.x - circle.radius, circle.y-circle.radius, circle.radius*2, circle.radius*2);
 			g.draw(bpe);
@@ -174,7 +174,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<TreeNode> {
 	}
 	
 	private void drawPartialEdge(Graphics2D g, Breakpoint bp, BuildState state) {
-		MutableEdge edge = bp.edge;
+		Edge edge = bp.edge;
 		if (edge != null) {
 			Vec2 start = edge.getStart().toVec2();
 			Vec2 end;

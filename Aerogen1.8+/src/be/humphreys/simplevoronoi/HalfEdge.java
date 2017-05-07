@@ -28,18 +28,20 @@ or implied, of James Humphreys.
 
 package be.humphreys.simplevoronoi;
 
-public class HalfEdge
-{
+public class HalfEdge {
+	
     HalfEdge edgeListLeft, edgeListRight;
-    Edge ELedge;
+    Edge edgeListEdge;
     boolean deleted;
-    int ELpm;
+    
+    int ELpm; // WTD is an ELpm?
     Site vertex;
     double ystar;
-    HalfEdge PQnext;
+    
+    HalfEdge priorityQueueNext;
 
-    public HalfEdge()
-    {
-        PQnext = null;
+    public HalfEdge() {
+        priorityQueueNext = null;
     }
+    
 }

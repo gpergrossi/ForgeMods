@@ -1,95 +1,234 @@
 package dev.mortus.util.data.storage;
 
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
 import dev.mortus.util.data.DoublyLinkedList;
 
-public class GrowingStorage<T extends StorageItem> {
+public class GrowingStorage<T extends StorageItem> implements Storage<T> {
 
-	private IntFunction<T[]> arrayAllocator;
-	
-	private int index;
-	
+	IntFunction<T[]> arrayAllocator;
+
 	private int size;
-	private int capacity;
 	private int modifyCount;
+	private int lastStorageIndex;
+	private int lastStorageCapacity;
 	
 	private DoublyLinkedList<FixedSizeStorage<T>> storages;
 	
 	public GrowingStorage(IntFunction<T[]> arrayAllocator, int initialCapacity) {
-		this.modifyCount = 0;
 		this.storages = new DoublyLinkedList<>();
-		
-		int init = nextPowerOf2(initialCapacity);
-		storages.add(new FixedSizeStorage<>(arrayAllocator, init));
-		
-		this.size = 0;
-		this.capacity = init;
-	}
-	
-	public static int nextPowerOf2(int initialCapacity) {
-		int npot = initialCapacity;
-		npot |= npot >> 1;
-		npot |= npot >> 2;
-		npot |= npot >> 4;
-		npot |= npot >> 8;
-		npot |= npot >> 16;
-		return npot + 1;
+		this.arrayAllocator = arrayAllocator;
+		grow(initialCapacity);
 	}
 
+	/**
+	 * Allocate more space in a new FixedSizeStorage and add that new storage to the list
+	 * of backing storages used by this GrowingStorage
+	 */
+	private FixedSizeStorage<T> grow(int capacity) {
+		System.out.println("Growing to add space for "+capacity+" new elements");
+		lastStorageIndex += lastStorageCapacity;
+		FixedSizeStorage<T> store = new FixedSizeStorage<>(this, capacity, lastStorageIndex);
+		storages.addLast(store);
+		lastStorageCapacity = capacity;
+		return store;
+	}
+	
+	/**
+	 * Returns the FixedSizeStorage for object o only if it actually belongs to one of the
+	 * FixedSizeStorages belong to this GrowingStorage. If a FixedSizeStorage containing o
+	 * does not exist, null is returned.
+	 */
+	private FixedSizeStorage<T> lookupStorage(T o) {
+		if (o == null) return null;
+		Integer index = o.getStorageIndex(this);
+		if (index == null) return null;
+		if (index < 0 || index >= lastStorageIndex+lastStorageCapacity) return null;
+		Iterator<FixedSizeStorage<T>> storageIterator = storages.descendingIterator();
+
+		// Iteration over the available storages is log(n) because each storage is twice as big as the previous
+		// Additionally, we search from the largest (and most recent) storage first to increase hit chance.
+		while (storageIterator.hasNext()) {
+			FixedSizeStorage<T> storage = storageIterator.next();
+			if (storage.indexOffset <= index) {
+				if (storage.contains(o)) return storage;
+				return null;
+			}
+		}
+		return null;
+	}
+	
+	public Integer indexOf(T o) {
+		FixedSizeStorage<T> storage = lookupStorage(o);
+		if (storage == null) return null;
+		return storage.indexOf(o);
+	}
+
+	@Override
 	public int size() {
 		return size;
 	}
 
+	@Override
+	public int capacity() {
+		return Integer.MAX_VALUE;
+	}
+
+	@Override
 	public boolean isEmpty() {
 		return (size == 0);
 	}
-
-	public boolean contains(T o) {
-		if (o == null) return false;
-		int index = o.getStorageIndex();
-		if (index < 0 || index >= size) return false;
-		return (items[index].equals(o));
-	}
 	
-	public boolean add(T e) {
-		if (e == null) return false;
+	@Override
+	public boolean isFull() {
+		return false;
+	}
+
+	@Override
+	public boolean add(T o) {
+		if (o == null) return false;
+		if (this.contains(o)) return false;
 		
-		items[size] = e;
-		e.setStorageIndex(size);
+		FixedSizeStorage<T> store = storages.getLast();
+		if (store.isFull()) store = grow(lastStorageCapacity * 2);
+		
+		boolean success = store.add(o);
+		if (!success) throw new RuntimeException("Error: internal storage failed to add object");
 		
 		size++;
 		modifyCount++;
 		
 		return true;
 	}
-	
-	public void remove(int index) {
-		if (index < 0 || index >= size) throw new IndexOutOfBoundsException();
+
+	@Override
+	public boolean remove(T o) {
+		FixedSizeStorage<T> store = lookupStorage(o);
+		if (store == null) return false;
+
+		boolean success = store.remove(o);
+		if (!success) return false;
+		o.clearStorageIndex(this);
 		
-		T replace = null;
-		if (size > 1) {
-			replace = items[size-1];
-			replace.setStorageIndex(index);
-			items[size-1] = null;
-		}
-		
-		items[index].setStorageIndex(-1);
-		items[index] = replace;
+		// Free the storage if possible
+		if (store.isEmpty() && storages.size() > 1) storages.remove(store);
 		
 		size--;
-		modifyCount++;
-	}
-
-	public boolean remove(T o) {
-		if (o == null) return false;
-		remove(o.getStorageIndex());
+		if (size == 0) this.clear();
+		else modifyCount++;
+		
 		return true;
 	}
 
-	public void clear() {
-		size = 0;	
+	@Override
+	public boolean replace(T remove, T add) {
+		FixedSizeStorage<T> removeStore = lookupStorage(remove);
+		if (removeStore == null) return false; // Storage does not contain item to be removed
+
+		FixedSizeStorage<T> addStore = lookupStorage(remove);
+		if (addStore != null && addStore != removeStore) return false; // Storage contains added item elsewhere
+		
+		boolean success = removeStore.replace(remove, add);
+		if (!success) return false;
+		
 		modifyCount++;
+		
+		return true;
+	}
+	
+	@Override
+	public boolean contains(T o) {
+		FixedSizeStorage<T> store = lookupStorage(o);
+		if (store == null) return false;
+		return store.contains(o);
+	}
+	
+	public void clear() {		
+		// Clear storages but keep largest FixedSizeStorage object
+		FixedSizeStorage<T> largest = storages.getLast();
+		storages.clear();
+		
+		// Re-add largest store object to storages, set index offset to 0
+		largest.clear(0);
+		storages.addLast(largest);
+		
+		// Update capacity, size, and modifyCount
+		lastStorageCapacity = largest.capacity();
+		lastStorageIndex = 0;
+		size = 0;
+		modifyCount++;
+	}
+
+	@Override
+	public Iterator<T> iterator() {
+		return new Iterator<T>() {
+			int expectedModifyCount = modifyCount;
+			Iterator<FixedSizeStorage<T>> storageIterator = storages.iterator();
+			Iterator<T> itemIterator = null;
+			T lastSeen;
+			boolean wasListCleared = false;
+			
+			@Override
+			public boolean hasNext() {
+				if (modifyCount != expectedModifyCount) throw new ConcurrentModificationException();
+				if (itemIterator != null && itemIterator.hasNext()) return true;
+				
+				// The list was cleared because it was empty, return false now and avoid 
+				// a concurrent modification exception on storageIterator
+				if (wasListCleared) return false; 
+				
+				while (storageIterator.hasNext()) { 
+					itemIterator = storageIterator.next().iterator();
+					if (itemIterator.hasNext()) return true;
+				}
+				return false;
+			}
+
+			@Override
+			public T next() {
+				if (hasNext()) {
+					lastSeen = itemIterator.next();
+					return lastSeen;
+				}
+				throw new NoSuchElementException();
+			}
+			
+			@Override
+			public void remove() {
+				if (lastSeen == null) throw new IllegalStateException();
+				itemIterator.remove();
+				
+				size--;
+				if (size == 0) {
+					clear();
+					wasListCleared = true;
+				} else {
+					modifyCount++;
+				}
+				
+				expectedModifyCount++;
+				lastSeen = null;
+			}
+		};
+	}
+	
+	@Override
+	public T[] toArray(T[] array) {
+		if (array == null || array.length != size()) array = arrayAllocator.apply(size());
+		Iterator<T> iter = iterator();
+		int i = 0;
+		while (iter.hasNext()) { 
+			array[i++] = iter.next();
+		}
+		return array;
+	}
+
+	@Override
+	public T[] toArray() {
+		return toArray(null);
 	}
 	
 }

@@ -41,9 +41,12 @@ public interface Vec2 {
 	
 	public static final class Direct implements Vec2 {
 
+		public static long ALLOCATION_COUNT;
+		
 		public final double x, y;
 		
 		public Direct(double x, double y) {
+			ALLOCATION_COUNT++;
 			this.x = x;
 			this.y = y;
 		}

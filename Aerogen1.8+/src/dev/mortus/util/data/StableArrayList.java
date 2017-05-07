@@ -5,11 +5,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
-
-import dev.mortus.util.data.queue.GrowingArrayQueue;
 
 /**
  * A list implementation based on an array. Its primary feature is that
@@ -34,7 +33,7 @@ public class StableArrayList<T> implements List<T> {
 		this.lastIndexUsed = -1;
 		this.elements = null;
 		
-		this.removedIndices = new GrowingArrayQueue<>((t -> new Integer[t]), initialCapacity/3+1);
+		this.removedIndices = new PriorityQueue<>(initialCapacity/3+1);
 	}
 	
 	@Override
@@ -92,6 +91,7 @@ public class StableArrayList<T> implements List<T> {
 
 	public T set(int index, T element, boolean grow) {
 		if (index < 0) throw new IndexOutOfBoundsException();
+		boolean usingFirstAvailable = (index == getFirstFreeIndex()); 
 		
 		int neededCap = capacity;
 		while (index >= neededCap) neededCap = (neededCap + 1) * 2;
@@ -118,7 +118,7 @@ public class StableArrayList<T> implements List<T> {
 		T old = elements[index];
 		elements[index] = element;
 
-		removedIndices.remove(index);
+		if (!usingFirstAvailable) removedIndices.remove(index);
 		if (index > lastIndexUsed) lastIndexUsed = index;
 		
 		return old;
@@ -202,7 +202,7 @@ public class StableArrayList<T> implements List<T> {
 	
 	private int getFirstFreeIndex() {
 		if (removedIndices.size() > 0) {
-			return removedIndices.poll();
+			return removedIndices.peek();
 		}
 		return lastIndexUsed+1;
 	}

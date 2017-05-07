@@ -1,9 +1,8 @@
 package dev.mortus.voronoi.internal;
 
 import dev.mortus.util.math.geom.Circle;
-import dev.mortus.voronoi.diagram.Site;
 import dev.mortus.voronoi.exception.OverlappingSiteException;
-import dev.mortus.voronoi.internal.tree.Arc;
+import dev.mortus.voronoi.internal.shoretree.Arc;
 
 public final class Event implements Comparable<Event> {
 
@@ -11,14 +10,14 @@ public final class Event implements Comparable<Event> {
 		SITE, CIRCLE;
 	}
 	
-	private final Type type;
-	private final double x, y;
-	private final Circle circle;
+	public final Type type;
+	public final double x, y;
+	public final Circle circle;
 	
-	private final Site site;
-	private final Arc arc;
+	public final Site site;
+	public final Arc arc;
 	
-	private boolean valid;
+	public boolean valid;
 	
 	public static Event createSiteEvent(Site site) {
 		return new Event(site);
@@ -47,34 +46,6 @@ public final class Event implements Comparable<Event> {
 		this.circle = circle;
 		this.valid = true;
 	}
-
-	public double getX() {
-		return x;
-	}
-	
-	public double getY() {
-		return y;
-	}
-	
-	public Site getSite() {
-		return site;
-	}
-
-	public Arc getArc() {
-		return arc;
-	}
-	
-	public Circle getCircle() {
-		return circle;
-	}
-
-	public boolean is(Type type) {
-		return this.type == type;
-	}
-
-	public Type getType() {
-		return this.type;
-	}
 	
 	@Override
 	public String toString() {
@@ -88,29 +59,19 @@ public final class Event implements Comparable<Event> {
 	@Override
 	public int compareTo(Event o) {
 		// Lowest Y value first
-		double dy = this.y - o.y;
-		if (dy > 0) return 1;
-		if (dy < 0) return -1;
+		int dy = (int) Math.signum(this.y - o.y);
+		if (dy != 0) return dy;
 		
 		// Lowest X value first
-		double dx = this.x - o.x;
-		if (dx > 0) return 1;
-		if (dx < 0) return -1;
+		int dx = (int) Math.signum(this.x - o.x);
+		if (dx != 0) return dx;
 		
 		// Allow equal priority circle events
 		if (this.type == Type.CIRCLE) return 0;
 		if (o.type == Type.CIRCLE) return 0;
 		
 		// We cannot allow multiple site events with the same exact position
-		throw new OverlappingSiteException(this.getSite(), o.getSite());
-	}
-
-	public boolean isValid() {
-		return valid;
-	}
-	
-	public void invalidate() {
-		valid = false;
+		throw new OverlappingSiteException(this.site, o.site);
 	}
 	
 	

@@ -1,4 +1,4 @@
-package dev.mortus.voronoi.internal.tree;
+package dev.mortus.voronoi.internal.shoretree;
 
 import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.voronoi.internal.BuildState;

@@ -5,6 +5,9 @@ import java.util.Map;
 
 import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.voronoi.internal.Edge;
+import dev.mortus.voronoi.internal.Site;
+import dev.mortus.voronoi.internal.Vertex;
 
 public class Voronoi {
 

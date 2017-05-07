@@ -16,9 +16,9 @@ import dev.mortus.chunks.ChunkManager;
 import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.Site;
 import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.diagram.VoronoiBuilder;
+import dev.mortus.voronoi.internal.Site;
 import dev.mortus.voronoi.internal.WorkerDebug;
 
 public class View {

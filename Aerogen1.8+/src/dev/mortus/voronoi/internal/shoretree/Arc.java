@@ -1,14 +1,14 @@
-package dev.mortus.voronoi.internal.tree;
+package dev.mortus.voronoi.internal.shoretree;
 
 import dev.mortus.util.data.Pair;
 import dev.mortus.util.math.func.Function;
 import dev.mortus.util.math.func.Quadratic;
 import dev.mortus.util.math.geom.Circle;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.Site;
 import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
 import dev.mortus.voronoi.internal.Event;
+import dev.mortus.voronoi.internal.Site;
 
 /**
  * Arcs are parabolas formed from a site as a focus point and the
@@ -37,7 +37,7 @@ public class Arc extends TreeNode {
 	}
 	
 	public void setCircleEvent(Event circleEvent) {
-		if (circleEvent != null && !circleEvent.is(Event.Type.CIRCLE)) {
+		if (circleEvent != null && circleEvent.type != Event.Type.CIRCLE) {
 			throw new RuntimeException("Event is not a Circle Event!");
 		}
 		this.circleEvent = circleEvent;

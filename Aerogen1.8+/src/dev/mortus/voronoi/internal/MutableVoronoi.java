@@ -1,17 +1,14 @@
 package dev.mortus.voronoi.internal;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import dev.mortus.util.data.storage.GrowingStorage;
 import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.Edge;
-import dev.mortus.voronoi.diagram.Site;
-import dev.mortus.voronoi.diagram.Vertex;
 import dev.mortus.voronoi.diagram.Voronoi;
 
 public class MutableVoronoi extends Voronoi {
@@ -24,7 +21,7 @@ public class MutableVoronoi extends Voronoi {
 		this.sites = Collections.unmodifiableMap(sites);
 	}
 
-	void setMutableSites(Map<Vec2, MutableSite> mutableSites) {
+	void setMutableSites(Map<Vec2, Site> mutableSites) {
 		Map<Vec2, Site> sites = new HashMap<Vec2, Site>(mutableSites.size());
 		for (Vec2 pt : mutableSites.keySet()) {
 			sites.put(pt, mutableSites.get(pt));
@@ -36,10 +33,10 @@ public class MutableVoronoi extends Voronoi {
 		this.vertices = Collections.unmodifiableList(vertices);
 	}
 
-	void setMutableVertices(Collection<MutableVertex> mutableVertices) {
+	void setMutableVertices(GrowingStorage<Vertex> mutableVertices) {
 		List<Vertex> vertices = new ArrayList<Vertex>(mutableVertices.size());
-		for (MutableVertex v : mutableVertices) {
-			vertices.add((Vertex) v);
+		for (Vertex v : mutableVertices) {
+			vertices.add(v);
 		}
 		setVertices(vertices);
 	}
@@ -48,10 +45,10 @@ public class MutableVoronoi extends Voronoi {
 		this.edges = Collections.unmodifiableList(edges);
 	}
 
-	void setMutableEdges(Collection<MutableEdge> mutableEdges) {
+	void setMutableEdges(GrowingStorage<Edge> mutableEdges) {
 		List<Edge> edges = new ArrayList<Edge>(mutableEdges.size());
-		for (MutableEdge e : mutableEdges) {
-			edges.add((Edge) e);
+		for (Edge e : mutableEdges) {
+			edges.add(e);
 		}
 		setEdges(edges);
 	}

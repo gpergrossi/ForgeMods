@@ -3,6 +3,7 @@ package dev.mortus.util.data.queue;
 import java.util.AbstractQueue;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
 import dev.mortus.util.data.DoublyLinkedList;
@@ -89,17 +90,19 @@ public class GrowingArrayQueue<T> extends AbstractQueue<T> {
 				if (itemIterator != null && itemIterator.hasNext()) return true;
 				if (!queueIterator.hasNext()) return false;
 				itemIterator = queueIterator.next().iterator();
-				return true;
+				return itemIterator.hasNext();
 			}
 
 			@Override
 			public T next() {
 				if (modifyCount != expectedModifyCount) throw new ConcurrentModificationException();
 				if (itemIterator != null && itemIterator.hasNext()) return itemIterator.next();
-				if (!queueIterator.hasNext()) return null;
+				if (!queueIterator.hasNext()) throw new NoSuchElementException();
 				itemIterator = queueIterator.next().iterator();
 				return itemIterator.next();
 			}
+			
+			
 		};
 	}
 

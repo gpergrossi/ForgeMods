@@ -1,4 +1,4 @@
-package dev.mortus.voronoi.internal.tree;
+package dev.mortus.voronoi.internal.shoretree;
 
 import dev.mortus.util.math.func.Function;
 import dev.mortus.util.math.func.Quadratic;
@@ -6,11 +6,11 @@ import dev.mortus.util.math.geom.Ray;
 import dev.mortus.util.math.geom.Vec2;
 import dev.mortus.voronoi.diagram.Voronoi;
 import dev.mortus.voronoi.internal.BuildState;
-import dev.mortus.voronoi.internal.MutableEdge;
+import dev.mortus.voronoi.internal.Edge;
 
 public class Breakpoint extends TreeNode {
 	
-	public MutableEdge edge;
+	public Edge edge;
 	private Arc arcLeft, arcRight;
 	
 	public Breakpoint(TreeNode left, TreeNode right) {

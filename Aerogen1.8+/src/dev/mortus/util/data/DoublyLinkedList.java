@@ -2,6 +2,7 @@ package dev.mortus.util.data;
 
 import java.util.ConcurrentModificationException;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 import dev.mortus.util.data.queue.AbstractDeque;
 
@@ -92,6 +93,7 @@ public class DoublyLinkedList<T> extends AbstractDeque<T> {
 			@Override
 			public T next() {
 				checkConcurrentModification();
+				if (nextNode == sentinel) throw new NoSuchElementException();
 				recentNode = nextNode;
 				nextNode = nextNode.next;
 				nextIndex++;

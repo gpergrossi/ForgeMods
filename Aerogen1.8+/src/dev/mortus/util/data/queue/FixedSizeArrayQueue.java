@@ -4,6 +4,7 @@ import java.util.AbstractQueue;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
 public class FixedSizeArrayQueue<T> extends AbstractQueue<T> {
@@ -43,9 +44,8 @@ public class FixedSizeArrayQueue<T> extends AbstractQueue<T> {
 	 */
 	@Override
 	public synchronized boolean offer(T item) {
-		if (itemsLeft == items.length) {
-			return false; // Array too full
-		}
+		if (itemsLeft == items.length) return false; // Array too full
+		if (item == null) throw new NullPointerException();
 		
 		items[writeIndex] = item;
 		
@@ -93,6 +93,7 @@ public class FixedSizeArrayQueue<T> extends AbstractQueue<T> {
 			@Override
 			public T next() {
 				if (modifyCount != localModifyCount) throw new ConcurrentModificationException();
+				if (localItemsLeft <= 0) throw new NoSuchElementException();
 				T item = items[localReadIndex];
 				
 				localReadIndex = (localReadIndex + 1) % items.length;
@@ -100,6 +101,8 @@ public class FixedSizeArrayQueue<T> extends AbstractQueue<T> {
 				
 				return item;
 			}
+			
+			
 		};
 	}
 

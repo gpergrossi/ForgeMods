@@ -18,12 +18,26 @@ public class VoronoiBruteTest {
 		String line = s.nextLine();
 		s.close();
 		
-		if (line.contains("o")) {
-			for (int num = 500000; num > 0;  num /= 1.5) test2(num, false);
+		boolean verbose = line.contains("v");
+		
+		if (line.contains("s")) {
+			test(10, verbose);
+			if (line.contains("o")) test2(10, verbose);
 			System.exit(0);
 		}
 		
-		for (int num = 500000; num > 0;  num /= 1.5) test(num, false);
+		if (line.contains("l")) {
+			test(1000000, verbose);
+			if (line.contains("o")) test2(1000000, verbose);
+			System.exit(0);
+		}
+		
+		if (line.contains("o")) {
+			for (int num = 500000; num > 0;  num /= 1.5) test2(num, verbose);
+			System.exit(0);
+		}
+		
+		for (int num = 500000; num > 0;  num /= 1.5) test(num, verbose);
 		
 	}
 	
@@ -32,6 +46,7 @@ public class VoronoiBruteTest {
 		long start = 0, end = 0;
 		long update = 0;
 
+		Voronoi.DEBUG_FINISH = verbose;
 		VoronoiBuilder vb = new VoronoiBuilder();
 		Worker w = null;
 		
@@ -55,7 +70,7 @@ public class VoronoiBruteTest {
 					w.doWork(1000);
 					if (verbose) {
 						numResponses++;
-						if (System.currentTimeMillis() - update > 1000) {
+						if (System.currentTimeMillis() - update > 500) {
 							System.out.println("Progress: "+w.getProgressEstimate()+" ("+numResponses+" returns)");
 							update = System.currentTimeMillis();
 							numResponses = 0;
@@ -71,11 +86,13 @@ public class VoronoiBruteTest {
 			}
 		}
 
+		Voronoi.DEBUG_FINISH = false;
 		Voronoi v = w.getResult();
 		
 		long dur = end-start;
 		double time = dur*0.000000001;
-		System.out.println(num+", "+time+", "+v.getSites().size()+", "+v.getVertices().size()+", "+v.getEdges().size());
+		System.out.println(num+", "+time+"     [sites="+v.getSites().size()+", verts="+v.getVertices().size()+", edges="+v.getEdges().size());
+		System.out.println(Vec2.Direct.ALLOCATION_COUNT+" Vec2's allocated");
 	}
 	
 	private static void test2(int num, boolean verbose) {
