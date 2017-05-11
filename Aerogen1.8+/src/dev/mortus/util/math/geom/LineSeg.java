@@ -1,30 +1,36 @@
 package dev.mortus.util.math.geom;
 
-public final class LineSeg extends Line {
-
-	private final double length;
-	public final Vec2 end;
+public class LineSeg extends Line {
 	
-	public LineSeg(Vec2 a, Vec2 b) {
-		super(a, b.subtract(a));
-		length = b.subtract(a).length();
-		end = b;
+	public LineSeg(double x0, double y0, double x1, double y1) {
+		this.x = x0;
+		this.y = y0;
+		this.dx = (x1-x0);
+		this.dy = (y1-y0);
+	}
+
+	public LineSeg copy() {
+		return new LineSeg(x, y, dx, dy);
 	}
 	
-	protected double tmin() {
+	public LineSeg createLineSegment(double maxExtent) {
+		return this.copy();
+	}
+	
+	public double tmin() {
 		return 0;
 	}
 	
-	protected double tmax() {
-		return length;
+	public double tmax() {
+		return 1;
 	}
 
 	public double length() {
-		return length;
+		return Vec2.distance(0, 0, dx, dy);
 	}
 	
 	public Line toLine() {
-		return new Line(pos, dir);
+		return new Line(x, y, dx, dy);
 	}
 	
 }

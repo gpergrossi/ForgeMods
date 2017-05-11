@@ -315,13 +315,10 @@ public abstract class LinkedBinaryNode {
 	 * @return
 	 */
 	public void replaceWith(LinkedBinaryNode node) {
-		if (this.isLeftChild()) {
-			this.getParent().setLeftChild(node);
-		} else if (this.isRightChild()) {
-			this.getParent().setRightChild(node);
-		} else if (this.isRoot()) {
-			this.promoteToRoot(node);
-		} else throw new RuntimeException("Replaced node has no valid connection to a parent or tree.");
+		if 		(this.isLeftChild()) 	this.getParent().setLeftChild(node);
+		else if (this.isRightChild()) 	this.getParent().setRightChild(node);
+		else if (this.isRoot())			this.promoteToRoot(node);
+		else throw new RuntimeException("Replaced node has no valid connection to a parent or tree.");
 	}
 	
 	

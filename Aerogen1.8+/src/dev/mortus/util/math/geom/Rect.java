@@ -1,43 +1,28 @@
 package dev.mortus.util.math.geom;
 
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.List;
 
 import dev.mortus.util.data.Pair;
 
 public final class Rect {
 
-	public final double x, y;
-	public final double width, height;
-	private List<LineSeg> sides;
+	protected double x, y;
+	protected double width, height;
 	
 	public Rect(Rectangle2D rect2d) {
-		this.x = rect2d.getX();
-		this.y = rect2d.getY();
-		this.width = rect2d.getWidth();
-		this.height = rect2d.getHeight();
+		this(rect2d.getX(), rect2d.getY(), rect2d.getWidth(), rect2d.getHeight());
 	}
 	
 	public Rect(Vec2 pos, Vec2 size) {
-		this.x = pos.getX();
-		this.y = pos.getY();
-		this.width = size.getX();
-		this.height = size.getY();
+		this(pos.x, pos.y, size.x, size.y);
 	}
 	
 	public Rect(double x, double y, Vec2 size) {
-		this.x = x;
-		this.y = y;
-		this.width = size.getX();
-		this.height = size.getY();
+		this(x, y, size.x, size.y);
 	}
 	
-	public Rect(Vec2 pos, double width, double height) {		
-		this.x = pos.getX();
-		this.y = pos.getY();
-		this.width = width;
-		this.height = height;
+	public Rect(Vec2 pos, double width, double height) {
+		this(pos.x, pos.y, width, height);
 	}
 	
 	public Rect(double x, double y, double width, double height) {
@@ -47,98 +32,54 @@ public final class Rect {
 		this.height = height;
 	}
 	
-	public Rect union(Rect r) {
-		double minX = Math.min(minX(), r.minX());
-		double minY = Math.min(minY(), r.minY());
-		
-		double maxX = Math.max(maxX(), r.maxX());
-		double maxY = Math.max(maxY(), r.maxY());
-		
-		return new Rect(minX, minY, maxX-minX, maxY-minY);
-	}
-
-	public Pair<Vec2> intersect(Line line) {
-		Vec2 first = null;
-		Vec2 second = null;
-		
-		List<LineSeg> sides = getSides();
-		for (LineSeg seg : sides) {
-			Vec2 intersect = seg.intersect(line);
-			if (intersect != null) {
-				if (first == null) {
-					first = intersect;
-				} else if (second == null) {
-					if (!first.equals(intersect))
-					second = intersect;
-				} else {
-					if (!first.equals(intersect) && !second.equals(intersect))
-					throw new RuntimeException("More than two intersects");
-				}
-			}
-		}
-		
-		// Correct ordering: first is first along line direction
-		if (first == null) {
-			first = second; second = null;
-		} else if (second != null) {
-			if (line.dir.getX() != 0) {
-				if ((second.getX() - first.getX()) / line.dir.getX() < 0) {
-					Vec2 swap = first; first = second; second = swap;
-				}
-			} else if (line.dir.getY() != 0) {
-				if ((second.getY() - first.getY()) / line.dir.getY() < 0) {
-					Vec2 swap = first; first = second; second = swap;
-				}
-			}
-		}
-		
-		return new Pair<Vec2>(first, second);
+	public Rect copy() {
+		return new Rect(x, y, width, height);
 	}
 	
-	public boolean contains(Vec2 p) {
-		if (p.getX() < minX() || p.getY() < minY()) return false;
-		if (p.getX() > maxX() || p.getY() > maxY()) return false;
+	public void union(Rect r) {
+		double minX = Math.min(minX(), r.minX());
+		double minY = Math.min(minY(), r.minY());
+		double maxX = Math.max(maxX(), r.maxX());
+		double maxY = Math.max(maxY(), r.maxY());
+		this.x = minX;
+		this.y = minY;
+		this.width = maxX - minX;
+		this.height = maxY - minY;
+	}
+	
+	public boolean contains(double x, double y) {
+		if (x < minX() || y < minY()) return false;
+		if (x > maxX() || y > maxY()) return false;
 		return true;
+	}
+
+	// Using the Liang-Barsky algorithm
+	private static Pair<Double> getIntersectTValues(Rect rect, Line line) {		
+		double[] p = new double[] { -line.dx, line.dx, -line.dy, line.dy };
+		double[] q = new double[] { line.x - rect.minX(), rect.maxX() - line.x, line.y - rect.minY(), rect.maxY() - line.y };
+		double t0 = line.tmin();
+		double t1 = line.tmax();
+		
+		for (int i = 0; i < 4; i++) {
+			if (p[i] == 0) {
+				if (q[i] < 0) return null;
+				continue;
+			}
+			double t = q[i] / p[i];
+			if (p[i] < 0 && t0 < t) t0 = t;
+			else if (p[i] > 0 && t1 > t) t1 = t;
+		}
+		
+		if (t0 > t1) return null;
+		return new Pair<Double>(t0, t1);
 	}
 	
 	public LineSeg clip(Line line) {
-		if (line.length() == 0) {
-			if (this.contains(line.pos)) return (LineSeg) line.redefine(0, 0);
-			return null;
-		}
-		
-		if (line instanceof LineSeg) {
-			LineSeg lineseg = (LineSeg) line;
-			if (this.contains(lineseg.getStart()) && this.contains(lineseg.getEnd())) return lineseg;
-		}
-		
-		List<LineSeg> sides = getSides();
-		for (LineSeg seg : sides) {
-			// See: sides winding order + slice() doc comment
-			// first = left side of segment = interior of rectangle
-			line = seg.toLine().slice(line).first;
-			if (line == null) break;
-		}
-		return (LineSeg) line;
-	}
-	
-	public List<LineSeg> getSides() {
-		if (sides == null) {
-			sides = new ArrayList<LineSeg>();
-			
-			Vec2 x0y0 = Vec2.create(minX(), minY());
-			Vec2 x1y0 = Vec2.create(maxX(), minY());
-			Vec2 x0y1 = Vec2.create(minX(), maxY());
-			Vec2 x1y1 = Vec2.create(maxX(), maxY());
-			
-			// interior is LEFT of all line segments (counter clockwise winding order in right handed system)
-			sides.add(new LineSeg(x0y0, x1y0));
-			sides.add(new LineSeg(x1y0, x1y1));
-			sides.add(new LineSeg(x1y1, x0y1));
-			sides.add(new LineSeg(x0y1, x0y0));
-		}
-		
-		return sides;
+		Pair<Double> tValues = getIntersectTValues(this, line);
+		if (tValues == null) return null;
+		double t0 = tValues.first;
+		double t1 = tValues.second;
+		return new LineSeg(line.getX(t0), line.getY(t0), line.getX(t1), line.getY(t1));
 	}
 	
 	@Override
@@ -146,8 +87,11 @@ public final class Rect {
 		return "Rect[x0="+minX()+", y0="+minY()+", x1="+maxX()+", y1="+maxY()+"]";
 	}
 
-	public Rect expand(double padding) {
-		return new Rect(minX() - padding, minY() - padding, width() + padding*2, height() + padding*2);
+	public void expand(double padding) {
+		this.x -= padding;
+		this.y -= padding;
+		this.width += padding*2;
+		this.height += padding*2;
 	}
 
 	public Rectangle2D toRectangle2D() {

@@ -267,6 +267,7 @@ public class StableArrayList<T> implements List<T> {
 
 	@Override
 	public void clear() {
+		this.removedIndices.clear();
 		this.capacity = initialCapacity;
 		this.lastIndexUsed = -1;
 	}

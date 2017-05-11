@@ -9,17 +9,15 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
-import java.util.Random;
 
 import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
 import dev.mortus.util.data.LinkedBinaryNode;
-import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.diagram.Voronoi;
-import dev.mortus.voronoi.diagram.VoronoiBuilder;
-import dev.mortus.voronoi.internal.Site;
-import dev.mortus.voronoi.internal.WorkerDebug;
+import dev.mortus.voronoi.Site;
+import dev.mortus.voronoi.Voronoi;
+import dev.mortus.voronoi.VoronoiBuilder;
+import dev.mortus.voronoi.Worker;
 
 public class View {
 	
@@ -36,10 +34,10 @@ public class View {
 	
 	double slowZoom = 1.0;
 	
-	boolean useChunkLoader = true;
+	boolean useChunkLoader = false;
 	
 	VoronoiBuilder voronoiBuilder;
-	WorkerDebug voronoiWorker;
+	Worker voronoiWorker;
 	
 	ChunkLoader<SimulationChunk> chunkLoader;
 	ChunkManager<SimulationChunk> chunkManager;
@@ -131,33 +129,34 @@ public class View {
 		
 		if (voronoiWorker != null) {
 			if (voronoiWorker.isDone()) {
-				Voronoi v = voronoiWorker.getResult();
-				Random r = new Random(0);
-				
-				for (Site site : v.getSites().values()) {					
-					// Draw shape
-					g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
-					Polygon poly = site.getPolygon();
-					g2d.fill(poly.getShape2D());
-					
-					// Draw original point
-					g2d.setColor(Color.WHITE);
-					Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
-					g2d.fill(sitePt);
-					
-					// Draw centroid
-					g2d.setColor(Color.BLACK);
-					Vec2 centroid = poly.getCentroid();
-					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.getX()-1, centroid.getY()-1, 2, 2);
-					g2d.fill(siteCentroid);
-				}
+				voronoiWorker.debugDraw(g2d);
+//				Voronoi v = voronoiWorker.getResult();
+//				Random r = new Random(0);
+//				
+//				for (Site site : v.getSites().values()) {					
+//					// Draw shape
+//					g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
+//					Polygon poly = site.getPolygon();
+//					g2d.fill(poly.getShape2D());
+//					
+//					// Draw original point
+//					g2d.setColor(Color.WHITE);
+//					Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
+//					g2d.fill(sitePt);
+//					
+//					// Draw centroid
+//					g2d.setColor(Color.BLACK);
+//					Vec2 centroid = poly.getCentroid();
+//					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
+//					g2d.fill(siteCentroid);
+//				}
 			} else {
 				voronoiWorker.debugDraw(g2d);
 			}
 		}
 		else {
 			for (Vec2 site : voronoiBuilder.getSites()) {
-				Ellipse2D ellipse = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
+				Ellipse2D ellipse = new Ellipse2D.Double(site.x()-1, site.y()-1, 2, 2);
 				g2d.fill(ellipse);
 			}
 		}
@@ -234,13 +233,15 @@ public class View {
 			for (Vec2 site : voronoiBuilder.getSites()) {
 				Point2D point = site.toPoint2D();
 				if (clickP.distance(point) < 8) {
+					System.out.println("Removing site");
 					voronoiBuilder.removeSite(site);
 					removed = true;
 					break;
 				}
 			}
 			if (!removed) {
-				voronoiBuilder.addSite(Vec2.create(clickP));
+				int id = voronoiBuilder.addSite(new Vec2(clickP.getX(), clickP.getY()));
+				System.out.println("Adding site "+id);
 			}
 			voronoiWorker = null;
 		}
@@ -277,11 +278,11 @@ public class View {
 
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			if (voronoiWorker == null) voronoiWorker = voronoiBuilder.getBuildWorkerDebug();
+			if (voronoiWorker == null) voronoiWorker = voronoiBuilder.getBuildWorker();
 			else voronoiWorker.doWork(0);
 		} else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 			if (voronoiWorker == null) {
-				voronoiWorker = voronoiBuilder.getBuildWorkerDebug();
+				voronoiWorker = voronoiBuilder.getBuildWorker();
 			} else if (voronoiWorker.isDone()) {
 				Voronoi v = voronoiWorker.getResult();
 				for (Site s : v.getSites().values()) {
@@ -293,7 +294,7 @@ public class View {
 				for (Site s : v.getSites().values()) {
 					voronoiBuilder.addSite(s.getPolygon().getCentroid());
 				}
-				voronoiWorker = voronoiBuilder.getBuildWorkerDebug();
+				voronoiWorker = voronoiBuilder.getBuildWorker();
 			}
 			try {
 				while (!voronoiWorker.isDone()) {
@@ -344,9 +345,9 @@ public class View {
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_SLASH) {
 			for (double d = Math.PI/2.0; d < Math.PI*1.0; d += Math.PI/17.3) {
-				voronoiBuilder.addSite(Vec2.create(Math.cos(d)*d*100, Math.sin(d)*d*100));
-				voronoiBuilder.addSite(Vec2.create(Math.cos(d+Math.PI*2.0/3.0)*d*100, Math.sin(d+Math.PI*2.0/3.0)*d*100));
-				voronoiBuilder.addSite(Vec2.create(Math.cos(d-Math.PI*2.0/3.0)*d*100, Math.sin(d-Math.PI*2.0/3.0)*d*100));
+				voronoiBuilder.addSite(new Vec2(Math.cos(d)*d*100, Math.sin(d)*d*100));
+				voronoiBuilder.addSite(new Vec2(Math.cos(d+Math.PI*2.0/3.0)*d*100, Math.sin(d+Math.PI*2.0/3.0)*d*100));
+				voronoiBuilder.addSite(new Vec2(Math.cos(d-Math.PI*2.0/3.0)*d*100, Math.sin(d-Math.PI*2.0/3.0)*d*100));
 			}
 		}
 	}

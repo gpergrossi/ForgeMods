@@ -68,11 +68,11 @@ public final class Quadratic extends Function {
 			if (rightGreater instanceof Undefined) {
 				double x = zeros[0];
 				double y = leftGreater.getValue(x);
-				return Vec2.create(x, y);
+				return new Vec2(x, y);
 			} else {
 				double x = zeros[0];
 				double y = rightGreater.getValue(x);
-				return Vec2.create(x, y);
+				return new Vec2(x, y);
 			}
 		}
 
@@ -82,7 +82,7 @@ public final class Quadratic extends Function {
 			if (derivative.getValue(zero) > 0) {
 				double x = zero;
 				double y = rightGreater.getValue(zero);
-				return Vec2.create(x, y);
+				return new Vec2(x, y);
 			}
 		}
 

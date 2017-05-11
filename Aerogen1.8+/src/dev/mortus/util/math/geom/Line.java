@@ -4,72 +4,124 @@ import dev.mortus.util.data.Pair;
 
 public class Line {
 
-	public final Vec2 pos;
-	public final Vec2 dir;
+	protected double x, y;
+	protected double dx, dy;
 	
-	public Line(Vec2 pos, Vec2 dir) {
-		this.pos = pos;
-		this.dir = dir.normalize();
+	protected Line() {}
+	
+	public Line(double x, double y, double dx, double dy) {
+		this.x = x;
+		this.y = y;
+		double length = Vec2.distance(0, 0, dx, dy);
+		this.dx = dx / length;
+		this.dy = dy / length;
 	}
 	
-	public Vec2 getPoint(double t) {
-		return pos.add(dir.multiply(t));
+	public Line copy() {
+		return new Line(x, y, dx, dy);
 	}
 	
-	public Vec2 getStart() {
-		return getPoint(tmin());
+	public LineSeg createLineSegment(double maxExtent) {
+		return new LineSeg(x - dx * maxExtent, y - dy * maxExtent, x + dx * maxExtent, y + dy * maxExtent);
 	}
 	
-	public Vec2 getEnd() {
-		return getPoint(tmax());
+	public void get(Vec2 ptr, double t) {
+		ptr.x = getX(t);
+		ptr.y = getY(t);
+	}
+	
+	public double getX(double t) {
+		return x+dx*t;
+	}
+	
+	public double getY(double t) {
+		return y+dy*t;
+	}
+
+	public void getStart(Vec2 ptr) {
+		ptr.x = getStartX();
+		ptr.y = getStartY();
+	}
+	
+	public double getStartX() {
+		return getX(tmin());
+	}
+	
+	public double getStartY() {
+		return getY(tmin());
+	}
+
+	public void getEnd(Vec2 ptr) {
+		ptr.x = getEndX();
+		ptr.y = getEndY();
+	}
+	
+	public double getEndX() {
+		return getX(tmax());
+	}
+	
+	public double getEndY() {
+		return getY(tmax());
 	}
 	
 	protected Line redefine(double tmin, double tmax) {
 		if (tmin == this.tmin() && tmax == this.tmax()) return this;
 		
 		// Infinite line
-		if (tmin == Double.NEGATIVE_INFINITY && tmax == Double.POSITIVE_INFINITY) return new Line(pos, dir);
+		if (tmin == Double.NEGATIVE_INFINITY && tmax == Double.POSITIVE_INFINITY) return new Line(x, y, dx, dy);
 		
 		// Ray
-		if (tmax == Double.POSITIVE_INFINITY) return new Ray(getPoint(tmin), dir);
-		if (tmin == Double.NEGATIVE_INFINITY) return new Ray(getPoint(tmax), dir, true);
+		if (tmax == Double.POSITIVE_INFINITY) return new Ray(getX(tmin), getY(tmin), dx, dy);
+		if (tmin == Double.NEGATIVE_INFINITY) return new Ray(getX(tmax), getY(tmax), dx, dy);
 		
 		// Segment
-		return new LineSeg(getPoint(tmin), getPoint(tmax));
+		return new LineSeg(getX(tmin), getY(tmin), getX(tmax), getY(tmax));
 	}
 
-	public Vec2 intersect(Line other) {
+	public boolean intersect(Vec2 ptr, Line other) {
 		Pair<Double> tValues = getIntersectTValues(this, other);
-		if (tValues == null) return null;		
-		return getPoint(tValues.first);
+		if (tValues == null) return false;
+		get(ptr, tValues.first);
+		return true;
 	}
 	
 	private static Pair<Double> getIntersectTValues(Line first, Line second) {
-		Vec2 delta = second.pos.subtract(first.pos);
+		double deltaX = second.x - first.x;
+		double deltaY = second.y - first.y;
 		
-		double det = second.dir.cross(first.dir);
-		if (det == 0) return null; // the rays are parallel or one ray has a 0 dir
+		double det = Vec2.cross(second.dx, second.dy, first.dx, first.dy);
+		if (Math.abs(det) < Vec2.EPSILON) return null; // the rays are parallel or one ray has a 0 length direction vector
 
-		double u = second.dir.cross(delta) / det;
-		double v = first.dir.cross(delta) / det;
+		double u = Vec2.cross(second.dx, second.dy, deltaX, deltaY) / det;
+		double v = Vec2.cross(first.dx,  first.dy,  deltaX, deltaY) / det;
 		
+		// No collision if t values outside of [tmin(), tmax()]. However we use EPISLON to resolve rounding issues
+		System.out.println("u: "+u+" : ("+first.tmin() +", "+first.tmax() +")");
+		System.out.println("v: "+v+" : ("+second.tmin()+", "+second.tmax()+")");
 		if (u+Vec2.EPSILON < first.tmin()  || u-Vec2.EPSILON > first.tmax() ) return null;
 		if (v+Vec2.EPSILON < second.tmin() || v-Vec2.EPSILON > second.tmax()) return null;
 	
-		return new Pair<Double>(u, v); // u is t for first, v is t for second
+		// Given that u and v can be EPSILON away from the tmin() and tmax() values
+		// We must correct them, in order to prevent rounding errors elsewhere
+		u = Math.max(u, first.tmin() );
+		u = Math.min(u, first.tmax() );
+		v = Math.max(v, second.tmin());
+		v = Math.min(v, second.tmax());
+		
+		return new Pair<Double>(u, v); // u is the t value for the first line, v is for second
 	}
 	
 
-	protected double tmin() {
+	public double tmin() {
 		return Double.NEGATIVE_INFINITY;
 	}
 	
-	protected double tmax() {
+	public double tmax() {
 		return Double.POSITIVE_INFINITY;
 	}
 	
 	public double length() {
-		if (dir.length() == 0) return 0;
+		if (dx == 0 && dy == 0) return 0;
 		return Double.POSITIVE_INFINITY;
 	}
 
@@ -94,9 +146,13 @@ public class Line {
 		Pair<Double> intersect = getIntersectTValues(this, line);
 		
 		if (intersect == null) {
-			Vec2 diff = line.pos.subtract(this.pos);
-			if (this.dir.cross(diff) > 0) return new Pair<Line>(line, null); 
-			else return new Pair<Line>(null, line);
+			double deltaX = line.x - this.x;
+			double deltaY = line.y - this.y;
+			if (Vec2.cross(dx, dy, deltaX, deltaY) > 0) {
+				return new Pair<Line>(line, null); 
+			} else {
+				return new Pair<Line>(null, line);
+			}
 		}
 		
 		double t = intersect.second;
@@ -106,13 +162,16 @@ public class Line {
 		if (t >= line.tmin()) lower = line.redefine(line.tmin(), t);
 		if (t <= line.tmax()) upper = line.redefine(t, line.tmax());
 		
-		if (this.dir.cross(line.dir) > 0) return new Pair<Line>(upper, lower); 
-		else return new Pair<Line>(lower, upper);
+		if (Vec2.cross(this.dx, this.dy, line.dx, line.dy) > 0) {
+			return new Pair<Line>(upper, lower); 
+		} else {
+			return new Pair<Line>(lower, upper);
+		}
 	}
 	
 	@Override
 	public String toString() {
-		return "Line[pos="+pos+", dir="+dir+", tmin="+tmin()+", tmax="+tmax()+"]";
+		return "Line[x="+x+", y="+y+", dx="+dx+", dy="+dy+", tmin="+tmin()+", tmax="+tmax()+"]";
 	}
 	
 }

@@ -1,6 +1,6 @@
 package dev.mortus.voronoi.exception;
 
-import dev.mortus.voronoi.internal.Site;
+import dev.mortus.voronoi.Site;
 
 public class OverlappingSiteException extends RuntimeException {
 

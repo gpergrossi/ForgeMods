@@ -26,17 +26,16 @@ public class Polygon {
 	}
 
 	public double getArea() {
-		if (area == Double.NaN) {
+		if (Double.isNaN(area)) {
 			area = 0;
 			for (int i = 0; i < vertices.length; i++) {
 				Vec2 a = vertices[i];
-				Vec2 b = vertices[0];
-				if (i + 1 < vertices.length)
-					b = vertices[i + 1];
-				area += a.getX() * b.getY() - b.getX() * a.getY();
+				Vec2 b = ((i+1 < vertices.length) ? vertices[i + 1] : vertices[0]);
+				area += a.cross(b);
 			}
-			area = area / 2;
+			area /= 2;
 		}
+		if (area <= 0) System.err.println("Polygon has "+this.area+" area!");
 		return area;
 	}
 
@@ -46,42 +45,39 @@ public class Polygon {
 			double area = 0;
 			for (int i = 0; i < vertices.length; i++) {
 				Vec2 a = vertices[i];
-				Vec2 b = vertices[0];
-				if (i + 1 < vertices.length)
-					b = vertices[i + 1];
+				Vec2 b = ((i+1 < vertices.length) ? vertices[i + 1] : vertices[0]);
 				double cross = a.cross(b);
 				area += cross;
-				cx += (a.getX() + b.getX()) * cross;
-				cy += (a.getY() + b.getY()) * cross;
+				cx += (a.x + b.x) * cross;
+				cy += (a.y + b.y) * cross;
 			}
 			area /= 2;
 			this.area = area;
+			if (this.area <= 0) {
+				System.err.println("Polygon has "+this.area+" area!");
+				return null;
+			}
 			
 			cx /= (area * 6);
 			cy /= (area * 6);
-			this.centroid = Vec2.create(cx, cy);
-			if (this.area == 0) System.err.println("Polygon has 0 area!");
+			this.centroid = new Vec2(cx, cy);
 		}
 		return this.centroid;
 	}
 
 	public Shape getShape2D() {
 		if (shape == null) {
+			if (vertices.length < 3) {
+				System.err.println("Polygon has only has "+vertices.length+" vertices!");
+				return null;
+			}
+			
 			Path2D path = new Path2D.Double();
-			boolean first = true;
-			for (Vec2 v : vertices) {
-				if (first) {
-					path.moveTo(v.getX(), v.getY());
-					first = false;
-				} else {
-					path.lineTo(v.getX(), v.getY());
-				}
+			path.moveTo(vertices[0].x, vertices[0].y);
+			for (int i = 1; i < vertices.length; i++) {
+				path.lineTo(vertices[i].x, vertices[i].y);
 			}
-			if (!first) {
-				path.closePath();
-			}
-			if (vertices.length == 0) System.err.println("Polygon has no vertices!");
-			//System.out.println("Creating shape with " + vertices.length + " vertices");
+			path.closePath();
 			shape = path;
 		}
 		return shape;

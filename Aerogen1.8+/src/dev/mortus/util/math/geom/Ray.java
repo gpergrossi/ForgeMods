@@ -2,31 +2,44 @@ package dev.mortus.util.math.geom;
 
 public final class Ray extends Line {
 
-	final boolean reverse;
+	protected boolean reversed;
 	
-	public Ray(Vec2 pos, Vec2 dir) {
-		super(pos, dir);
-		this.reverse = false;
+	public Ray(double x, double y, double dx, double dy) {
+		super(x, y, dx, dy);
+		this.reversed = false;
 	}
 	
-	public Ray(Vec2 pos, Vec2 dir, boolean reverse) {
-		super(pos, dir);
-		this.reverse = reverse;
+	public Ray(double x, double y, double dx, double dy, boolean reverse) {
+		super(x, y, dx, dy);
+		this.reversed = reverse;
+	}
+
+	public LineSeg createLineSegment(double maxExtent) {
+		LineSeg seg = null;
+		if (reversed) {
+			seg = new LineSeg(dx * -maxExtent, dy * -maxExtent, x, y);
+		} else {
+			seg = new LineSeg(x, y, dx * maxExtent, dy * maxExtent);
+		}
+		return seg;
 	}
 	
-	public Ray extend(double d) {
-		if (reverse) return new Ray(pos.add(dir.multiply(d)), dir, true);
-		return new Ray(pos.add(dir.multiply(-d)), dir);
+	public Ray copy() {
+		return new Ray(x, y, dx, dy, reversed);
 	}
 	
-	protected double tmin() {
-		if (reverse) return Double.NEGATIVE_INFINITY;
-		return 0;
+	public void extend(double d) {
+		d = (reversed ? -d : d);
+		x += dx*d;
+		y += dy*d;
 	}
 	
-	protected double tmax() {
-		if (reverse) return 0;
-		return Double.POSITIVE_INFINITY;
+	public double tmin() {
+		return (reversed ? Double.NEGATIVE_INFINITY : 0);
+	}
+	
+	public double tmax() {
+		return (reversed ? 0 : Double.POSITIVE_INFINITY);
 	}
 	
 }
