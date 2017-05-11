@@ -41,7 +41,7 @@ public final class Event implements Comparable<Event> {
 		this.type = Type.CIRCLE;
 		this.x = Double.NEGATIVE_INFINITY;
 		this.y = circle.y() + circle.radius();
-		this.site = arc.site;
+		this.site = arc.getSite();
 		this.arc = arc;
 		this.circle = circle;
 		this.valid = true;

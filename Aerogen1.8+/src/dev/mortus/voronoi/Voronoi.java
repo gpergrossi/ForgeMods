@@ -57,7 +57,7 @@ public class Voronoi {
 		this.sites = Collections.unmodifiableMap(sites);
 	}
 
-	void setMutableSites(Vec2[] locations, Site[] sites) {
+	protected void setMutableSites(Vec2[] locations, Site[] sites) {
 		Map<Vec2, Site> map = new HashMap<Vec2, Site>(sites.length);
 		for (int i = 0; i < locations.length; i++) {
 			map.put(locations[i], sites[i]);
@@ -69,7 +69,7 @@ public class Voronoi {
 		this.vertices = Collections.unmodifiableList(vertices);
 	}
 
-	void setMutableVertices(GrowingStorage<Vertex> mutableVertices) {
+	protected void setMutableVertices(GrowingStorage<Vertex> mutableVertices) {
 		List<Vertex> vertices = new ArrayList<Vertex>(mutableVertices.size());
 		for (Vertex v : mutableVertices) {
 			vertices.add(v);
@@ -81,7 +81,7 @@ public class Voronoi {
 		this.edges = Collections.unmodifiableList(edges);
 	}
 
-	void setMutableEdges(GrowingStorage<Edge> mutableEdges) {
+	protected void setMutableEdges(GrowingStorage<Edge> mutableEdges) {
 		List<Edge> edges = new ArrayList<Edge>(mutableEdges.size());
 		for (Edge e : mutableEdges) {
 			edges.add(e);

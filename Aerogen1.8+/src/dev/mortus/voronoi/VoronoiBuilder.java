@@ -62,9 +62,9 @@ public class VoronoiBuilder {
 		sites.shrink();
 	}
 	
-	public Worker getBuildWorker() {
+	public VoronoiWorker getBuildWorker() {
 		if (sites.size() == 0) throw new RuntimeException("Cannot construct diagram with no sites.");
-		return new Worker(getBounds(), getSiteArray());
+		return new VoronoiWorker(getBounds(), getSiteArray());
 	}
 	
 	private Vec2[] getSiteArray() {
@@ -107,7 +107,7 @@ public class VoronoiBuilder {
 	}
 
 	public Voronoi build() {
-		Worker w = this.getBuildWorker();
+		VoronoiWorker w = this.getBuildWorker();
 		while (!w.isDone()) {
 			w.doWork(-1);
 		}

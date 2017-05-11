@@ -14,7 +14,7 @@ import java.util.Random;
  *
  * @param <T> the type of object stored by this dequeue
  */
-public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implements Queue<T> {
+public class StochasticPriorityQueue<T extends Object> extends ArrayList<T> implements Queue<T> {
 
 	private static final long serialVersionUID = 6955654743124598514L;
 	
@@ -24,11 +24,11 @@ public class LoosePriorityQueue<T extends Object> extends ArrayList<T> implement
 	T peeked;
 	int searchIters = 4;
 	
-	public LoosePriorityQueue(int initialCapacity) {
+	public StochasticPriorityQueue(int initialCapacity) {
 		this(initialCapacity, null);
 	}
 	
-	public LoosePriorityQueue(int initialCapacity, Comparator<T> comparator) {
+	public StochasticPriorityQueue(int initialCapacity, Comparator<T> comparator) {
 		super(initialCapacity);
 		this.comparator = comparator;
 		this.random = new Random();

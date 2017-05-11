@@ -12,7 +12,6 @@ import java.util.Random;
 import java.util.Scanner;
 
 import javax.imageio.ImageIO;
-import javax.print.attribute.standard.NumberUpSupported;
 
 import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Rect;
@@ -20,7 +19,7 @@ import dev.mortus.util.math.geom.Vec2;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.VoronoiBuilder;
-import dev.mortus.voronoi.Worker;
+import dev.mortus.voronoi.VoronoiWorker;
 
 public class VoronoiTest {
 
@@ -32,6 +31,17 @@ public class VoronoiTest {
 		String line = s.nextLine();
 		s.close();
 		
+		// command line letters:
+		// v - verbose
+		// d - draw an output image
+		// g - constrain points to a grid (useful with lots of points)
+		// s - small (20 points), 100x100 image
+		// m - medium (10,000 points), 5,000x5,000 image
+		// l - large (1,000,000 points), 10,000x10,000 image
+		// r - relax, multiple r's means multiple relax iterations
+		// o - also runs humphrey's voronoi generator for a timing comparison 
+		// (Humphrey's will be faster because it is an approximate diagram and only returns an edge list instead of a traversable diagram)
+		
 		boolean verbose = line.contains("v");
 		boolean draw = line.contains("d");
 		boolean grid = line.contains("g");
@@ -40,13 +50,12 @@ public class VoronoiTest {
 		while ((i = line.indexOf('r', i)+1) > 0) relax++;
 		
 		int num = -1;
-		
-		if (line.contains("s")) num = 10;
-		if (line.contains("m")) num = 10000;
-		if (line.contains("l")) num = 1000000;
-		
+		double canvasSize = 10000;
+		if (line.contains("s")) { num = 20;		 canvasSize = 100;	 }
+		if (line.contains("m")) { num = 10000;	 canvasSize = 5000;	 }
+		if (line.contains("l")) { num = 1000000; canvasSize = 10000; }
 		if (num != -1) {
-			test(num, verbose, draw, grid, relax);
+			test(num, canvasSize, verbose, draw, grid, relax);
 			if (line.contains("o")) test2(num, verbose);
 			System.exit(0);
 		}
@@ -56,21 +65,19 @@ public class VoronoiTest {
 			System.exit(0);
 		}
 		
-		for (num = 500000; num > 0;  num /= 1.5) test(num, verbose, false, grid, 0);
+		for (num = 500000; num > 0;  num /= 1.5) test(num, canvasSize, verbose, false, grid, 0);
 		
 	}
 	
-	private static void test(int num, boolean verbose, boolean draw, boolean useGrid, int relax) {		
+	private static void test(int num, double canvasSize, boolean verbose, boolean draw, boolean useGrid, int relax) {		
 		long start = 0, end = 0, duration = 0;
 		long update = 0;
 
 		Voronoi voronoi = null;
 		Voronoi.DEBUG_FINISH = verbose;
 		VoronoiBuilder vb = new VoronoiBuilder(num);
-		Worker w = null;
-		
-		double canvasSize = 10000;
-		
+		VoronoiWorker w = null;
+				
 		int grid = (int) Math.ceil(Math.sqrt(num));
 		double gridSize = canvasSize / grid;
 		
@@ -182,14 +189,18 @@ public class VoronoiTest {
 		
 		System.out.println("Average edges per site: "+edgesPerSite);
 		System.out.println("Most edges on any site: "+maxEdges);
-		for (int i = 0; i < 20; i++) System.out.println(i+", "+numSitesPerEdgeCount[i]);
+		for (int i = 0; i < 20; i++) {
+			if (numSitesPerEdgeCount[i] == 0) continue;
+			System.out.println(i+", "+numSitesPerEdgeCount[i]);
+		}
 	}
 
 	private static void drawDiagram(int num, double canvasSize, Voronoi v) {
 		double maxArea = (canvasSize*canvasSize / num) * 6;
-		BufferedImage image = new BufferedImage((int)canvasSize+500, (int)canvasSize+500, BufferedImage.TYPE_INT_ARGB);
+		int padding = (int) Math.ceil(canvasSize*0.05);
+		BufferedImage image = new BufferedImage((int)canvasSize+padding*2, (int)canvasSize+padding*2, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2d = image.createGraphics();
-		g2d.translate(250, 250);
+		g2d.translate(padding, padding);
 		
 		for (Site site : v.getSites().values()) {
 

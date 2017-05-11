@@ -113,7 +113,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			if (!(n instanceof ShoreArc)) continue;
 			ShoreArc arc = (ShoreArc) n;
 			
-			Function par = Quadratic.fromPointAndLine(arc.site.x, arc.site.y, state.getSweeplineY());
+			Function par = Quadratic.fromPointAndLine(arc.getSite().x, arc.getSite().y, state.getSweeplineY());
 			
 			Rect bounds = state.getBounds();
 			double minX = bounds.minX();
@@ -168,18 +168,6 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		}
 	}
 	
-	private void drawPartialEdge(Graphics2D g, ShoreBreakpoint bp, BuildState state) {
-		Edge edge = bp.getEdge();
-		if (edge != null) {
-			Vertex start = edge.getStart();
-			Vec2 end = null;
-			if (edge.isFinished()) end = edge.getEnd().toVec2();
-			else end = bp.getPosition(state);
-			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
-			g.draw(line);
-		}
-	}
-	
 	private void drawBreakpoints(BuildState state, Graphics2D g, Iterable<ShoreTreeNode> nodes) {
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
@@ -204,12 +192,24 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			g.setTransform(identity);
 			transform.transform(pos, pos);
 			g.setColor(new Color(255,0,0));
-			g.drawString(breakpoint.getArcLeft().site.id+":"+breakpoint.getArcRight().site.id, (int) pos.getX(), (int) pos.getY());
+			g.drawString(breakpoint.getArcLeft().getSite().id+":"+breakpoint.getArcRight().getSite().id, (int) pos.getX(), (int) pos.getY());
 			g.setTransform(transform);
 			
 		}
 	}
 
+	private void drawPartialEdge(Graphics2D g, ShoreBreakpoint bp, BuildState state) {
+		Edge edge = bp.getEdge();
+		if (edge != null) {
+			Vertex start = edge.getStart();
+			Vec2 end = null;
+			if (edge.isFinished()) end = edge.getEnd().toVec2();
+			else end = bp.getPosition(state);
+			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
+			g.draw(line);
+		}
+	}
+	
 	private void drawTree(BuildState state, Graphics2D g) {
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
@@ -278,11 +278,11 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 				g.setColor(Color.RED);
 				if (n instanceof ShoreBreakpoint) {
 					ShoreBreakpoint bp = (ShoreBreakpoint) n;
-					g.drawString("  BP:"+bp.getArcLeft().site.id+":"+bp.getArcRight().site.id, (int) label.getX(), (int) label.getY());
+					g.drawString("  BP:"+bp.getArcLeft().getSite().id+":"+bp.getArcRight().getSite().id, (int) label.getX(), (int) label.getY());
 				}
 				if (n instanceof ShoreArc) {
 					ShoreArc arc = (ShoreArc) n;
-					g.drawString("  Arc:"+arc.site.id, (int) label.getX(), (int) label.getY());
+					g.drawString("  Arc:"+arc.getSite().id, (int) label.getX(), (int) label.getY());
 				}
 				g.setTransform(transform);
 				

@@ -33,6 +33,10 @@ public class Vertex implements Comparable<Vertex>, StorageItem {
 	Vertex(double x, double y) {
 		this(x, y, false);
 	}
+	
+	Vertex(Vec2 pos) {
+		this(pos.x(), pos.y(), false);
+	}
 
 	public Vec2 toVec2() {
 		return new Vec2(x, y);

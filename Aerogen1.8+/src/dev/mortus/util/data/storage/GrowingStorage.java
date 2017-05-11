@@ -29,7 +29,6 @@ public class GrowingStorage<T extends StorageItem> implements Storage<T> {
 	 * of backing storages used by this GrowingStorage
 	 */
 	private FixedSizeStorage<T> grow(int capacity) {
-		System.out.println("Growing to add space for "+capacity+" new elements");
 		lastStorageIndex += lastStorageCapacity;
 		FixedSizeStorage<T> store = new FixedSizeStorage<>(this, capacity, lastStorageIndex);
 		storages.addLast(store);

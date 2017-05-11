@@ -1,6 +1,7 @@
-package dev.mortus.aerogen;
+package dev.mortus.test;
 
 import java.awt.Color;
+import java.awt.EventQueue;
 import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
@@ -10,43 +11,52 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 
+import dev.mortus.aerogen.SimulationChunk;
+import dev.mortus.aerogen.SimulationChunkLoader;
+import dev.mortus.aerogen.SimulationFrame;
 import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
+import dev.mortus.test.gui.View;
+import dev.mortus.test.gui.ViewerFrame;
 import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.util.math.geom.Vec2;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.VoronoiBuilder;
-import dev.mortus.voronoi.Worker;
+import dev.mortus.voronoi.VoronoiWorker;
 
-public class View {
+public class TestView extends View {
 	
-	public static final int LEFT_CLICK = 1;
-	public static final int MIDDLE_CLICK = 2;
-	public static final int RIGHT_CLICK = 4;
-	
-	ViewerPane pane; // access the recording feature
-	
-	double viewX, viewY;
-	double velocityX, velocityY;
-	double halfWidth, halfHeight;
-	double printTime;
-	
-	double slowZoom = 1.0;
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					ViewerFrame frame = new ViewerFrame(new TestView(0, 0, 1024, 768));
+					frame.setVisible(true);
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
 	
 	boolean useChunkLoader = false;
 	
 	VoronoiBuilder voronoiBuilder;
-	Worker voronoiWorker;
+	VoronoiWorker voronoiWorker;
 	
 	ChunkLoader<SimulationChunk> chunkLoader;
 	ChunkManager<SimulationChunk> chunkManager;
+	
+	double seconds;
+	double printTime;
+	double radiansPerDegree = (Math.PI/180.0);
 
-	public View (double x, double y, double width, double height) {
-		this.viewX = x;
-		this.viewY = y;
-		this.halfWidth = width/2.0;
-		this.halfHeight = height/2.0;
+	public TestView (double x, double y, double width, double height) {
+		super (x, y, width, height);
 		
 		voronoiBuilder = new VoronoiBuilder();
 		
@@ -56,41 +66,33 @@ public class View {
 		}
 	}
 
-	double seconds;
-	double radiansPerDegree = (Math.PI/180.0);
+	@Override
+	public void init() {}
 	
+	@Override
+	public void start() {
+		if (useChunkLoader) chunkManager.start();
+	}
+
+	@Override
+	public void stop() {
+		if (useChunkLoader) chunkManager.stop();
+	}
+
+	@Override
 	public void update(double secondsPassed) {
 		seconds += secondsPassed;
-		this.viewX += this.velocityX*secondsPassed;
-		this.viewY += this.velocityY*secondsPassed;
-		
-		double decay = Math.pow(0.5, secondsPassed);
-		this.velocityX *= decay;
-		this.velocityY *= decay;
-		
-	    decay = Math.pow(0.5, secondsPassed*60.0);
-		this.mVelX *= decay;
-		this.mVelY *= decay;
-		
-		halfWidth *= Math.pow(slowZoom, secondsPassed);
-		halfHeight *= Math.pow(slowZoom, secondsPassed);
-		
-		if (useChunkLoader) {
-			printTime += secondsPassed;
-			if (printTime > 1) {
-				printTime -= 1;
-				//System.out.println("Loaded chunks = "+chunkManager.getNumLoaded());
-			}
+
+		printTime += secondsPassed;
+		if (printTime > 1) {
+			printTime -= 1;
+			if (useChunkLoader) System.out.println("Loaded chunks = "+chunkManager.getNumLoaded());
+			System.out.println("FPS = "+getFPS());
 		}
 	}
 	
-	AffineTransform identity = new AffineTransform();
-	
-	public void drawFrame(Graphics2D g2d, AffineTransform viewTransform) {		
-		AffineTransform before = g2d.getTransform();
-		
-		g2d.setTransform(viewTransform);
-
+	@Override
+	public void drawWorld(Graphics2D g2d) {
 		// Clock dots
 		g2d.setColor(Color.WHITE);
 		for (int i = 0; i < 60; i++) {
@@ -112,6 +114,7 @@ public class View {
 		g2d.setColor(Color.WHITE);
 		
 		// Clock hand
+		AffineTransform before = g2d.getTransform();
 		Path2D.Double path = new Path2D.Double();
 		path.moveTo(100, 0);
 		path.lineTo(0, 2);
@@ -119,10 +122,10 @@ public class View {
 		path.closePath();
 		g2d.rotate(seconds*(Math.PI / 30.0));
 		g2d.fill(path);
-		g2d.setTransform(viewTransform);
+		g2d.setTransform(before);
 		
 		if (useChunkLoader) { 
-			Rectangle2D.Double bounds = new Rectangle2D.Double(viewX-halfWidth, viewY-halfHeight, halfWidth*2, halfHeight*2);
+			Rectangle2D bounds = this.getViewBounds();
 			chunkManager.update(bounds);
 			chunkManager.draw(g2d);
 		}
@@ -153,8 +156,7 @@ public class View {
 			} else {
 				voronoiWorker.debugDraw(g2d);
 			}
-		}
-		else {
+		} else {
 			for (Vec2 site : voronoiBuilder.getSites()) {
 				Ellipse2D ellipse = new Ellipse2D.Double(site.x()-1, site.y()-1, 2, 2);
 				g2d.fill(ellipse);
@@ -165,9 +167,10 @@ public class View {
 //		g2d.setColor(Color.WHITE);
 //		Line2D mVel = new Line2D.Double(mX, mY, mX+mVelX, mY+mVelY);
 //		g2d.draw(mVel);
-		
-		g2d.setTransform(before);
-		
+	}
+
+	@Override
+	public void drawOverlayUI(Graphics2D g2d) {
 		if (useChunkLoader) {
 			g2d.setColor(Color.WHITE);
 			g2d.clearRect(0, 0, 200, 30);
@@ -182,101 +185,54 @@ public class View {
 	double mX, mY;
 	double mDX, mDY;
 	double mVelX, mVelY;
-	
-	public void mousePressed(int click, double px, double py) {
-		if (click == View.LEFT_CLICK) {
-			mDX = 0; mVelX = 0; mX = px; velocityX = 0;
-			mDY = 0; mVelY = 0; mY = py; velocityY = 0;
-			startPX = px; startPY = py;
-			startViewX = viewX; startViewY = viewY;
-			panning = true;
-		}
-		//System.out.println("Click pressed: "+click);
-	}
 
-	public void mouseDragged(int click, double px, double py) {
-		if (click == View.LEFT_CLICK) {
-			mDX = (mX - px); 
-			mDY = (mY - py); 
-			mVelX += mDX;
-			mVelY += mDY; 
-			mX = px;
-			mY = py;
-			this.velocityX = 0;
-			this.velocityY = 0;
-			
-			this.viewX = startViewX + startPX - px;
-			this.viewY = startViewY + startPY - py;
-		}
-		//System.out.println("Click dragged: "+click);
-	}
+	@Override
+	public void mousePressed() {}
 
-	public void mouseReleased(int click, double px, double py) {
-		if (click == View.LEFT_CLICK) {
-			mouseDragged(View.LEFT_CLICK, px, py);
-			boolean doThrow = (mVelX * mVelX + mVelX * mVelX > 3.0*540.0/halfWidth);
-			if (doThrow) {
-				this.velocityX = mVelX*60;
-				this.velocityY = mVelY*60;
-			} else {
-				this.velocityX = 0;
-				this.velocityY = 0;
-			}
-			panning = false;
-		} else if (click == View.RIGHT_CLICK) {
+	@Override
+	public void mouseDragged() {}
+
+	@Override
+	public void mouseReleased() {
+		int click = this.getMouseClick();
+		double px = this.getMouseWorldX();
+		double py = this.getMouseWorldY();
+		
+		if (click == View.RIGHT_CLICK || click == View.LEFT_CLICK) {
 			Point2D clickP = new Point2D.Double(px, py);
-			int x = (int) Math.floor((clickP.getX()+4) / 8);
-			int y = (int) Math.floor((clickP.getY()+4) / 8);
-			clickP = new Point2D.Double(x*8, y*8);
-			
-			boolean removed = false;
-			for (Vec2 site : voronoiBuilder.getSites()) {
-				Point2D point = site.toPoint2D();
-				if (clickP.distance(point) < 8) {
-					System.out.println("Removing site");
-					voronoiBuilder.removeSite(site);
-					removed = true;
-					break;
+			int x = (int) Math.floor((clickP.getX()+2) / 4);
+			int y = (int) Math.floor((clickP.getY()+2) / 4);
+			clickP = new Point2D.Double(x*4, y*4);
+
+			if (click == View.RIGHT_CLICK) {
+				for (Vec2 site : voronoiBuilder.getSites()) {
+					Point2D point = site.toPoint2D();
+					if (clickP.distance(point) < 4) {
+						System.out.println("Removing site");
+						voronoiBuilder.removeSite(site);
+						break;
+					}
 				}
 			}
-			if (!removed) {
+			
+			if (click == View.LEFT_CLICK) {
 				int id = voronoiBuilder.addSite(new Vec2(clickP.getX(), clickP.getY()));
 				System.out.println("Adding site "+id);
 			}
+			
 			voronoiWorker = null;
 		}
-		//System.out.println("Click released: "+click);
-	}
-	
-	public void mouseMoved(double px, double py) {
-		mDX = (mX - px); 
-		mDY = (mY - py); 
-		mVelX += mDX; 
-		mVelY += mDY; 
-		mX = px;
-		mY = py;
 	}
 
-	public void scroll(double clicks) {
-		if (panning) return;
-		double multiply = Math.pow(1.2, clicks);
-		halfWidth *= multiply;
-		halfHeight *= multiply;
-	}
+	@Override
+	public void mouseMoved() {}
 
-	public void setAspect(double aspect) {
-		this.halfHeight = this.halfWidth / aspect;
-	}
+	@Override
+	public void mouseScrolled() {}
 
-	public void start() {
-		if (useChunkLoader) chunkManager.start();
-	}
-
-	public void stop() {
-		if (useChunkLoader) chunkManager.stop();
-	}
-
-	public void keyPressed(KeyEvent e) {
+	@Override
+	public void keyPressed() {
+		KeyEvent e = getKeyEvent();
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			if (voronoiWorker == null) voronoiWorker = voronoiBuilder.getBuildWorker();
 			else voronoiWorker.doWork(0);
@@ -334,14 +290,18 @@ public class View {
 			System.out.println("Clearing");
 			LinkedBinaryNode.IDCounter = 0;
 			voronoiBuilder.clearSites();
+			voronoiWorker = null;
 		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
-			slowZoom = 9.0/14.0;
+			this.setSlowZoom(9.0/14.0);
 		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
-			slowZoom = 14.0/9.0;
+			this.setSlowZoom(14.0/9.0);
 		} else if (e.getKeyCode() == KeyEvent.VK_R) {
-			if (pane != null) {
-				if (!pane.isRecording()) pane.startRecording();
-				else pane.stopRecording();
+			if (!this.isRecording()) {
+				System.out.println("Recording started");
+				this.startRecording();
+			} else {
+				System.out.println("Recording finished");
+				this.stopRecording();
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_SLASH) {
 			for (double d = Math.PI/2.0; d < Math.PI*1.0; d += Math.PI/17.3) {
@@ -351,15 +311,18 @@ public class View {
 			}
 		}
 	}
-	
-	public void keyReleased(KeyEvent e) {
+
+	@Override
+	public void keyReleased() {
+		KeyEvent e = getKeyEvent();
 		if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
-			slowZoom = 1.00;
+			setSlowZoom(1.0);
 		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) {
-			slowZoom = 1.00;
+			setSlowZoom(1.0);
 		}
 	}
 	
-	public void keyTyped(KeyEvent e) {}
+	@Override
+	public void keyTyped() { }
 	
 }

@@ -23,7 +23,7 @@ public class Edge implements StorageItem, Comparable<Edge> {
 	}
 	
 	Edge(ShoreBreakpoint bp, Vertex start) {
-		this(start, null, bp.getArcLeft().site, bp.getArcRight().site);
+		this(start, null, bp.getArcLeft().getSite(), bp.getArcRight().getSite());
 	}
 	
 	void redefine(Vertex start, Vertex end) {

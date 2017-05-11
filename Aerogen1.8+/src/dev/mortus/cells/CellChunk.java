@@ -6,7 +6,7 @@ import dev.mortus.chunks.Chunk;
 
 public class CellChunk extends Chunk {
 
-	public CellChunk(int chunkX, int chunkY) {
+	public CellChunk(CellChunkLoader loader, int chunkX, int chunkY) {
 		super(chunkX, chunkY);
 	}
 

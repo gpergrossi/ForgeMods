@@ -17,8 +17,8 @@ import dev.mortus.util.math.geom.Vec2;
  */
 public class ShoreArc extends ShoreTreeNode {
 	
-	public final Site site;
-	public Event circleEvent;
+	private final Site site;
+	private Event circleEvent;
 	
 	protected ShoreArc(ShoreTree rootParent, Site site) {
 		super(rootParent);
@@ -41,6 +41,10 @@ public class ShoreArc extends ShoreTreeNode {
 	
 	public Event getCircleEvent() {
 		return circleEvent;
+	}
+	
+	public Site getSite() {
+		return site;
 	}
 	
 	public Function getParabola(double sweeplineY) {
@@ -85,29 +89,24 @@ public class ShoreArc extends ShoreTreeNode {
 	public Event checkCircleEvent(final BuildState state) {
 		this.setCircleEvent(null);
 
+		// No circle event if neighbors don't exist or if neighbor arcs are from the same site
 		ShoreArc leftNeighbor = this.getLeftNeighborArc();
 		ShoreArc rightNeighbor = this.getRightNeighborArc();
 		if (leftNeighbor == null || rightNeighbor == null) return null;
 		if (leftNeighbor.site == rightNeighbor.site) return null;
 		
+		// Check for a collision point, fail if none exists
 		ShoreBreakpoint leftBP = (ShoreBreakpoint) getPredecessor();
 		ShoreBreakpoint rightBP = (ShoreBreakpoint) getSuccessor();
 		Vec2 intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
 		if (intersection == null) return null;
 		
-		Circle circle = Circle.fromPoints(leftNeighbor.site.toVec2(), this.site.toVec2(), rightNeighbor.site.toVec2());
-		if (circle == null) return null;
-		
-//		if (circle.y() + circle.radius() + Vec2.EPSILON >= state.getSweeplineY()) {
-			Event circleEvent = Event.createCircleEvent(this, circle);
-			this.setCircleEvent(circleEvent);
-			return circleEvent;
-//		} else {
-//			double dy = circle.y() + circle.radius() + Vec2.EPSILON - state.getSweeplineY();
-//			System.out.println("New circle event was above sweepline by "+dy);
-//		}
-//		
-//		return null;
+		// Create the circle event
+		double radius = intersection.distanceTo(this.site.toVec2());
+		Circle circle = new Circle(intersection.x(), intersection.y(), radius);
+		Event circleEvent = Event.createCircleEvent(this, circle);
+		this.setCircleEvent(circleEvent);
+		return circleEvent;
 	}
 	
 	public ShoreArc insertArc(BuildState state, Site site) {
@@ -117,17 +116,22 @@ public class ShoreArc extends ShoreTreeNode {
 		ShoreArc rightArc = null;
 		
 		if (Math.abs(this.site.y - site.y) < Vec2.EPSILON) {
+			
 			// Y coordinates equal, single breakpoint between sites
-			// TODO it bugs me that there is an assumption about the X-order of the sites being made, based on the event order, however this method should have no knowledge of that
 			leftArc = new ShoreArc(this.site);
 			rightArc = newArc = new ShoreArc(site);
+			
+			// Swap the arcs if not in the right order
 			if (this.site.x > site.x) {
 				ShoreArc swap = leftArc;
 				leftArc = rightArc;
 				rightArc = swap;
 			}
+			
 			newBreakpoint = new ShoreBreakpoint(leftArc, rightArc);
+			
 		} else {
+			
 			// Normal site creation, two breakpoints around new arc
 			leftArc = new ShoreArc(this.site);
 			rightArc = new ShoreArc(this.site);
@@ -135,6 +139,7 @@ public class ShoreArc extends ShoreTreeNode {
 			ShoreBreakpoint rightBP = new ShoreBreakpoint(middle, rightArc);
 			ShoreBreakpoint leftBP = new ShoreBreakpoint(leftArc, rightBP);
 			newBreakpoint = leftBP;
+			
 		}
 		
 		this.replaceWith(newBreakpoint);
@@ -146,6 +151,7 @@ public class ShoreArc extends ShoreTreeNode {
 		return "Arc["+(debugName != null ? "Name='"+debugName+"', " : "")+"ID="+id+", "
 				+ "Site="+site.id+", CircleEvent="+(circleEvent!=null)+"]";
 	}
+
 	
 }
 		

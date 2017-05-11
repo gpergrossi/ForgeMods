@@ -8,14 +8,14 @@ import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
 import dev.mortus.voronoi.exception.UnfinishedStateException;
 
-public class Worker {
+public class VoronoiWorker {
 
 	BuildState state;
 
 	Rect bounds;
 	Vec2[] siteArray;
 	
-	public Worker(Rect bounds, Vec2[] siteArray) {
+	public VoronoiWorker(Rect bounds, Vec2[] siteArray) {
 		this.bounds = bounds;
 		this.siteArray = siteArray;
 	}
@@ -45,7 +45,7 @@ public class Worker {
 
 	public Voronoi getResult() {
 		if (!isDone()) throw new UnfinishedStateException();
-		return state.getDiagram();
+		return state.getResult();
 	}
 	
 	

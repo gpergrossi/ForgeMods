@@ -22,12 +22,12 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 
 	private void setArcLeft(ShoreArc arc) {
 		this.arcLeft = arc;
-		if (this.edge != null) this.edge.sites.first = arc.site;
+		if (this.edge != null) this.edge.sites.first = arc.getSite();
 	}
 
 	private void setArcRight(ShoreArc arc) {
 		this.arcRight = arc;
-		if (this.edge != null) this.edge.sites.second = arc.site;
+		if (this.edge != null) this.edge.sites.second = arc.getSite();
 	}
 
 	@Override
@@ -63,7 +63,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	}
 	
 	private void checkPossible() {
-		if ( arcLeft.site.y == arcRight.site.y &&  arcLeft.site.x > arcRight.site.x) {
+		if ( arcLeft.getSite().y == arcRight.getSite().y &&  arcLeft.getSite().x > arcRight.getSite().x) {
 			// The parabolas are exactly side by side, there is only one intersection between
 			// them and the X coordinates of the parabola's focii are in the wrong order for
 			// the requested breakpoint to exist.
@@ -77,8 +77,8 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	 * @return
 	 */
 	public Vec2 getDirection() {
-		double dy = arcRight.site.y - arcLeft.site.y;
-		double dx = arcRight.site.x - arcLeft.site.x;
+		double dy = arcRight.getSite().y - arcLeft.getSite().y;
+		double dx = arcRight.getSite().x - arcLeft.getSite().x;
 		
 		if (Math.abs(dy) < Vec2.EPSILON) {
 			if (Math.abs(dx) < Vec2.EPSILON) return new Vec2(0, 0);
@@ -97,9 +97,9 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 			return null;
 		}
 
-		Vec2 ptLeft = left.arcLeft.site.toVec2();
-		Vec2 ptCenter = left.arcRight.site.toVec2();
-		Vec2 ptRight = right.arcRight.site.toVec2();
+		Vec2 ptLeft = left.arcLeft.getSite().toVec2();
+		Vec2 ptCenter = left.arcRight.getSite().toVec2();
+		Vec2 ptRight = right.arcRight.getSite().toVec2();
 		
 		// Check if these breakpoints diverge
 		Vec2 dirL = left.getDirection();
@@ -144,7 +144,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 		}
 		if (lastResult == null) {
 			// null occurs when sites are on the same y value and have no intersection of their "parabolas"
-			double x = (arcLeft.site.x + arcRight.site.x) / 2.0;
+			double x = (arcLeft.getSite().x + arcRight.getSite().x) / 2.0;
 			double y = state.getBounds().minY()-50000; // TODO this should actually be a backwards intersection to the top boundary, not an average position
 			lastResult = new Vec2(x, y);
 		}
@@ -164,7 +164,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 		Vec2 pos = this.getPosition(state);
 		
 		double posX;
-		if (pos == null) posX = (this.arcLeft.site.x + this.arcRight.site.x) / 2.0;
+		if (pos == null) posX = (this.arcLeft.getSite().x + this.arcRight.getSite().x) / 2.0;
 		else posX = pos.x();
 				
 		if (siteX <= posX) {

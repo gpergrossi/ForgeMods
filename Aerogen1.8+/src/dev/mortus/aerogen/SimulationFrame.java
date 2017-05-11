@@ -12,6 +12,10 @@ import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ChangeListener;
+
+import dev.mortus.test.TestView;
+import dev.mortus.test.gui.ViewerFrame;
+
 import javax.swing.event.ChangeEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -105,7 +109,7 @@ public class SimulationFrame extends JFrame {
 		JButton btnSimulate = new JButton("Simulate");
 		btnSimulate.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				new ViewerFrame().setVisible(true);
+				new ViewerFrame(new TestView(0, 0, 1024, 768)).setVisible(true);
 			}
 		});
 		btnSimulate.setBounds(63, 95, 89, 23);

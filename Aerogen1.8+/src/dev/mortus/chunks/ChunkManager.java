@@ -70,9 +70,9 @@ public class ChunkManager<T extends Chunk> {
 	public ChunkManager(ChunkLoader<T> loader, double chunkSize, int numWorkers, int initialQueueSize) {
 		this.loader = loader;
 		this.chunkSize = chunkSize;
-		loadingQueue = new LoosePriorityQueue<T>(initialQueueSize, CLOSEST_CHUNK_FIRST);
-		unloadingQueue = new LoosePriorityQueue<T>(initialQueueSize, FARTHEST_CHUNK_FIRST);
-		loadedChunks = new LoosePriorityQueue<T>(initialQueueSize, OLDEST_CHUNK_FIRST);
+		loadingQueue = new StochasticPriorityQueue<T>(initialQueueSize, CLOSEST_CHUNK_FIRST);
+		unloadingQueue = new StochasticPriorityQueue<T>(initialQueueSize, FARTHEST_CHUNK_FIRST);
+		loadedChunks = new StochasticPriorityQueue<T>(initialQueueSize, OLDEST_CHUNK_FIRST);
 		workers = new Thread[numWorkers];
 		for (int i = 0; i < numWorkers; i++) {
 			workers[i] = new Thread(new WorkerTask<T>(this));
@@ -102,7 +102,7 @@ public class ChunkManager<T extends Chunk> {
 		return loader.getChunk(p.x, p.y);
 	}
 	
-	public void update(Rectangle2D.Double viewBounds) {
+	public void update(Rectangle2D viewBounds) {
 		Point upperLeft = getChunkCoordinate(viewBounds.getMinX(), viewBounds.getMinY());
 		Point lowerRight = getChunkCoordinate(viewBounds.getMaxX(), viewBounds.getMaxY());
 		int minX = upperLeft.x, minY = upperLeft.y;

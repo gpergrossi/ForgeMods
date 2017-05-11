@@ -1,10 +1,8 @@
-package dev.mortus.aerogen;
+package dev.mortus.test.gui;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -16,7 +14,6 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -26,15 +23,38 @@ import javax.swing.JPanel;
 
 public class ViewerPane extends JPanel implements Runnable {
 
+	private static final long serialVersionUID = 5091243043686433403L;
+	
 	public String recordingFilePrefix = "recording/frame.";
 	public int recordingFrame = 0;
 	public int recordingMaxFrames = 9999;
 	public boolean recording = false;
 	public double recordingFPS = 24.0;
 	
-	public boolean showFPS = false;
+	protected boolean needsViewUpdate = true;
 	
-	private static final long serialVersionUID = 5091243043686433403L;
+	public int targetFPS = 60;
+	public boolean showFPS = false;
+	public double averageFPS = 60.0;
+
+	long lastDraw = Long.MAX_VALUE;
+	long lastLoop = System.nanoTime();
+	long currentLoop = System.nanoTime();
+	long nanosPerMilli = 1000000;
+	long nanosPerSecond = 1000000000;
+	long delta = 1;
+	long sleepThreashold = 6 * nanosPerMilli;  // 6 ms
+	long yieldThreashold = 2 * nanosPerMilli;  // 2 ms
+	
+	private AffineTransform freshTransform = new AffineTransform();
+	private AffineTransform screenToWorld = new AffineTransform();
+	private AffineTransform worldToScreen = new AffineTransform();
+	private BufferedImage buffer, bufferLast;
+	private Graphics2D bufferG2D, bufferLastG2D;
+	private boolean rebuildBuffers = true;
+	private boolean running = false;
+	private View view;
+	private Thread thread;
 	
 	private ComponentListener componentListener = new ComponentAdapter() {
 		public void componentResized(ComponentEvent e) {
@@ -43,60 +63,49 @@ public class ViewerPane extends JPanel implements Runnable {
 	};
 	
 	private MouseAdapter mouseListener = new MouseAdapter() {
-		int click = 0;
-		private AffineTransform panTransform = new AffineTransform();
+		int mouseClick = 0;
 		public void mousePressed(MouseEvent e) {
-			calculateViewTransform();
-			panTransform.setTransform(deviewTransform);
-			Point2D.Double pt = multiply(panTransform, e.getX(), e.getY());
-			click |= (1 << e.getButton());
-			view.mousePressed(click >> 1, pt.getX(), pt.getY());
+			updateViewTransform(false);
+			Point2D pt = screenToWorld(e.getX(), e.getY());
+			mouseClick |= (1 << (e.getButton()-1));
+			view.internalMousePressed(mouseClick, pt.getX(), pt.getY(), e.getX(), e.getY());
 		}
 		public void mouseDragged(MouseEvent e) {
-			calculateViewTransform();
-			Point2D.Double pt = multiply(panTransform, e.getX(), e.getY());
-			view.mouseDragged(click >> 1, pt.getX(), pt.getY());
+			updateViewTransform(false);
+			Point2D pt = screenToWorld(e.getX(), e.getY());
+			view.internalMouseDragged(mouseClick, pt.getX(), pt.getY(), e.getX(), e.getY());
 		}
 		public void mouseReleased(MouseEvent e) {
-			calculateViewTransform();
-			Point2D.Double pt = multiply(panTransform, e.getX(), e.getY());
-			view.mouseReleased(click >> 1, pt.getX(), pt.getY());
-			click &= ~(1 << e.getButton());
+			updateViewTransform(false);
+			Point2D pt = screenToWorld(e.getX(), e.getY());
+			view.internalMouseReleased(mouseClick, pt.getX(), pt.getY(), e.getX(), e.getY());
+			mouseClick &= ~(1 << (e.getButton()-1));
 		}
 		public void mouseMoved(MouseEvent e) {
-			calculateViewTransform();
-			Point2D.Double pt = deproject(e.getX(), e.getY());
-			view.mouseMoved(pt.getX(), pt.getY());
+			updateViewTransform(false);
+			Point2D pt = screenToWorld(e.getX(), e.getY());
+			mouseClick = 0;
+			view.internalMouseMoved(pt.getX(), pt.getY(), e.getX(), e.getY());
 		}
 	};
 	
 	private MouseWheelListener mouseWheelListener = new MouseWheelListener() {
 		public void mouseWheelMoved(MouseWheelEvent e) {
-			view.scroll(e.getPreciseWheelRotation());			
+			view.internalMouseScrolled(e.getPreciseWheelRotation());			
 		}
 	};
 	
 	private KeyAdapter keyListener = new KeyAdapter() {
 		public void keyPressed(KeyEvent e) {
-			view.keyPressed(e);
+			view.internalKeyPressed(e);
 		}
 		public void keyReleased(KeyEvent e) {
-			view.keyReleased(e);
+			view.internalKeyReleased(e);
 		}
 		public void keyTyped(KeyEvent e) {
-			view.keyTyped(e);
+			view.internalKeyTyped(e);
 		}
 	};
-
-	private AffineTransform freshTransform = new AffineTransform();
-	private AffineTransform viewTransform = new AffineTransform();
-	private AffineTransform deviewTransform = new AffineTransform();
-	private BufferedImage buffer, bufferLast;
-	private Graphics2D bufferG2D, bufferLastG2D;
-	private boolean rebuildBuffers = true;
-	private boolean running = false;
-	private View view;
-	private Thread thread;
 	
 	public ViewerPane(View view) {
 		this.view = view;
@@ -119,6 +128,7 @@ public class ViewerPane extends JPanel implements Runnable {
 				BufferedImage.TYPE_INT_ARGB);
 		rebuildBuffers = true;
 		view.setAspect((double) size.width/size.height);
+		this.needsViewUpdate = true;
 	}
 	
 	private void dispose() {
@@ -127,14 +137,7 @@ public class ViewerPane extends JPanel implements Runnable {
 	}
 	
 	private void renderSettings(Graphics2D g2d) {
-		// Anti-aliasing on
-		g2d.setRenderingHint(
-			RenderingHints.KEY_ANTIALIASING, 
-			RenderingHints.VALUE_ANTIALIAS_ON
-		);
-		
-		// Background Black
-		g2d.setBackground(new Color(0,0,0,255));
+		view.renderSettings(g2d);
 	}
 	
 	private void rebuildBuffers() {
@@ -185,6 +188,13 @@ public class ViewerPane extends JPanel implements Runnable {
 		
 		// Render new buffer
 		drawFrame(bufferG2D);
+		
+		if (lastDraw != Long.MAX_VALUE) {
+			long drawDelta = System.nanoTime() - lastDraw;
+			double FPS = (double) nanosPerSecond/drawDelta;
+			if (FPS < targetFPS*2) this.averageFPS = (averageFPS * 59.0 + FPS) / 60.0;
+		}
+		lastDraw = System.nanoTime();
 	}
 	
 	private String getFrameNumber() {
@@ -200,7 +210,7 @@ public class ViewerPane extends JPanel implements Runnable {
 
 	public void start() {
 		running = true;
-		view.start();
+		view.internalStart();
 		thread = new Thread(this);
 		thread.setPriority(Thread.MAX_PRIORITY);
 		thread.start();
@@ -213,17 +223,9 @@ public class ViewerPane extends JPanel implements Runnable {
 		} catch(InterruptedException e) {
 			e.printStackTrace();
 		}
-		view.stop();
+		view.internalStop();
 		dispose();
 	}
-
-	long lastLoop = System.nanoTime();
-	long currentLoop = System.nanoTime();
-	long nanosPerMilli = 1000000;
-	long nanosPerSecond = 1000000000;
-	long delta = 1;
-	long sleepThreashold = 100 * nanosPerMilli;  // 6 ms
-	long yieldThreashold = 100 * nanosPerMilli;  // 2 ms
 	
 	private void sync(int fps) {
 		long nanos = nanosPerSecond/fps;
@@ -248,41 +250,20 @@ public class ViewerPane extends JPanel implements Runnable {
 	}
 	
 	public void run() {
-		int printmod = 0;
-		while (running) {
-			printmod++;
-			if (printmod % 60 == 0) {
-				double FPS = (double) nanosPerSecond/delta;
-				if (showFPS) System.out.println("FPS = "+FPS);
-			}
-			
+		while (running) {			
 			double updateDelta = (double) delta/nanosPerSecond;
 			if (recording) updateDelta = 1.0/recordingFPS;
-			view.update(updateDelta);
+			
+			view.internalUpdate(updateDelta);
 			
 			this.repaint();
 			
-			// Wait for loop
-			sync(60);
+			sync(targetFPS);
 		}
 	}
 	
-	private void resetTransform(Graphics2D g2d) {
-		g2d.setTransform(freshTransform);
-	}
-	
-	private void calculateViewTransform() {
-		viewTransform.setTransform(freshTransform);
-		viewTransform.scale(getWidth()/(view.halfWidth*2), 
-							getHeight()/(view.halfHeight*2));
-		viewTransform.translate(-view.viewX, -view.viewY);
-		viewTransform.translate(view.halfWidth, view.halfHeight);
-		
-		deviewTransform.setTransform(freshTransform);
-		deviewTransform.translate(-view.halfWidth, -view.halfHeight);
-		deviewTransform.translate(view.viewX, view.viewY);
-		deviewTransform.scale((view.halfWidth*2)/getWidth(),
-							(view.halfHeight*2)/getHeight());
+	public double getFPS() {
+		return this.averageFPS;
 	}
 	
 	private void drawFrame(Graphics2D g2d) {
@@ -291,31 +272,61 @@ public class ViewerPane extends JPanel implements Runnable {
 		g2d.clearRect(0, 0, getWidth(), getHeight());
 
 		// Request draw from view object
-		calculateViewTransform();
-		view.drawFrame(g2d, viewTransform);
+		updateViewTransform(false);
+		view.internalDrawFrame(g2d, worldToScreen);
+	}
+	
+	private void resetTransform(Graphics2D g2d) {
+		g2d.setTransform(freshTransform);
+	}
+	
+	protected void updateViewTransform(boolean force) {
+		if (this.needsViewUpdate || force) {
+			worldToScreen.setTransform(freshTransform);
+			worldToScreen.scale(getWidth()/view.getViewWidth(),	getHeight()/view.getViewHeight());
+			worldToScreen.translate(-view.getViewX(), -view.getViewY());
+			worldToScreen.translate(view.getViewWidth()/2, view.getViewHeight()/2);
+			
+			screenToWorld.setTransform(freshTransform);
+			screenToWorld.translate(-view.getViewWidth()/2, -view.getViewHeight()/2);
+			screenToWorld.translate(view.getViewX(), view.getViewY());
+			screenToWorld.scale(view.getViewWidth()/getWidth(), view.getViewHeight()/getHeight());
+			
+			this.needsViewUpdate = false;
+		}
 	}
 
-	public Point2D.Double project(double x, double y) {
-		Point2D.Double pt = new Point2D.Double(x, y);
-		return (Double) viewTransform.transform(pt, pt);
+	public Point2D multiply(AffineTransform xform, double x, double y) {
+		Point2D pt = new Point2D.Double(x, y);
+		return xform.transform(pt, pt);
 	}
 	
-	public Point2D.Double deproject(double x, double y) {
-		Point2D.Double pt = new Point2D.Double(x, y);
-		return (Double) deviewTransform.transform(pt, pt);
+	public Point2D worldToScreen(double x, double y) {
+		Point2D pt = new Point2D.Double(x, y);
+		return worldToScreen.transform(pt, pt);
+	}
+
+	public Point2D worldToScreen(Point2D pt) {
+		return worldToScreen.transform(pt, pt);
 	}
 	
-	public Point2D.Double multiply(AffineTransform xform, double x, double y) {
-		Point2D.Double pt = new Point2D.Double(x, y);
-		return (Double) xform.transform(pt, pt);
+	public Point2D worldToScreenVelocity(Point2D pt) {
+		pt.setLocation(pt.getX()*getWidth()/view.getViewWidth(), pt.getY()*getHeight()/view.getViewHeight());
+		return pt;
 	}
 	
-	public Point2D.Double project(Point2D.Double pt) {
-		return (Double) viewTransform.transform(pt, pt);
+	public Point2D screenToWorld(Point2D pt) {
+		return screenToWorld.transform(pt, pt);
+	}
+
+	public Point2D screenToWorld(double x, double y) {
+		Point2D pt = new Point2D.Double(x, y);
+		return screenToWorld.transform(pt, pt);
 	}
 	
-	public Point2D.Double deproject(Point2D.Double pt) {
-		return (Double) deviewTransform.transform(pt, pt);
+	public Point2D screenToWorldVelocity(Point2D pt) {
+		pt.setLocation(pt.getX()*view.getViewWidth()/getWidth(), pt.getY()*view.getViewHeight()/getHeight());
+		return pt;
 	}
 
 	public boolean isRecording() {

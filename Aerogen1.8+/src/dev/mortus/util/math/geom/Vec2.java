@@ -84,6 +84,10 @@ public class Vec2 implements Comparable<Vec2> {
 		return this.x*other.x + this.y*other.y;
 	}
 
+	public double distanceTo(Vec2 o) {
+		return Vec2.distance(this.x, this.y, o.x, o.y);
+	}
+	
 	public double angle() {
 		return Math.atan2(y, x);
 	}
