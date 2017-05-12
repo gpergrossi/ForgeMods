@@ -61,11 +61,11 @@ public class VoronoiTest {
 		}
 		
 		if (line.contains("o")) {
-			for (num = 500000; num > 0;  num /= 1.5) test2(num, verbose);
+			for (num = 1050000; num > 0;  num -= 10000) test2(num, verbose);
 			System.exit(0);
 		}
 		
-		for (num = 500000; num > 0;  num /= 1.5) test(num, canvasSize, verbose, false, grid, 0);
+		for (num = 1050000; num > 0;  num -= 10000) test(num, canvasSize, verbose, false, grid, 0);
 		
 	}
 	
@@ -81,7 +81,7 @@ public class VoronoiTest {
 		int grid = (int) Math.ceil(Math.sqrt(num));
 		double gridSize = canvasSize / grid;
 		
-		if (useGrid) System.out.println("Points constrained to "+grid+"x"+grid+" grid with tile size "+gridSize);
+		if (useGrid && verbose) System.out.println("Points constrained to "+grid+"x"+grid+" grid with tile size "+gridSize);
 		
 		if (relax < 0) relax = 0;
 		for (int re = 0; re <= relax; re++) {
@@ -165,13 +165,19 @@ public class VoronoiTest {
 		end = System.nanoTime();
 		duration = end-start;
 
-		printStats(num, duration, voronoi);
+		printStats(num, verbose, duration, voronoi);
 		
 		if (draw) drawDiagram(num, canvasSize, voronoi);
 	}
 
-	private static void printStats(int num, long dur, Voronoi voronoi) {
+	private static void printStats(int num, boolean verbose, long dur, Voronoi voronoi) {
 		double time = dur*0.000000001;
+		
+		if (!verbose) {
+			System.out.println(num+", "+time);
+			return;
+		}
+		
 		System.out.println(num+", "+time+"     [sites="+voronoi.getSites().size()+", verts="+voronoi.getVertices().size()+", edges="+voronoi.getEdges().size()+"]");
 		System.out.println(Vec2.ALLOCATION_COUNT+" Vec2's allocated");
 		

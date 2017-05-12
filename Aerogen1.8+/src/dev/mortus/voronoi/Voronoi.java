@@ -39,6 +39,10 @@ public class Voronoi {
 		return sites;
 	}
 	
+	public Site getSites(Vec2 pos) {
+		return sites.get(pos);
+	}
+	
 	public List<Edge> getEdges() {
 		return edges;
 	}

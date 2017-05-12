@@ -3,6 +3,7 @@ package dev.mortus.test;
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Graphics2D;
+import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
@@ -10,15 +11,16 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
+import java.util.Random;
 
-import dev.mortus.aerogen.SimulationChunk;
-import dev.mortus.aerogen.SimulationChunkLoader;
-import dev.mortus.aerogen.SimulationFrame;
+import dev.mortus.cells.CellChunk;
+import dev.mortus.cells.CellChunkLoader;
 import dev.mortus.chunks.ChunkLoader;
 import dev.mortus.chunks.ChunkManager;
 import dev.mortus.test.gui.View;
 import dev.mortus.test.gui.ViewerFrame;
 import dev.mortus.util.data.LinkedBinaryNode;
+import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Vec2;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
@@ -43,13 +45,19 @@ public class TestView extends View {
 		});
 	}
 	
-	boolean useChunkLoader = false;
+	@Override
+	protected void renderSettings(Graphics2D g2d) {
+		// Background Black
+		g2d.setBackground(new Color(0,0,0,255));
+	}
+	
+	boolean useChunkLoader = true;
 	
 	VoronoiBuilder voronoiBuilder;
 	VoronoiWorker voronoiWorker;
 	
-	ChunkLoader<SimulationChunk> chunkLoader;
-	ChunkManager<SimulationChunk> chunkManager;
+	ChunkLoader<CellChunk> chunkLoader;
+	ChunkManager<CellChunk> chunkManager;
 	
 	double seconds;
 	double printTime;
@@ -61,8 +69,8 @@ public class TestView extends View {
 		voronoiBuilder = new VoronoiBuilder();
 		
 		if (useChunkLoader) {
-			chunkLoader = new SimulationChunkLoader(100);
-			chunkManager = new ChunkManager<SimulationChunk>(chunkLoader, 100, SimulationFrame.NUM_WORKER_THREADS);
+			chunkLoader = new CellChunkLoader();
+			chunkManager = new ChunkManager<CellChunk>(chunkLoader, 3);
 		}
 	}
 
@@ -132,27 +140,28 @@ public class TestView extends View {
 		
 		if (voronoiWorker != null) {
 			if (voronoiWorker.isDone()) {
-				voronoiWorker.debugDraw(g2d);
-//				Voronoi v = voronoiWorker.getResult();
-//				Random r = new Random(0);
-//				
-//				for (Site site : v.getSites().values()) {					
-//					// Draw shape
-//					g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
-//					Polygon poly = site.getPolygon();
-//					g2d.fill(poly.getShape2D());
-//					
-//					// Draw original point
-//					g2d.setColor(Color.WHITE);
-//					Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
-//					g2d.fill(sitePt);
-//					
-//					// Draw centroid
-//					g2d.setColor(Color.BLACK);
-//					Vec2 centroid = poly.getCentroid();
-//					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
-//					g2d.fill(siteCentroid);
-//				}
+//				voronoiWorker.debugDraw(g2d);
+				Voronoi v = voronoiWorker.getResult();
+				Random r = new Random(0);
+				
+				for (Site site : v.getSites().values()) {					
+					// Draw shape
+					g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
+					Polygon poly = site.getPolygon();
+					Shape polyShape = poly.getShape2D();
+					if (polyShape != null) g2d.fill(polyShape);
+					
+					// Draw original point
+					g2d.setColor(Color.WHITE);
+					Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
+					g2d.fill(sitePt);
+					
+					// Draw centroid
+					g2d.setColor(Color.BLACK);
+					Vec2 centroid = poly.getCentroid();
+					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
+					g2d.fill(siteCentroid);
+				}
 			} else {
 				voronoiWorker.debugDraw(g2d);
 			}

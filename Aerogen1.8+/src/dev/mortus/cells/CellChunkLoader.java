@@ -7,14 +7,16 @@ import java.util.Map;
 import dev.mortus.chunks.ChunkLoader;
 
 public class CellChunkLoader extends ChunkLoader<CellChunk> {
-
-	double chunkSize;
 	
 	Map<Point, CellChunk> map;
 	
-	public CellChunkLoader(double chunkSize) {
-		this.chunkSize = chunkSize;
+	public CellChunkLoader() {
 		this.map = new HashMap<>();
+	}
+	
+	@Override
+	public double getChunkSize() {
+		return CellChunk.CHUNK_SIZE;
 	}
 	
 	@Override

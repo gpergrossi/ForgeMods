@@ -14,12 +14,13 @@ import dev.mortus.util.math.func2d.SimplexNoise2D;
 
 public class SimulationChunk extends Chunk {
 
-	public static long seed = 8964591453215L;
+	private static final long MAX_INTEGER = (long) Integer.MAX_VALUE;
+	public static long WORLD_SEED = 8964591453215L;
 	public static Function2D noise;
 	public static Function2D noise2;
 	
 	static {
-		Random r = new Random(seed);
+		Random r = new Random(WORLD_SEED);
 		noise = new FractalNoise2D(r.nextLong(), 1.0/4096.0, 4, 0.5);
 		noise2 = new SimplexNoise2D(r.nextLong(), 1.0/512.0);
 	}
@@ -41,10 +42,11 @@ public class SimulationChunk extends Chunk {
 		this.img = new BufferedImage(imgSize, imgSize, BufferedImage.TYPE_INT_ARGB);
 	}
 	
-	public long getSeed() {
-		Random r = new Random(seed);
-		long x = (chunkX * r.nextInt(Integer.MAX_VALUE)) % Integer.MAX_VALUE;
-		long y = (chunkY * r.nextInt(Integer.MAX_VALUE)) % Integer.MAX_VALUE;
+	
+	public long getSeed(long worldSeed) {
+		Random r = new Random(worldSeed);
+		long x = (chunkX * (long) r.nextInt(Integer.MAX_VALUE)) % MAX_INTEGER;
+		long y = (chunkY * (long) r.nextInt(Integer.MAX_VALUE)) % MAX_INTEGER;
 		
 		r.setSeed(x ^ (y << 32) ^ r.nextLong());
 		return r.nextLong();			
@@ -61,7 +63,7 @@ public class SimulationChunk extends Chunk {
 
 	@Override
 	public void load() {
-		Random r = new Random(getSeed());
+		Random r = new Random(getSeed(WORLD_SEED));
 		
 		bounds = new Rectangle2D.Double(chunkX*chunkSize, chunkY*chunkSize, chunkSize, chunkSize);
 		double x = r.nextDouble()*(chunkSize-10) + chunkX*chunkSize + 5;

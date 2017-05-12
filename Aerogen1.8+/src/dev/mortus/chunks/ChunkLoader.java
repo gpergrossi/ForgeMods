@@ -7,5 +7,9 @@ public abstract class ChunkLoader<T extends Chunk> {
 	public long getMaxChunkAge() {
 		return 0; // 120 = 2 seconds at 60 FPS
 	}
+
+	public double getChunkSize() {
+		return 200;
+	}
 	
 }

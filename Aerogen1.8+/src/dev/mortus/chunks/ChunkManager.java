@@ -59,17 +59,17 @@ public class ChunkManager<T extends Chunk> {
 	long currentViewIteration;				// Used to keep track of how long a chunk has been out of view
 	Point center = new Point(0,0);
 	
-	public ChunkManager(ChunkLoader<T> loader, double chunkSize) {
-		this(loader, chunkSize, 4, 40);
+	public ChunkManager(ChunkLoader<T> loader) {
+		this(loader, 4, 40);
 	}
 	
-	public ChunkManager(ChunkLoader<T> loader, double chunkSize, int numWorkers) {
-		this(loader, chunkSize, numWorkers, 40);
+	public ChunkManager(ChunkLoader<T> loader, int numWorkers) {
+		this(loader, numWorkers, 40);
 	}
 	
-	public ChunkManager(ChunkLoader<T> loader, double chunkSize, int numWorkers, int initialQueueSize) {
+	public ChunkManager(ChunkLoader<T> loader, int numWorkers, int initialQueueSize) {
 		this.loader = loader;
-		this.chunkSize = chunkSize;
+		this.chunkSize = loader.getChunkSize();
 		loadingQueue = new StochasticPriorityQueue<T>(initialQueueSize, CLOSEST_CHUNK_FIRST);
 		unloadingQueue = new StochasticPriorityQueue<T>(initialQueueSize, FARTHEST_CHUNK_FIRST);
 		loadedChunks = new StochasticPriorityQueue<T>(initialQueueSize, OLDEST_CHUNK_FIRST);
