@@ -126,6 +126,7 @@ public class CellChunk extends Chunk {
 				g.drawRect(minX + x*16, minY + y*16, 16, 16);
 			}	
 		}
+		g.drawRect(minX, minY, 16, 16);
 		
 		g.setClip(null);
 	}

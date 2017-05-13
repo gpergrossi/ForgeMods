@@ -565,6 +565,7 @@ public final class BuildState {
 						System.out.println("Elapsed time: "+totalStepTimeInvested+" ms");
 					}
 					if (previousStep != FinishingStep.DONE) {
+						System.out.println();
 						System.out.println(currentFinishStep.message+"...");
 					}
 				}

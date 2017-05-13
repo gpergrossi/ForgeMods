@@ -8,10 +8,15 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Scanner;
 
 import javax.imageio.ImageIO;
+import javax.imageio.stream.FileImageOutputStream;
+import javax.imageio.stream.ImageOutputStream;
 
 import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Rect;
@@ -23,193 +28,415 @@ import dev.mortus.voronoi.VoronoiWorker;
 
 public class VoronoiTest {
 
-	private static Random r = new Random();
+	private static Random random = new Random();
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
+		
+		System.out.println("Sizes (Must choose 1):");
+		System.out.println("s - small  (16 points, 256 x 256 canvas)");
+		System.out.println("m - medium (256 points, 512 x 512 canvas)");
+		System.out.println("l - large  (16,384 points, 2048 x 2048 canvas)");
+		System.out.println("x - extra large (1,048,576 points, 8,192 x 8,192 canvas)");
+		System.out.println("i - iterate from 1,050,000 down to 10,000 in steps of -10,000 (drawing disabled)");
+		System.out.println();
+		System.out.println("Options (Can use any combination):");
+		System.out.println("v - verbose, multiple allowed");
+		System.out.println("g - constrain initial points to a grid (useful with lots of points to prevent overlap errors)");
+		System.out.println("o - runs humphrey's voronoi generator instead (for a timing comparison)"); 
+		System.out.println("    Humphrey should be faster because it is an approximation and does not");
+		System.out.println("    build a traversable graph, just a list of edges"); 
+		System.out.println();
+		System.out.println("Animation (Frame sequence based on order of characters seen):");
+		System.out.println("a - add a point to the center of the diagram");
+		System.out.println("r - relax, move all points to the centroid of their coronoi site and recreate the diagram");
+		System.out.println("f - frame, end the current frame and add it to an output gif");
+		System.out.println("c - capture current image to a file");
+		System.out.println(":<ms> - time between frames in ms, can only be set once! (default is ':41', ~24 fps)");
+		System.out.println();
 		
 		Scanner s = new Scanner(System.in);
 		String line = s.nextLine();
 		s.close();
 		
-		// command line letters:
-		// v - verbose
-		// d - draw an output image
-		// g - constrain points to a grid (useful with lots of points)
-		// s - small (20 points), 100x100 image
-		// m - medium (10,000 points), 5,000x5,000 image
-		// l - large (1,000,000 points), 10,000x10,000 image
-		// r - relax, multiple r's means multiple relax iterations
-		// o - also runs humphrey's voronoi generator for a timing comparison 
-		// (Humphrey's will be faster because it is an approximate diagram and only returns an edge list instead of a traversable diagram)
+		int frameTime = 41;
+		if (line.contains(":")) {
+			int i = line.indexOf(':');
+			String numStr = "";
+			while (true) {
+				i++;
+				if (i >= line.length()) break;
+				if (Character.isDigit(line.charAt(i))) numStr += line.charAt(i);
+				else break;
+			}
+			frameTime = Integer.parseInt(numStr);
+		}
 		
-		boolean verbose = line.contains("v");
-		boolean draw = line.contains("d");
+		int verbosity = countChars(line, 'v');
 		boolean grid = line.contains("g");
 		
-		int relax = 0, i = 0;
-		while ((i = line.indexOf('r', i)+1) > 0) relax++;
-		
-		int num = -1;
+		int num = 0;
 		double canvasSize = 10000;
-		if (line.contains("s")) { num = 20;		 canvasSize = 100;	 }
-		if (line.contains("m")) { num = 10000;	 canvasSize = 5000;	 }
-		if (line.contains("l")) { num = 1000000; canvasSize = 10000; }
+		if (line.contains("s")) { num = 16;		 canvasSize = 256;	 }
+		if (line.contains("m")) { num = 256;     canvasSize = 512;	 }
+		if (line.contains("l")) { num = 16384;	 canvasSize = 2048;	 }
+		if (line.contains("x")) { num = 1048576; canvasSize = 8192;	 }
+		if (line.contains("i")) { num = -1; 	 canvasSize = 10000; }
+		
+		StringBuilder sequenceBuilder = new StringBuilder(line.length());
+		for (int i = 0; i < line.length(); i++){
+			char c = line.charAt(i);
+			if (c == 'a' || c == 'r' || c == 'f' || c == 'c') sequenceBuilder.append(c);
+		}
+		String sequence = sequenceBuilder.toString();
+		
 		if (num != -1) {
-			test(num, canvasSize, verbose, draw, grid, relax);
-			if (line.contains("o")) test2(num, verbose);
+			if (line.contains("o")) test2(num, verbosity > 0);
+			else test(num, canvasSize, verbosity, grid, sequence, frameTime);
 			System.exit(0);
+		} else if (num != 0) {
+			if (line.contains("o")) {
+				for (num = 1050000; num > 0;  num -= 10000) test2(num, verbosity > 0);
+				System.exit(0);
+			} else {
+				for (num = 1050000; num > 0;  num -= 10000) test(num, canvasSize, verbosity, grid, "", 1000);
+			}
+		} else {
+			System.err.println("please specify a size!");
 		}
-		
-		if (line.contains("o")) {
-			for (num = 1050000; num > 0;  num -= 10000) test2(num, verbose);
-			System.exit(0);
-		}
-		
-		for (num = 1050000; num > 0;  num -= 10000) test(num, canvasSize, verbose, false, grid, 0);
 		
 	}
 	
-	private static void test(int num, double canvasSize, boolean verbose, boolean draw, boolean useGrid, int relax) {		
-		long start = 0, end = 0, duration = 0;
-		long update = 0;
-
-		Voronoi voronoi = null;
-		Voronoi.DEBUG_FINISH = verbose;
-		VoronoiBuilder vb = new VoronoiBuilder(num);
-		VoronoiWorker w = null;
-				
-		int grid = (int) Math.ceil(Math.sqrt(num));
-		double gridSize = canvasSize / grid;
-		
-		if (useGrid && verbose) System.out.println("Points constrained to "+grid+"x"+grid+" grid with tile size "+gridSize);
-		
-		if (relax < 0) relax = 0;
-		for (int re = 0; re <= relax; re++) {
-			
-			int numAttempts = 0;
-			boolean success = false;
-			
-			while (success == false && numAttempts < 10) {
-				numAttempts++;
-				if (verbose) System.out.println("GC...");
-				System.gc();
-				
-				if (re == 0) {
-					if (verbose) System.out.println("Generating "+num+" points...");
-					vb.setBounds(new Rect(0, 0, canvasSize, canvasSize));
-					
-					if (useGrid) {
-						int i = 0;
-						createPoints:
-						for (int x = 0; x < grid; x++) {
-							for (int y = 0; y < grid; y++) {
-								double px = x * gridSize + r.nextDouble()*(gridSize-Vec2.EPSILON*8) + Vec2.EPSILON*4;
-								double py = y * gridSize + r.nextDouble()*(gridSize-Vec2.EPSILON*8) + Vec2.EPSILON*4;
-								vb.addSite(new Vec2(px, py));
-								i++;
-								if (i >= num) break createPoints;
-							}
-						}
-					} else {
-						for (int i = 0; i < num; i++) {
-							double px = r.nextDouble()*canvasSize;
-							double py = r.nextDouble()*canvasSize;
-							vb.addSite(new Vec2(px, py));
-						}
-					}
-				}
-				
-				try {
-					
-					if (verbose) System.out.println("Constructing diagram...");
-					update = System.currentTimeMillis();
-					start = System.nanoTime();
-					
-					int numResponses = 0;
-					int numEventsProcessed = 0;
-					w = vb.getBuildWorker();
-					while (!w.isDone()) {
-						numEventsProcessed += w.doWork(1000);
-						if (verbose) {
-							numResponses++;
-							if (System.currentTimeMillis() - update > 500) {
-								System.out.println("Progress: "+w.getProgressEstimate()+" ("+numResponses+" returns, "+numEventsProcessed+" events)");
-								update = System.currentTimeMillis();
-								numResponses = 0;
-								numEventsProcessed = 0;
-							}
-						}
-					}
-					
-					success = true;			
-					
-				} catch (RuntimeException rx) {
-					System.out.println("FAIL");
-					rx.printStackTrace();
-				}
-			}
-			
-			voronoi = w.getResult();
-			
-			if (re+1 <= relax) {
-				System.out.println("Relaxing "+(re+1));
-				vb = new VoronoiBuilder(num);
-				vb.setBounds(new Rect(0, 0, canvasSize, canvasSize));
-				for (Site s : voronoi.getSites().values()) {
-					vb.addSite(s.getPolygon().getCentroid());
-				}
-			}
-			
+	private static int countChars(String line, char c) {
+		int count = 0;
+		for (int i = 0; i < line.length(); i++) {
+			if (line.charAt(i) == c) count++;
 		}
-		Voronoi.DEBUG_FINISH = false;
-		end = System.nanoTime();
-		duration = end-start;
-
-		printStats(num, verbose, duration, voronoi);
-		
-		if (draw) drawDiagram(num, canvasSize, voronoi);
+		return count;
 	}
 
-	private static void printStats(int num, boolean verbose, long dur, Voronoi voronoi) {
-		double time = dur*0.000000001;
+	private static void test(int numSites, double canvasSize, int verbosity, boolean useGrid, String sequence, int frameTime) throws IOException {		
+		Vec2.ALLOCATION_COUNT = 0;
+
+		BufferedImage frameImage = null;
+		ImageOutputStream gifOutput = null;
+		GifSequenceWriter gifWriter = null;
 		
-		if (!verbose) {
-			System.out.println(num+", "+time);
-			return;
+		if (sequence.contains("f")) {
+			File file = new File("animation.gif");
+			if (file.exists()) file.delete();
+			gifOutput = new FileImageOutputStream(file);
+			gifWriter = new GifSequenceWriter(gifOutput, BufferedImage.TYPE_INT_ARGB, frameTime, false);
 		}
 		
-		System.out.println(num+", "+time+"     [sites="+voronoi.getSites().size()+", verts="+voronoi.getVertices().size()+", edges="+voronoi.getEdges().size()+"]");
-		System.out.println(Vec2.ALLOCATION_COUNT+" Vec2's allocated");
+		VoronoiBuilder builder = new VoronoiBuilder(numSites);
+		builder.setBounds(new Rect(0, 0, canvasSize, canvasSize));
+
+		if (verbosity >= 1) System.out.println("Generating "+numSites+" points "+(useGrid ? "(grid constrained)" : "")+"...");
+		if (!useGrid) generateSitePoints(builder, numSites, canvasSize);
+		else generateSitePointsOnGrid(builder, numSites, canvasSize);
+
+		long startTime = System.nanoTime();
+		
+		if (verbosity >= 1) System.out.println("Constructing diagram...");
+		Voronoi voronoi = buildDiagram(builder, verbosity >= 3);
+
+		int relaxCount = 0;
+		int captureCount = 0;
+		int frameCount = 0;
+		int relaxAddPoints = 0; 
+		
+		for (int i = 0; i < sequence.length(); i++) {
+			char command = sequence.charAt(i);
+
+			boolean relax = false;
+			boolean frameToGif = false;
+			boolean frameToPng = false;
+			
+			switch (command) {
+				case 'a':	relaxAddPoints++;	break;
+				case 'r':	relax = true; 		break;
+				case 'f':	frameToGif = true;	frameCount++;	break;
+				case 'c':	frameToPng = true;	captureCount++;	break;
+			}
+			
+			if (relax) {
+				relaxCount++;
+				if (verbosity >= 1) System.out.println("Relaxing "+relaxCount+"...");
+				builder.clearSites(true);
+				for (Site s : voronoi.getSites().values()) {
+					builder.addSite(s.getPolygon().getCentroid());
+				}
+				double center = canvasSize/2;
+				double range = 0;
+				for (int j = 0; j < relaxAddPoints; j++) {
+					while (true) {
+						double x = center + random.nextDouble()*2.0*range - range;
+						double y = center + random.nextDouble()*2.0*range - range;
+						int index = builder.addSiteSafe(new Vec2(x, y));
+						if (index != -1) break;
+						range += 1;
+					}
+				}
+				relaxAddPoints = 0;
+				voronoi = buildDiagram(builder, verbosity >= 3);
+				frameImage = null;
+			}
+			
+			if (frameToGif || frameToPng) {
+				if (verbosity >= 1) System.out.println("Rendering image "+(frameCount+captureCount));
+				if (frameImage == null) frameImage = drawDiagram("relax-"+relaxCount, voronoi, canvasSize, createSizeHeatmapColoring(voronoi));
+				if (frameToGif) gifWriter.writeToSequence(frameImage);
+				if (frameToPng) ImageIO.write(frameImage, "PNG", new File("capture-"+captureCount+".png"));
+			}
+		}
+		
+		long runtimeNanos = System.nanoTime()-startTime;
+		double runtimeSeconds = runtimeNanos*0.000000001;
+		System.out.println(numSites+", "+runtimeSeconds);
+
+		if (verbosity >= 2) System.out.println(Vec2.ALLOCATION_COUNT+" Vec2's allocated");
+		
+		if (verbosity >= 2) printStats(voronoi, canvasSize);
+		if (sequence.contains("f")) {
+			gifWriter.close();
+			gifOutput.close();
+		}
+	}
+
+	private static void generateSitePoints(VoronoiBuilder builder, int num, double canvasSize) {
+		for (int i = 0; i < num; i++) {
+			double px = random.nextDouble()*canvasSize;
+			double py = random.nextDouble()*canvasSize;
+			builder.addSite(new Vec2(px, py));
+		}
+	}
+	
+	private static void generateSitePointsOnGrid(VoronoiBuilder builder, int num, double canvasSize) {
+		int grid = (int) Math.ceil(Math.sqrt(num));
+		double gridSize = canvasSize / grid;
+		int i = 0;
+		for (int x = 0; x < grid; x++) {
+			for (int y = 0; y < grid; y++) {
+				double px = x * gridSize + random.nextDouble()*(gridSize-Vec2.EPSILON*8) + Vec2.EPSILON*4;
+				double py = y * gridSize + random.nextDouble()*(gridSize-Vec2.EPSILON*8) + Vec2.EPSILON*4;
+				builder.addSite(new Vec2(px, py));
+				if (i++ >= num) return;
+			}
+		}
+	}
+	
+	private static Voronoi buildDiagram(VoronoiBuilder builder, boolean verbose) {
+		Voronoi.DEBUG_FINISH = verbose;
+		
+		Voronoi voronoi;
+		long lastPrint = System.currentTimeMillis();
+		int numResponses = 0;
+		int numEventsProcessed = 0;
+		VoronoiWorker w = builder.getBuildWorker();
+		
+		while (!w.isDone()) {
+			numEventsProcessed += w.doWork(1000);
+			if (verbose) {
+				numResponses++;
+				if (System.currentTimeMillis() - lastPrint > 500) {
+					System.out.println("Progress: "+w.getProgressEstimate()+" ("+numResponses+" returns, "+numEventsProcessed+" events)");
+					numResponses = 0;
+					numEventsProcessed = 0;
+					lastPrint = System.currentTimeMillis();
+				}
+			}
+		}
+
+		Voronoi.DEBUG_FINISH = false;
+		
+		voronoi = w.getResult();
+		if (verbose) System.out.println();
+		return voronoi;
+	}
+	
+	private static void printStats(Voronoi voronoi, double canvasSize) {
+
+		int numSites = voronoi.getSites().size();
+		int numVerts = voronoi.getVertices().size();
+		int numEdges = voronoi.getEdges().size();
+		
+		System.out.println();
+		System.out.println("====== Stats ======");
+		System.out.println("Sites: "+numSites);
+		System.out.println("Verts: "+numVerts);
+		System.out.println("Edges: "+numEdges);
+		System.out.println("V-E+F: "+(numVerts-numEdges+(numSites+1))+" (Should be 2 if perfect)");
 		
 		double edgesPerSite = 0;
+		int minEdges = Integer.MAX_VALUE;
 		int maxEdges = 0;
 		int[] numSitesPerEdgeCount = new int[20];
 		for (Site s : voronoi.getSites().values()) {
-			int numEdges = s.numEdges();
-			edgesPerSite += numEdges;
-			if (numEdges > maxEdges) maxEdges = numEdges;
-			if (numEdges >= numSitesPerEdgeCount.length) numSitesPerEdgeCount = Arrays.copyOf(numSitesPerEdgeCount, numEdges+1);
-			numSitesPerEdgeCount[numEdges]++;
+			int edges = s.numEdges();
+			edgesPerSite += edges;
+			maxEdges = Math.max(maxEdges, edges);
+			minEdges = Math.min(minEdges, edges);
+			if (edges >= numSitesPerEdgeCount.length) numSitesPerEdgeCount = Arrays.copyOf(numSitesPerEdgeCount, edges+5);
+			numSitesPerEdgeCount[edges]++;
 		}
+		numSitesPerEdgeCount = Arrays.copyOfRange(numSitesPerEdgeCount, minEdges, maxEdges+1);
 		edgesPerSite /= voronoi.getSites().size();
+
+		System.out.println();
+		System.out.println("----- Number of Sides per Site -----");
+		System.out.println("Average edges per site:  "+edgesPerSite);
+		System.out.println("Least edges on any site: "+minEdges);
+		System.out.println("Most edges on any site:  "+maxEdges);
+		printDistribution(numSitesPerEdgeCount, 40);
+
+		int i = 0;
+		double[] areas = new double[numSites];
+		double totalArea = 0, minArea = Double.MAX_VALUE, maxArea = 0;
+		for (Site s : voronoi.getSites().values()) {
+			double area = s.getPolygon().getArea();
+			areas[i++] = area;
+			totalArea += area;
+			minArea = Math.min(minArea, area);
+			maxArea = Math.max(maxArea, area);
+		}
+		double averageArea = (totalArea/numSites);
 		
-		System.out.println("Average edges per site: "+edgesPerSite);
-		System.out.println("Most edges on any site: "+maxEdges);
-		for (int i = 0; i < 20; i++) {
-			if (numSitesPerEdgeCount[i] == 0) continue;
-			System.out.println(i+", "+numSitesPerEdgeCount[i]);
+		int NUM_AREA_BUCKETS = 20;
+		int[] areaBuckets = new int[NUM_AREA_BUCKETS];
+		double areaBucketSize = (maxArea - minArea) / NUM_AREA_BUCKETS;
+		double areaVariance = 0;
+		for (i = 0; i < numSites; i++) {
+			double area = areas[i];
+			int bucket = (int) ((area - minArea) / areaBucketSize);
+			if (bucket == NUM_AREA_BUCKETS) bucket--;
+			areaBuckets[bucket]++;
+			double delta = area - averageArea;
+			areaVariance += (delta * delta);
+		}
+		areaVariance /= numSites;
+		double areaStdDev = Math.sqrt(areaVariance);
+		
+		System.out.println();
+		System.out.println("----- Area per Site -----");
+		System.out.println("Diagram area:  "+(canvasSize * canvasSize));
+		System.out.println("Site area sum: "+totalArea);
+		System.out.println("Avg area: "+averageArea);
+		System.out.println("Min area: "+minArea);
+		System.out.println("Max area: "+maxArea);
+		System.out.println("Variance: "+areaVariance);
+		System.out.println("Std. Dev: "+areaStdDev);
+		System.out.println();
+		System.out.println("Number of buckets: "+NUM_AREA_BUCKETS);
+		System.out.println("Bucket size: "+areaBucketSize);
+		printDistribution(areaBuckets, 40);
+	}
+	
+	private static void printDistribution(int[] buckets, int maxLineLength) {
+		int minBucket = 0; //Integer.MAX_VALUE;
+		int maxBucket = 0;
+
+		System.out.println("Bucket data: ");
+		for (int i = 0; i < buckets.length; i++) {
+			System.out.print(buckets[i]);
+			System.out.print(',');
+			minBucket = Math.min(minBucket, buckets[i]);
+			maxBucket = Math.max(maxBucket, buckets[i]);
+		}
+		System.out.println();
+		System.out.println("Distribution: ");
+		for (int i = 0; i < buckets.length; i++) {
+			double length = (double) (buckets[i] - minBucket) / (double) (maxBucket - minBucket);
+			int numChars = (int) (length*(maxLineLength+1));
+			if (numChars == (maxLineLength+1)) numChars--;
+
+			System.out.print('|');
+			for (int j = 0; j < numChars; j++) {
+				System.out.print('-');
+			}
+			System.out.println();
 		}
 	}
+	
+	private static interface DiagramColoring {
+		public Color getColor(Site s);
+		public boolean drawPoints();
+		public boolean drawCentroids();
+	}
+	
+	public static DiagramColoring RANDOM_COLORING = new DiagramColoring() {
+		public Color getColor(Site s) {
+			return Color.getHSBColor(random.nextFloat(), 1.0f, 0.5f + random.nextFloat()*0.5f);
+		}
+		public boolean drawPoints() { return true; }
+		public boolean drawCentroids() { return true; }
+	};
+	
+	private static DiagramColoring createSizeHeatmapColoring(Voronoi v) {
+		return new DiagramColoring() {
+			{ init(); }
+			
+			Map<Site, Double> sizeNorm;
+			
+			public void init() {
+				sizeNorm = new HashMap<>(v.numSites());
+				double minArea = Double.MAX_VALUE, maxArea = 0;
+				for (Site s : v.getSites().values()) {
+					double area = s.getPolygon().getArea();
+					minArea = Math.min(minArea, area);
+					maxArea = Math.max(maxArea, area);
+					sizeNorm.put(s, area);
+				}
+				double range = maxArea-minArea;				
+				for (Entry<Site, Double> e : sizeNorm.entrySet()) {
+					double area = e.getValue();
+					double brightness = (area - minArea) / range;
+					e.setValue(brightness);
+				}
+			}
+			
+			public Color getColor(Site s) {
+				float norm = (float) (double) sizeNorm.get(s);
+				
+				norm = 1.0f-norm;
+				
+				float hue = random.nextFloat();
+				float sat = 1.0f;
+				float bri = norm;
+				
+				// Heat map
+				if (norm < 0.1f) {
+					hue = 0.666666666f;
+					sat = 1;
+					bri = norm*10.0f;
+				} else if (norm > 0.9f) {
+					hue = 0.166666666f;
+					sat = 1.0f - ((norm - 0.9f) * 10f);
+					bri = 1;
+				} else {
+					norm = (norm - 0.1f) / 0.8f;
+					norm = (float) (((0.5-Math.cos(norm * Math.PI)*0.5) + norm) / 2.0);
+					hue = 0.666666666f + 0.5f*norm;
+					sat = 1;
+					bri = 1;
+				}
+				
+				return Color.getHSBColor(hue, sat, bri);
+			}
+			
+			public boolean drawPoints() { return false; }
+			public boolean drawCentroids() { return false; }
+		};
+	}
 
-	private static void drawDiagram(int num, double canvasSize, Voronoi v) {
-		double maxArea = (canvasSize*canvasSize / num) * 6;
-		int padding = (int) Math.ceil(canvasSize*0.05);
+	private static BufferedImage drawDiagram(String fileName, Voronoi v, double canvasSize, DiagramColoring coloring) {
+		int numSites = v.getSites().size();		
+		double maxArea = (canvasSize*canvasSize / numSites) * 6;
+		int padding = (int) Math.ceil(canvasSize*0.00);
 		BufferedImage image = new BufferedImage((int)canvasSize+padding*2, (int)canvasSize+padding*2, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2d = image.createGraphics();
 		g2d.translate(padding, padding);
 		
 		for (Site site : v.getSites().values()) {
-
 			Polygon poly = site.getPolygon();
 			double area = poly.getArea();
 			if (area <= 0 || area > maxArea || Double.isNaN(area)) {
@@ -218,32 +445,31 @@ public class VoronoiTest {
 			}
 			
 			// Draw shape
-			g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
+			g2d.setColor(coloring.getColor(site));
 			Shape polyShape = poly.getShape2D();
 			if (polyShape != null) g2d.fill(polyShape);
 			
 			// Draw centroid
-			g2d.setColor(Color.BLACK);
-			Vec2 centroid = poly.getCentroid();
-			if (centroid != null) {
-				Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
-				g2d.fill(siteCentroid);
-				g2d.setColor(Color.WHITE);
-			} else {
+			if (coloring.drawCentroids()) {
 				g2d.setColor(Color.BLACK);
+				Vec2 centroid = poly.getCentroid();
+				if (centroid != null) {
+					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
+					g2d.fill(siteCentroid);
+					g2d.setColor(Color.WHITE);
+				} else {
+					g2d.setColor(Color.BLACK);
+				}
 			}
 			
 			// Draw original point
-			Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
-			g2d.fill(sitePt);
+			if (coloring.drawPoints()) {
+				Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
+				g2d.fill(sitePt);
+			}
 		}
 		
-		try {
-			ImageIO.write(image, "PNG", new File("output.png"));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		return image;
 	}
 	
 	private static void test2(int num, boolean verbose) {
@@ -258,8 +484,8 @@ public class VoronoiTest {
 				double[] xValuesIn = new double[num];
 				double[] yValuesIn = new double[num];
 				for (int i = 0; i < num; i++) {
-					xValuesIn[i] = r.nextDouble()*10000.0;
-					yValuesIn[i] = r.nextDouble()*10000.0;
+					xValuesIn[i] = random.nextDouble()*10000.0;
+					yValuesIn[i] = random.nextDouble()*10000.0;
 				}
 
 				if (verbose) System.out.println("Constructing diagram...");

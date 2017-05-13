@@ -35,6 +35,18 @@ public class VoronoiBuilder {
 		boundsAddPoint(point);
 		return index;
 	}
+	
+	public int addSiteSafe(Vec2 point) {
+		if (userBounds && !bounds.contains(point.x(), point.y())) {
+			return -1;
+		}
+		for (Vec2 s : sites) {
+			if (point.distanceTo(s) < Vec2.EPSILON*4) return -1;
+		}
+		int index = sites.put(point);
+		boundsAddPoint(point);
+		return index;
+	}
 
 	public void removeSite(Vec2 site) {
 		sites.remove(site);

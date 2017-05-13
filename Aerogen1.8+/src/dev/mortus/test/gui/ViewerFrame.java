@@ -6,7 +6,7 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
 
-import dev.mortus.test.TestView;
+import dev.mortus.test.GUITestView;
 
 public class ViewerFrame extends JFrame {
 
@@ -23,7 +23,7 @@ public class ViewerFrame extends JFrame {
 		setVisible(true);
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		
-		view = new TestView(10, 10, 100, 100);
+		view = new GUITestView(10, 10, 100, 100);
 		viewerPane = new ViewerPane(view);
 		view.setViewerPane(viewerPane);
 		
