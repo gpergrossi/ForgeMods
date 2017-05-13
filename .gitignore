@@ -1,1 +1,4 @@
 ..gitignore.un~
+aerogen/bin
+eclipse/RemoteSystemsTempFiles
+
