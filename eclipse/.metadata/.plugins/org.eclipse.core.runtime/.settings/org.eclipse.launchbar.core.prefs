@@ -1,6 +1,6 @@
 LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/arch=x86_64
 LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/os=win32
-configDescList=org.eclipse.launchbar.core.descriptorType.default\:VoronoiTest
+configDescList=org.eclipse.launchbar.core.descriptorType.default\:forge-1.11.2-13.20.0.2228-mdk_Server,org.eclipse.launchbar.core.descriptorType.default\:VoronoiTest (1),org.eclipse.launchbar.core.descriptorType.default\:VoronoiTest,org.eclipse.launchbar.core.descriptorType.default\:forge-1.11.2-13.20.0.2228-mdk_Client
 eclipse.preferences.version=1
 org.eclipse.launchbar.core.descriptorType.default\:VoronoiTest/activeLaunchMode=run
 org.eclipse.launchbar.core.descriptorType.default\:VoronoiTest/activeLaunchTarget=org.eclipse.launchbar.core.launchTargetType.local\:Local
