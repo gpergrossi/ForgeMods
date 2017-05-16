@@ -1,0 +1,7 @@
+package dev.mortus.aerogen;
+
+import net.minecraft.world.chunk.IChunkGenerator;
+
+public class GeneratorSky implements IChunkGenerator {
+
+}

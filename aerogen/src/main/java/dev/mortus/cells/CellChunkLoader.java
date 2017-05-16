@@ -25,7 +25,7 @@ public class CellChunkLoader extends ChunkLoader<CellChunk> {
 		
 		CellChunk chunk = map.get(pt);
 		if (chunk == null) {
-			chunk = new CellChunk(this, chunkX, chunkY);
+			chunk = new CellChunk(getManager(), chunkX, chunkY);
 			map.put(pt, chunk);
 		}
 		

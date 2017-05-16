@@ -1,0 +1,11 @@
+package dev.mortus.cells;
+
+public class Func2DVoronoi {
+
+	InfiniteVoronoi voronoi;
+	
+	public Func2DVoronoi(int chunkSize, long seed) {
+		this.voronoi = new InfiniteVoronoi(chunkSize, seed, 32);
+	}
+	
+}

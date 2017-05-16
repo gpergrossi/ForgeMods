@@ -1,0 +1,47 @@
+package dev.mortus.cells;
+
+import dev.mortus.voronoi.Site;
+
+public class Cell {
+
+	boolean loaded;
+	Site site;
+	long seed;
+	
+	int numNeighbors;
+	Cell[] neighbors;
+	
+	Cell(Site site, long seed) {
+		this.site = site;
+		this.seed = seed;
+		
+		this.numNeighbors = 0;
+		this.neighbors = new Cell[8];
+	}
+	
+	void addNeighbor(Cell c) {
+		neighbors[numNeighbors] = c;
+		numNeighbors++;
+	}
+	
+	void removeNeighbor(Cell c) {
+		neighbors[numNeighbors] = c;
+		numNeighbors++;
+	}
+	
+	void setLoaded() {
+		loaded = true;
+	}
+	
+	void clear() {
+		for (int i = 0; i < 8; i++) {
+			Cell n = neighbors[i];
+			n.removeNeighbor(this);
+		}
+		
+		site = null;
+		neighbors = null;
+		loaded = false;
+	}
+	
+}

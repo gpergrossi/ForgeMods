@@ -1,17 +1,21 @@
 package dev.mortus.chunks;
 
-import java.awt.Graphics2D;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public abstract class Chunk {
+public abstract class Chunk<T extends Chunk<T>> {
+	
+	protected ChunkManager<T> manager;
+	protected ChunkLoader<T> loader;
 	
 	long lastSeen;
 	boolean loaded, loading, unloading;
 	protected final int chunkX, chunkY;
-	protected final Lock lock = new ReentrantLock(true);
+	final Lock lock = new ReentrantLock(true);
 	
-	public Chunk(int chunkX, int chunkY) {
+	public Chunk(ChunkManager<T> manager, int chunkX, int chunkY) {
+		this.manager = manager;
+		this.loader = manager.getLoader();
 		this.chunkX = chunkX;
 		this.chunkY = chunkY;
 		loaded = false;
@@ -19,7 +23,6 @@ public abstract class Chunk {
 	
 	public abstract void load();
 	public abstract void unload();
-	public abstract void draw(Graphics2D g);
 	
 	boolean canLoad() {
 		return !loaded && !loading;
@@ -41,6 +44,7 @@ public abstract class Chunk {
 		load();
 		loaded = true;
 		loading = false;
+		this.notifyAll();
 	}
 	
 	protected synchronized void internalUnload() {
@@ -51,13 +55,14 @@ public abstract class Chunk {
 		unload();
 		loaded = false;
 		unloading = false;
+		this.notifyAll();
 	}
 	
 	public String toString() {
 		return "Chunk["+chunkX+","+chunkY+"]";
 	}
 	
-	public boolean equals(Chunk other) {
+	public boolean equals(Chunk<T> other) {
 		return this.chunkX == other.chunkX && this.chunkY == other.chunkY;
 	}
 	

@@ -1,0 +1,5 @@
+package dev.mortus.test.gui;
+
+public class View2DChunk extends Chunk {
+
+}

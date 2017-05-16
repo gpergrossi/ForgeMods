@@ -16,8 +16,8 @@ import java.util.Random;
 import dev.mortus.cells.CellChunk;
 import dev.mortus.cells.CellChunkLoader;
 import dev.mortus.chunks.ChunkLoader;
-import dev.mortus.chunks.ChunkManager;
 import dev.mortus.test.gui.View;
+import dev.mortus.test.gui.View2DChunkManager;
 import dev.mortus.test.gui.ViewerFrame;
 import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.util.math.geom.Polygon;
@@ -57,7 +57,7 @@ public class GUITestView extends View {
 	VoronoiWorker voronoiWorker;
 	
 	ChunkLoader<CellChunk> chunkLoader;
-	ChunkManager<CellChunk> chunkManager;
+	View2DChunkManager<CellChunk> chunkManager;
 	
 	double seconds;
 	double printTime;
@@ -70,7 +70,7 @@ public class GUITestView extends View {
 		
 		if (useChunkLoader) {
 			chunkLoader = new CellChunkLoader();
-			chunkManager = new ChunkManager<CellChunk>(chunkLoader, 3);
+			chunkManager = new View2DChunkManager<CellChunk>(chunkLoader, 3);
 		}
 	}
 
@@ -134,7 +134,8 @@ public class GUITestView extends View {
 		
 		if (useChunkLoader) { 
 			Rectangle2D bounds = this.getViewBounds();
-			chunkManager.update(bounds);
+			chunkManager.setView(bounds);
+			chunkManager.update();
 			chunkManager.draw(g2d);
 		}
 		

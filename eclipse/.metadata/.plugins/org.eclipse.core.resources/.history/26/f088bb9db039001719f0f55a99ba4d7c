@@ -1,0 +1,105 @@
+package dev.mortus.cells;
+
+import java.util.Iterator;
+
+import dev.mortus.util.math.geom.Polygon;
+
+public class Cell {
+	
+	boolean loaded;
+	long seed;
+	Polygon poly;
+	
+	private int modifyCount;
+	int numNeighbors;
+	Cell[] neighbors;
+	
+	Cell(long seed) {
+		this.seed = seed;
+	}
+	
+	public boolean isLoaded() {
+		return loaded;
+	}
+	
+	public long getSeed() {
+		return seed;
+	}
+	
+	public Polygon getPolygon() {
+		return poly;
+	}
+	
+	public Iterator<Cell> neighbors() {
+		return new Iterator<Cell>() {
+			private int indexOn = 0;
+			private int modifyCount = Cell.this.modifyCount;
+			
+			@Override
+			public boolean hasNext() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public Cell next() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+		};
+	}
+	
+	void setPolygon(Polygon poly) {
+		this.poly = poly;
+	}
+	
+	void internalAddNeighbor(Cell c) {
+		if (neighbors == null) {
+			numNeighbors = 0;
+			neighbors = new Cell[8];
+		} else {
+			for (int i = 0; i < numNeighbors; i++) {
+				if (neighbors[i] == c) return;
+			}
+		}
+		neighbors[numNeighbors] = c;
+		numNeighbors++;
+		modifyCount++;
+	}
+	
+	void addNeighbor(Cell c) {
+		this.internalAddNeighbor(c);
+		c.internalAddNeighbor(this);
+	}
+	
+	void removeNeighbor(Cell c) {
+		if (neighbors == null) return;
+		for (int i = 0; i < numNeighbors; i++) {
+			if (neighbors[i] == c) {
+				neighbors[numNeighbors-1] = null;
+				neighbors[i] = neighbors[numNeighbors-1];
+				numNeighbors--;
+				modifyCount++;
+				return;
+			}
+		}
+		return;
+	}
+	
+	void setLoaded() {
+		loaded = true;
+		modifyCount++;
+	}
+	
+	void delete() {
+		for (int i = 0; i < numNeighbors; i++) {
+			neighbors[i].removeNeighbor(this);
+		}
+		
+		poly = null;
+		neighbors = null;
+		loaded = false;
+		modifyCount++;
+	}
+	
+}

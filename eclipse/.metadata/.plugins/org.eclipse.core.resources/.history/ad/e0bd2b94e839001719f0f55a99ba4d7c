@@ -1,0 +1,75 @@
+package dev.mortus.cells;
+
+import java.awt.Point;
+import java.awt.geom.Point2D;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Random;
+
+import dev.mortus.cells.InfiniteVoronoi.Cell;
+import dev.mortus.util.math.geom.Polygon;
+
+public class Cell {		
+	
+	InfiniteVoronoi container;
+	int chunkX, chunkY;
+	
+	boolean initialized = false;
+	
+	long seed;
+	Point2D site;
+	
+	Cell[] neighbors;
+	
+	public Cell(InfiniteVoronoi container, Point chunkKey) {
+		this.container = container;
+		this.chunkX = chunkKey.x;
+		this.chunkY = chunkKey.y;
+		
+		this.seed = createSeed(chunkX, chunkY);
+		random.setSeed(seed);
+		double ptX = (chunkX+random.nextDouble())*container.gridSize;
+		double ptY = (chunkY+random.nextDouble())*container.gridSize;
+		this.site = new Point2D.Double(ptX, ptY);
+	}
+	
+	public void init() {
+		if (this.initialized) return;
+		this.neighbors = new Cell[9];
+		
+		int i = 0;
+		for (int iy = -1; iy <= 1; iy++) {
+			for (int ix = -1; ix <= 1; ix++) {
+				if (i == 4) { i++; continue; }
+				neighbors[i] = container.getCell(new Point(chunkX+ix, chunkY+iy), false);
+				i++;
+			}	
+		}
+		neighbors[4] = this;
+		
+		this.initialized = true;
+	}
+	
+	public Cell getClosestSite(double x, double y) {			
+		double lowestDistance = Double.MAX_VALUE;
+		Cell winner = null;
+		for (int i = 0; i < 9; i++) {
+			double dist = neighbors[i].site.distance(x, y);
+			if (dist < lowestDistance) {
+				lowestDistance = dist;
+				winner = neighbors[i];
+			}
+		}
+		return winner;
+	}
+	
+	private long createSeed(int chunkX, int chunkY) {
+		Random rand = new Random(container.globalSeed);
+		long rx = (chunkX * (long) rand.nextInt(Integer.MAX_VALUE)) % MAX_INTEGER;
+		long ry = (chunkY * (long) rand.nextInt(Integer.MAX_VALUE)) % MAX_INTEGER;
+		rand.setSeed(rx ^ (ry << 32) ^ rand.nextLong());
+		return rand.nextLong();	
+	}
+	
+}

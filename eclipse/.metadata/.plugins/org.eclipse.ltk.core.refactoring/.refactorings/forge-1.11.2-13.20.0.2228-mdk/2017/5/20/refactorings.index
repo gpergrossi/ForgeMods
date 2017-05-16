@@ -1,0 +1,28 @@
+1494769671500	Rename package 'aerogen'
+1494769675485	Move compilation unit
+1494769678720	Delete element
+1494770357086	Rename type 'ExampleMod'
+1494773453261	Delete element
+1494879622971	Move compilation unit
+1494884347822	Rename field 'viewBounds'
+1494889040346	Rename local variable 'c'
+1494889135306	Move compilation unit
+1494897386223	Rename field 'seed'
+1494901174154	Rename local variable 'tileY'
+1494901178685	Rename local variable 'tileX'
+1494901508719	Rename local variable 'tileX'
+1494901518758	Rename local variable 'tileY'
+1494902816174	Rename local variable 'tileX'
+1494902821690	Rename local variable 'tileY'
+1494902909606	Rename method 'getSeed'
+1494903489162	Rename type 'ChunkInfo'
+1494903499263	Rename method 'getChunkInfo'
+1494904588990	Delete element
+1494904600393	Rename type 'GridInfiniteVoronoi2D'
+1494904668638	Rename method 'getSiteInfo'
+1494905117888	Rename type 'LRUCache'
+1494905141756	Rename type 'LRUMap'
+1494905302874	Rename type 'SiteInfo'
+1494905329740	Rename method 'getSite'
+1494905336555	Rename method 'getSite'
+1494906538418	Rename field 'zoom'

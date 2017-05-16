@@ -1,0 +1,41 @@
+package dev.mortus.aerogen;
+
+import net.minecraft.world.DimensionType;
+import net.minecraft.world.WorldProviderSurface;
+import net.minecraft.world.chunk.IChunkGenerator;
+import net.minecraftforge.common.DimensionManager;
+
+public class WorldProviderSky extends WorldProviderSurface {
+
+	private static int SKY_DIMENSION_ID;
+	private static DimensionType SKY_DIMENSION_TYPE;
+	
+	static {
+		SKY_DIMENSION_ID = DimensionManager.getNextFreeDimId();
+		SKY_DIMENSION_TYPE = DimensionType.register("The Sky", "_sky", SKY_DIMENSION_ID, WorldProviderSky.class, false); 
+	}
+	
+	public WorldProviderSky() {
+		super();
+	}
+	
+	@Override
+	public DimensionType getDimensionType() {    	
+    	return SKY_DIMENSION_TYPE;
+	}
+
+	public int getDimensionID() {
+		return SKY_DIMENSION_ID;
+	}
+
+	@Override
+	public String getWelcomeMessage() {
+		return "Welcome to the Sky!";
+	}
+	
+	@Override
+	public IChunkGenerator createChunkGenerator() {
+		return new GeneratorSky(world);
+	}
+	
+}

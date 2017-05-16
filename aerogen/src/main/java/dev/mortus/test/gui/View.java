@@ -23,6 +23,8 @@ public abstract class View {
 	
 	private double viewX, viewY;
 	private double viewWidth, viewHeight;
+	private double viewZoom;
+	
 	private double driftVelocityX, driftVelocityY;
 	
 	private double slowZoom = 1.0;
@@ -45,6 +47,7 @@ public abstract class View {
 		this.viewY = y;
 		this.viewWidth = width;
 		this.viewHeight = height;
+		this.viewZoom = 1;
 		this.init();
 	}
 
@@ -72,7 +75,11 @@ public abstract class View {
 	public final double getViewY() { return viewY; }
 	public final double getViewWidth() { return viewWidth; }
 	public final double getViewHeight() { return viewHeight; }
-	public final Rectangle2D getViewBounds() { return new Rectangle2D.Double(viewX-viewWidth/2, viewY-viewHeight/2, viewWidth, viewHeight); }
+	public final Rectangle2D getViewBounds() { 
+		double extentX = viewWidth/viewZoom;
+		double extentY = viewHeight/viewZoom;
+		return new Rectangle2D.Double(viewX-extentX/2, viewY-extentY/2, extentX, extentY);
+	}
 
 	public final void startRecording() { this.viewerPane.startRecording(); }
 	public final void stopRecording() { this.viewerPane.stopRecording(); }
@@ -84,7 +91,10 @@ public abstract class View {
 	public Point2D screenToWorld(Point2D pt) { return this.viewerPane.screenToWorld(pt); }	
 	public Point2D worldToScreenVelocity(Point2D pt) { return this.viewerPane.worldToScreenVelocity(pt); }	
 	public Point2D screenToWorldVelocity(Point2D pt) { return this.viewerPane.screenToWorldVelocity(pt); }
-	
+
+	public double getViewZoom() { return viewZoom; }
+	protected double getMinZoom() { return 0.1; }
+	protected double getMaxZoom() { return 10; }
 	
 	public abstract void init();
 	public abstract void start();
@@ -264,16 +274,18 @@ public abstract class View {
 
 	void internalMouseScrolled(double clicks) {
 		if (!panning) {
-			double multiply = Math.pow(1.2, clicks);
-			viewWidth *= multiply;
-			viewHeight *= multiply;
+			double multiply = Math.pow(1.2, -clicks);
+			viewZoom *= multiply;
+			if (viewZoom > getMaxZoom()) viewZoom = getMaxZoom();
+			if (viewZoom < getMinZoom()) viewZoom = getMinZoom();
+			System.out.println("zoom = "+viewZoom);
 			if (viewerPane != null) viewerPane.needsViewUpdate = true;
 		}
 		
 		mouseScroll = clicks;
 		this.mouseScrolled();
 	}
-	
+
 	void internalKeyPressed(KeyEvent e) {
 		keyEvent = e;
 		this.keyPressed();
@@ -288,5 +300,4 @@ public abstract class View {
 		keyEvent = e;
 		this.keyTyped();
 	}
-
 }

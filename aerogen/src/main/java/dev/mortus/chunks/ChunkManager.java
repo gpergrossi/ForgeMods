@@ -1,8 +1,6 @@
 package dev.mortus.chunks;
 
-import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.geom.Rectangle2D;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Queue;
@@ -10,15 +8,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ChunkManager<T extends Chunk> {
+public abstract class ChunkManager<T extends Chunk<T>> {
 
-	private final Comparator<T> OLDEST_CHUNK_FIRST = new Comparator<T>() {
+	protected final Comparator<T> OLDEST_CHUNK_FIRST = new Comparator<T>() {
 		public int compare(T o1, T o2) {
 			return (int) (o1.lastSeen - o2.lastSeen);
 		}
 	};
 	
-	private final Comparator<T> CLOSEST_CHUNK_FIRST = new Comparator<T>() {
+	protected final Comparator<T> CLOSEST_CHUNK_FIRST = new Comparator<T>() {
 		public int compare(T o1, T o2) {
 			Point pt1 = new Point(o1.chunkX, o1.chunkY);
 			Point pt2 = new Point(o2.chunkX, o2.chunkY);
@@ -28,7 +26,7 @@ public class ChunkManager<T extends Chunk> {
 		}
 	};
 	
-	private final Comparator<T> FARTHEST_CHUNK_FIRST = new Comparator<T>() {
+	protected final Comparator<T> FARTHEST_CHUNK_FIRST = new Comparator<T>() {
 		public int compare(T o1, T o2) {
 			Point pt1 = new Point(o1.chunkX, o1.chunkY);
 			Point pt2 = new Point(o2.chunkX, o2.chunkY);
@@ -37,27 +35,25 @@ public class ChunkManager<T extends Chunk> {
 			return (int) (dist2 - dist1);
 		}
 	};
-	
-	ChunkLoader<T> loader;
-	double chunkSize;
-	
-	// Queue of chunks to be loaded (Use lock)
-	Queue<T> loadingQueue;		
-	Lock loadingQueueLock = new ReentrantLock(true);
-	
-	// Queue of chunks to be unloaded (Use lock)
-	Queue<T> unloadingQueue;	
-	Lock unloadingQueueLock = new ReentrantLock(true);
-	
-	// List of chunk sorted by age
-	Queue<T> loadedChunks;
-	Lock loadedChunksLock = new ReentrantLock(true);
 
-	Thread[] workers;
-	Object workAvailable = new Object();	// Notification object to tell worker threads of work
-	boolean workersRunning = false;			// Running condition for quick kill of worker threads
-	long currentViewIteration;				// Used to keep track of how long a chunk has been out of view
-	Point center = new Point(0,0);
+	protected Thread[] workers;
+	protected Object workAvailable = new Object();	// Notification object to tell worker threads of work
+	protected boolean workersRunning = false;			// Running condition for quick kill of worker threads
+	protected long currentViewIteration;				// Used to keep track of how long a chunk has been out of view
+	protected Point center = new Point(0,0);
+	
+	
+	protected ChunkLoader<T> loader;
+	protected double chunkSize;
+	
+	protected final Queue<T> loadingQueue;		// Queue of chunks to be loaded (Use lock)
+	protected Lock loadingQueueLock = new ReentrantLock(true);
+	
+	protected final Queue<T> unloadingQueue;	// Queue of chunks to be unloaded (Use lock)
+	protected Lock unloadingQueueLock = new ReentrantLock(true);
+	
+	protected final Queue<T> loadedChunks;		// List of chunk sorted by age
+	protected Lock loadedChunksLock = new ReentrantLock(true);	
 	
 	public ChunkManager(ChunkLoader<T> loader) {
 		this(loader, 4, 40);
@@ -80,16 +76,30 @@ public class ChunkManager<T extends Chunk> {
 			workers[i].setPriority(Thread.MIN_PRIORITY);
 		}
 		currentViewIteration = 0;
+		this.loader.setManager(this);
 	}
 	
+	/**
+	 * Start all worker threads
+	 */
 	public void start() {
 		startWorkers();
 	}
 	
+	/**
+	 * Stop all worker threads
+	 */
 	public void stop() {
 		stopWorkers();
 	}
+
+	public ChunkLoader<T> getLoader() {
+		return loader;
+	}
 	
+	/**
+	 * @return How many chunks are loaded?
+	 */
 	public int getNumLoaded() {
 		acquire("loadedChunks", loadedChunksLock);
 		int num = loadedChunks.size();
@@ -97,33 +107,57 @@ public class ChunkManager<T extends Chunk> {
 		return num;
 	}
 	
+	/**
+	 * Returns the chunk object for position x, y. Does not load it. See: loadChunk(), touch()
+	 */
 	public T getChunk(double x, double y) {
 		Point p = getChunkCoordinate(x, y);
 		return loader.getChunk(p.x, p.y);
 	}
 	
-	public void update(Rectangle2D viewBounds) {
-		Point upperLeft = getChunkCoordinate(viewBounds.getMinX(), viewBounds.getMinY());
-		Point lowerRight = getChunkCoordinate(viewBounds.getMaxX(), viewBounds.getMaxY());
-		int minX = upperLeft.x, minY = upperLeft.y;
-		int maxX = lowerRight.x, maxY = lowerRight.y;
-		
-		// For priority evaluation
-		int centerX = (minX + maxX) / 2;
-		int centerY = (minY + maxY) / 2;
-		center = new Point(centerX, centerY);
-		
+	/**
+	 * Queues the chunk for loading. See: getChunk(), unload(), touch()
+	 */
+	public void load(T chunk) {
+		queueLoad(chunk);
+		touch(chunk);
+	}
+	
+	/**
+	 * Queues the chunk for unloading. See: getChunk(), loadChunk()
+	 */
+	public void unload(T chunk) {
+		queueUnload(chunk);
+		touch(chunk);
+	}
+	
+	/**
+	 * Should touch all chunks that should continue to load or stay loaded. see touch()
+	 * update the 'center' variable for determining load and unload priority. center represents
+	 * the center of the visible area of chunks. chunks in the loading queue are more likely
+	 * to load first if they are closer, while chunks in the unloading queue are more likely
+	 * to unload first if they are farther.
+	 */
+	public abstract void touchAll();
+	
+	/**
+	 * Call once per update() to keep chunks "relevant". Relevant chunks will load and stay loaded
+	 * until they have gone some number of iterations without being touched. See: ChunkLoader.getMaxAge()
+	 */
+	public void touch(T chunk) {
+		chunk.lastSeen = currentViewIteration;
+		if (!chunk.isLoaded()) queueLoad(chunk);
+	}
+	
+	/**
+	 * Increases the age of all chunks and manages the loading and unloading queues
+	 */
+	public void update() {
 		// For unloading
 		currentViewIteration++;
 		
-		// Load new chunks / update lastSeen
-		for (int x = minX; x <= maxX; x++) {
-			for (int y = minY; y <= maxY; y++) {
-				T chunk = loader.getChunk(x, y);
-				chunk.lastSeen = currentViewIteration;
-				if (!chunk.isLoaded()) queueLoad(chunk);
-			}
-		}
+		// Touch currently in use chunks
+		touchAll();
 		
 		// Unload old chunks
 		acquire("loadedChunks", loadedChunksLock);
@@ -148,24 +182,15 @@ public class ChunkManager<T extends Chunk> {
 		}
 		release("loadingQueue", loadingQueueLock);
 	}
-	
-	public void draw(Graphics2D g) {
-		acquire("loadedChunks", loadedChunksLock);
-		Iterator<T> iterator = loadedChunks.iterator();
-		while (iterator.hasNext()) {
-			iterator.next().draw(g);
-		}
-		release("loadedChunks", loadedChunksLock);
-	}
 
-	private Point getChunkCoordinate(double x, double y) {
+	protected Point getChunkCoordinate(double x, double y) {
 		Point coord = new Point();
 		coord.x = (int) Math.floor(x / chunkSize);
 		coord.y = (int) Math.floor(y / chunkSize);
 		return coord;
 	}
 	
-	private void queueLoad(T chunk) {
+	protected void queueLoad(T chunk) {
 		if (!chunk.canLoad()) return;
 		
 		acquire("unloadingQueue/"+chunk, unloadingQueueLock, chunk.lock);
@@ -189,7 +214,7 @@ public class ChunkManager<T extends Chunk> {
 		release("loadingQueue/"+chunk, loadingQueueLock, chunk.lock);
 	}
 	
-	private void queueUnload(T chunk) {
+	protected void queueUnload(T chunk) {
 		if (!chunk.canUnload()) return;
 		
 		acquire("loadingQueue/"+chunk, loadingQueueLock, chunk.lock);
@@ -223,10 +248,10 @@ public class ChunkManager<T extends Chunk> {
 		//System.out.println("[ChunkManager] "+string);
 	}
 	
-	static void acquire(String resource, Lock... locks) {
+	protected static void acquire(String resource, Lock... locks) {
 		boolean allAcquired = false;
-		String msg = Thread.currentThread().getName()+" acquiring "+resource+" ("+locks.length+" locks)";
-		debug(msg);
+		debug(Thread.currentThread().getName()+" acquiring "+resource+" ("+locks.length+" locks)");
+		int sleepTime = 50;
 		while (!allAcquired) {
 			int i;
 			allAcquired = true;
@@ -246,26 +271,23 @@ public class ChunkManager<T extends Chunk> {
 				for (i--; i >= 0; i--) {
 					locks[i].unlock();
 				}
-				debug(Thread.currentThread().getName()+" acquire failed. ("+failed+") Yielding...");
+				debug(Thread.currentThread().getName()+" acquire failed. ("+failed+") Sleeping...");
 				try {
-					synchronized (failed) {
-						failed.wait();
-					}
-				} catch(InterruptedException e) {
+					Thread.sleep(sleepTime);
+				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
+				sleepTime *= 2;
+			} else {
+				sleepTime = 50;
 			}
 		}
 	}
 	
-	static void release(String resource, Lock... locks) {
-		String msg = Thread.currentThread().getName()+" releasing "+resource+" ("+locks.length+" locks)";
-		debug(msg);
-		for (Lock lock : locks) {
-			lock.unlock();
-			synchronized (lock) {
-				lock.notifyAll();
-			}
+	protected static void release(String resource, Lock... locks) {
+		debug(Thread.currentThread().getName()+" releasing "+resource+" ("+locks.length+" locks)");
+		for (int i = locks.length-1; i >= 0; i--) {
+			locks[i].unlock();
 		}
 	}
 	
@@ -300,7 +322,7 @@ public class ChunkManager<T extends Chunk> {
 		debug("Stopped.");
 	}
 	
-	private static class WorkerTask<T extends Chunk> implements Runnable {
+	private static class WorkerTask<T extends Chunk<T>> implements Runnable {
 		
 		ChunkManager<T> manager;
 		Job<T> myJob;
@@ -376,7 +398,7 @@ public class ChunkManager<T extends Chunk> {
 	 * Job class that represents a chunk related job returned 
 	 * by the WorkerTask getJob method and used by Tasks.
 	 */
-	private static class Job<T extends Chunk> {
+	private static class Job<T extends Chunk<T>> {
 		ChunkManager<T> manager;
 		
 		enum Type { UNASSIGNED, LOAD, UNLOAD };

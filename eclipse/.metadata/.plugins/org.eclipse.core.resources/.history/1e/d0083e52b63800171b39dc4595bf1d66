@@ -1,0 +1,16 @@
+[
+{
+  "modid": "AeroGen",
+  "name": "AeroGen mod",
+  "description": "Generates infinite floating islands",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["Mortus"],
+  "credits": "Forge API",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]

@@ -5,9 +5,12 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.Random;
 
-import dev.mortus.chunks.Chunk;
+import dev.mortus.chunks.ChunkManager;
+import dev.mortus.test.gui.View2DChunk;
+import dev.mortus.util.math.func2d.Function2D;
 import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
@@ -15,7 +18,7 @@ import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.VoronoiBuilder;
 
-public class CellChunk extends Chunk {
+public class CellChunk extends View2DChunk<CellChunk> {
 
 	private static final long MAX_INTEGER = (long) Integer.MAX_VALUE;
 	public static final double CHUNK_SIZE = 16*16;
@@ -30,7 +33,6 @@ public class CellChunk extends Chunk {
 		return r.nextLong();			
 	}
 	
-	CellChunkLoader loader;
 	Rect bounds;
 	long seed;
 	Vec2 site;
@@ -39,9 +41,10 @@ public class CellChunk extends Chunk {
 	Vec2[] sites;
 	long[] seeds;
 	
-	public CellChunk(CellChunkLoader loader, int chunkX, int chunkY) {
-		super(chunkX, chunkY);
-		this.loader = loader;
+	public static Function2D func2d = new Func2DVoronoi(CHUNK_SIZE, WORLD_SEED);
+	
+	public CellChunk(ChunkManager<CellChunk> manager, int chunkX, int chunkY) {
+		super(manager, chunkX, chunkY);
 	}
 
 	@Override
@@ -68,6 +71,25 @@ public class CellChunk extends Chunk {
 			vb.addSite(s);
 		}
 		voronoi = vb.build();
+		
+		if (func2d != null) {
+			int chunkSize = (int) CHUNK_SIZE;
+			noise = new BufferedImage(chunkSize, chunkSize, BufferedImage.TYPE_INT_ARGB);
+			int[] colors = new int[chunkSize*chunkSize];
+			noise.getRGB(0, 0, chunkSize, chunkSize, colors, 0, chunkSize);
+			i = 0;
+			for (int y = 0; y < CHUNK_SIZE; y++) {
+				for (int x = 0; x < CHUNK_SIZE; x++) {
+					double ptX = chunkX*CHUNK_SIZE+x;
+					double ptY = chunkY*CHUNK_SIZE+y;
+					double val = func2d.getValue(ptX, ptY);
+					int valI = (int) (val*255);
+					colors[i] = (255 << 24) | (valI << 16) | (valI << 8) | valI;
+					i++;
+				}
+			}
+			noise.setRGB(0, 0, chunkSize, chunkSize, colors, 0, chunkSize);
+		}
 	}
 	
 	protected Vec2 getSite() {
@@ -95,6 +117,7 @@ public class CellChunk extends Chunk {
 	
 	// For drawing
 	Rectangle2D drawBounds;
+	BufferedImage noise;
 	
 	@Override
 	public void draw(Graphics2D g) {
@@ -103,14 +126,14 @@ public class CellChunk extends Chunk {
 		if (voronoi != null) {
 			for (int i = 0; i < 9; i++) {
 				Site site = voronoi.getSites(sites[i]);
-				//long seed = seeds[i];
-				//Random r = new Random(seed);
+				long seed = seeds[i];
+				Random r = new Random(seed);
 				
 				// Draw shape
-				//g.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
+				g.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
 				Polygon poly = site.getPolygon();
 				Shape polyShape = poly.getShape2D();
-				if (polyShape != null) g.draw(polyShape);
+				if (polyShape != null) g.fill(polyShape);
 				
 				// Draw original point
 				g.setColor(Color.WHITE);
@@ -119,16 +142,26 @@ public class CellChunk extends Chunk {
 			}
 		}
 
+		g.setClip(null);
+
 		int minX = (int) bounds.minX();
 		int minY = (int) bounds.minY();
+		
+		if (noise != null) {
+			g.drawImage(noise, minX, minY, null);
+		}
+		
+		g.setColor(new Color(255, 255, 255, 16));
 		for (int x = 0; x < 16; x++) {
 			for (int y = 0; y < 16; y++) {
 				g.drawRect(minX + x*16, minY + y*16, 16, 16);
 			}	
 		}
-		g.drawRect(minX, minY, 16, 16);
 		
-		g.setClip(null);
+		g.setColor(Color.WHITE);
+		g.drawRect(minX, minY, (int) CHUNK_SIZE, (int) CHUNK_SIZE);
+		
+		
 	}
 
 }

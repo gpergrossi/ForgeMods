@@ -1,0 +1,9 @@
+package dev.mortus.test.gui;
+
+import java.awt.Graphics2D;
+
+public abstract class View2DChunk<T> extends Chunk<T> {
+
+	public abstract void draw(Graphics2D g);
+	
+}

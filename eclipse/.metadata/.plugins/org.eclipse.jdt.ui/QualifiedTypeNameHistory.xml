@@ -1,2 +1,56 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<qualifiedTypeNameHistroy/>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="net.minecraftforge.fml.common.IWorldGenerator"/>
+<fullyQualifiedTypeName name="net.minecraft.world.WorldProvider"/>
+<fullyQualifiedTypeName name="net.minecraft.world.DimensionType"/>
+<fullyQualifiedTypeName name="java.lang.IllegalArgumentException"/>
+<fullyQualifiedTypeName name="net.minecraftforge.fml.common.event.FMLServerStartingEvent"/>
+<fullyQualifiedTypeName name="java.util.ArrayList"/>
+<fullyQualifiedTypeName name="ibxm.Player"/>
+<fullyQualifiedTypeName name="net.minecraftforge.fml.common.registry.GameRegistry"/>
+<fullyQualifiedTypeName name="net.minecraft.world.WorldProviderSurface"/>
+<fullyQualifiedTypeName name="net.minecraftforge.common.DimensionManager"/>
+<fullyQualifiedTypeName name="net.minecraft.world.WorldServer"/>
+<fullyQualifiedTypeName name="net.minecraft.world.WorldSettings"/>
+<fullyQualifiedTypeName name="net.minecraft.world.storage.WorldInfo"/>
+<fullyQualifiedTypeName name="net.minecraft.world.chunk.IChunkGenerator"/>
+<fullyQualifiedTypeName name="dev.mortus.aerogen.WorldProviderSky"/>
+<fullyQualifiedTypeName name="dev.mortus.aerogen.GeneratorSky"/>
+<fullyQualifiedTypeName name="net.minecraft.world.chunk.Chunk"/>
+<fullyQualifiedTypeName name="net.minecraft.world.chunk.ChunkPrimer"/>
+<fullyQualifiedTypeName name="net.minecraft.init.Blocks"/>
+<fullyQualifiedTypeName name="dev.mortus.util.math.func2d.FractalNoise2D"/>
+<fullyQualifiedTypeName name="net.minecraft.command.CommandException"/>
+<fullyQualifiedTypeName name="net.minecraft.entity.player.EntityPlayer"/>
+<fullyQualifiedTypeName name="net.minecraft.entity.Entity"/>
+<fullyQualifiedTypeName name="dev.mortus.voronoi.Site"/>
+<fullyQualifiedTypeName name="dev.mortus.util.math.geom.Polygon"/>
+<fullyQualifiedTypeName name="java.util.Iterator"/>
+<fullyQualifiedTypeName name="org.apache.commons.lang3.concurrent.ConcurrentException"/>
+<fullyQualifiedTypeName name="java.util.ConcurrentModificationException"/>
+<fullyQualifiedTypeName name="java.lang.IllegalStateException"/>
+<fullyQualifiedTypeName name="dev.mortus.cells.Cell"/>
+<fullyQualifiedTypeName name="java.lang.NullPointerException"/>
+<fullyQualifiedTypeName name="java.util.NoSuchElementException"/>
+<fullyQualifiedTypeName name="dev.mortus.chunks.View2DChunkManager"/>
+<fullyQualifiedTypeName name="dev.mortus.chunks.Chunk"/>
+<fullyQualifiedTypeName name="dev.mortus.test.gui.View2DChunk"/>
+<fullyQualifiedTypeName name="javax.naming.ldap.ManageReferralControl"/>
+<fullyQualifiedTypeName name="dev.mortus.chunks.ChunkManager"/>
+<fullyQualifiedTypeName name="java.awt.image.BufferedImage"/>
+<fullyQualifiedTypeName name="java.util.Map"/>
+<fullyQualifiedTypeName name="java.util.HashMap"/>
+<fullyQualifiedTypeName name="java.awt.Point"/>
+<fullyQualifiedTypeName name="java.util.Set"/>
+<fullyQualifiedTypeName name="java.util.Map.Entry"/>
+<fullyQualifiedTypeName name="dev.mortus.cells.GridInfiniteVoronoi2D.ChunkInfo"/>
+<fullyQualifiedTypeName name="dev.mortus.cells.GridInfiniteVoronoi2D"/>
+<fullyQualifiedTypeName name="java.awt.geom.Point2D"/>
+<fullyQualifiedTypeName name="java.awt.geom.Point2D.Double"/>
+<fullyQualifiedTypeName name="java.util.LinkedHashMap"/>
+<fullyQualifiedTypeName name="dev.mortus.cells.LRUCache"/>
+<fullyQualifiedTypeName name="dev.mortus.cells.InfiniteVoronoi"/>
+<fullyQualifiedTypeName name="java.util.Random"/>
+<fullyQualifiedTypeName name="dev.mortus.util.math.func2d.Function2D"/>
+<fullyQualifiedTypeName name="dev.mortus.cells.Func2DVoronoi"/>
+</qualifiedTypeNameHistroy>

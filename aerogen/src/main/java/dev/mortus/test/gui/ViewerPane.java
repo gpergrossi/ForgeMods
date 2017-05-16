@@ -283,14 +283,16 @@ public class ViewerPane extends JPanel implements Runnable {
 	protected void updateViewTransform(boolean force) {
 		if (this.needsViewUpdate || force) {
 			worldToScreen.setTransform(freshTransform);
-			worldToScreen.scale(getWidth()/view.getViewWidth(),	getHeight()/view.getViewHeight());
+			worldToScreen.translate(getWidth()/2.0, getHeight()/2.0);
+			worldToScreen.scale(view.getViewZoom(), view.getViewZoom());
+			worldToScreen.scale(getWidth()/view.getViewWidth(), getHeight()/view.getViewHeight());
 			worldToScreen.translate(-view.getViewX(), -view.getViewY());
-			worldToScreen.translate(view.getViewWidth()/2, view.getViewHeight()/2);
 			
 			screenToWorld.setTransform(freshTransform);
-			screenToWorld.translate(-view.getViewWidth()/2, -view.getViewHeight()/2);
 			screenToWorld.translate(view.getViewX(), view.getViewY());
-			screenToWorld.scale(view.getViewWidth()/getWidth(), view.getViewHeight()/getHeight());
+			screenToWorld.scale(view.getViewWidth()/getWidth(),	view.getViewHeight()/getHeight());
+			screenToWorld.scale(1.0/view.getViewZoom(), 1.0/view.getViewZoom());
+			screenToWorld.translate(-getWidth()/2.0, -getHeight()/2.0);
 			
 			this.needsViewUpdate = false;
 		}
@@ -311,7 +313,7 @@ public class ViewerPane extends JPanel implements Runnable {
 	}
 	
 	public Point2D worldToScreenVelocity(Point2D pt) {
-		pt.setLocation(pt.getX()*getWidth()/view.getViewWidth(), pt.getY()*getHeight()/view.getViewHeight());
+		pt.setLocation(pt.getX()*(getWidth()/view.getViewWidth())*view.getViewZoom(), pt.getY()*(getHeight()/view.getViewHeight())*view.getViewZoom());
 		return pt;
 	}
 	
@@ -325,7 +327,7 @@ public class ViewerPane extends JPanel implements Runnable {
 	}
 	
 	public Point2D screenToWorldVelocity(Point2D pt) {
-		pt.setLocation(pt.getX()*view.getViewWidth()/getWidth(), pt.getY()*view.getViewHeight()/getHeight());
+		pt.setLocation(pt.getX()*(view.getViewWidth()/getWidth())/view.getViewZoom(), pt.getY()*(view.getViewHeight()/getHeight())/view.getViewZoom());
 		return pt;
 	}
 

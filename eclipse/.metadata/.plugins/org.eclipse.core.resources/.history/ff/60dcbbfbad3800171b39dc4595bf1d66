@@ -1,0 +1,20 @@
+package dev.mortus.aerogen;
+
+import net.minecraft.world.DimensionType;
+import net.minecraft.world.WorldProvider;
+import net.minecraftforge.common.DimensionManager;
+
+public class WorldProviderSky extends WorldProvider {
+
+	private static DimensionType dimensionType; 
+	
+    public static DimensionType getDimensionType() {
+    	dimensionType = DimensionType.register("The Sky", "_sky", 2, WorldProviderSky.class, false);
+    }
+	
+	@Override
+	public DimensionType getDimensionType() {
+		return Dimension
+	}
+
+}

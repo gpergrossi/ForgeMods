@@ -1,0 +1,58 @@
+package dev.mortus.cells;
+
+import dev.mortus.util.math.geom.Polygon;
+
+public class Cell {
+
+	boolean loaded;
+	long seed;
+	Polygon poly;
+	
+	int numNeighbors;
+	Cell[] neighbors;
+	
+	Cell(long seed) {
+		this.seed = seed;
+		
+		this.numNeighbors = 0;
+		this.neighbors = new Cell[8];
+	}
+	
+	void setPolygon(Polygon poly) {
+		this.poly = poly;
+	}
+	
+	boolean addNeighbor(Cell c) {
+		neighbors[numNeighbors] = c;
+		numNeighbors++;
+		return true;
+	}
+	
+	boolean removeNeighbor(Cell c) {
+		if (!loaded) return false;
+		for (int i = 0; i < numNeighbors; i++) {
+			if (neighbors[i] == c) {
+				neighbors[numNeighbors-1] = null;
+				neighbors[i] = neighbors[numNeighbors-1];
+				numNeighbors--;
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	void setLoaded() {
+		loaded = true;
+	}
+	
+	void delete() {
+		for (int i = 0; i < numNeighbors; i++) {
+			neighbors[i].removeNeighbor(this);
+		}
+		
+		poly = null;
+		neighbors = null;
+		loaded = false;
+	}
+	
+}

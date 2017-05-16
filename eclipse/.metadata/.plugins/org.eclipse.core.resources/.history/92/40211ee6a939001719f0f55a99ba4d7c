@@ -1,0 +1,67 @@
+package dev.mortus.aerogen;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.command.CommandException;
+import net.minecraft.command.ICommand;
+import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.WorldServer;
+
+public class CommandTest implements ICommand {
+
+	@Override
+	public int compareTo(ICommand arg0) {
+		return 0;
+	}
+
+	@Override
+	public String getName() {
+		return "test";
+	}
+
+	@Override
+	public String getUsage(ICommandSender sender) {
+		return "/test";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		List<String> aliases = new ArrayList<>();
+		aliases.add("test");
+		return aliases;
+	}
+
+	@Override
+	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+		WorldServer dim2 = server.worldServerForDimension(2);
+		
+		EntityPlayer p = (EntityPlayer) sender.getCommandSenderEntity();
+
+		System.out.println("From: "+p.getEntityWorld().getWorldType().getName());
+		System.out.println("To: "+dim2.getWorldType().getName());
+		
+		p.setPortal(p.getPosition().add(0, 0, 2));
+		p.changeDimension(2);
+		
+	}
+
+	@Override
+	public boolean checkPermission(MinecraftServer server, ICommandSender sender) {
+		return true;
+	}
+
+	@Override
+	public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos targetPos) {
+		return new ArrayList<>();
+	}
+
+	@Override
+	public boolean isUsernameIndex(String[] args, int index) {
+		return false;
+	}
+
+}
