@@ -25,8 +25,8 @@ public final class Event implements Comparable<Event> {
 	
 	private Event(Site site) {
 		this.type = Type.SITE;
-		this.x = site.x;
-		this.y = site.y;
+		this.x = site.point.x();
+		this.y = site.point.y();
 		this.site = site;
 		this.arc = null;
 		this.circle = null;

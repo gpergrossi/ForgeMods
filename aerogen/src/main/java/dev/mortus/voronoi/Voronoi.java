@@ -21,7 +21,7 @@ public class Voronoi {
 	
 	protected Rect bounds;
 	
-	protected Map<Vec2, Site> sites;
+	protected List<Site> sites;
 	protected List<Edge> edges;
 	protected List<Vertex> vertices;
 	
@@ -35,12 +35,12 @@ public class Voronoi {
 		return bounds;
 	}
 
-	public Map<Vec2, Site> getSites() {
+	public List<Site> getSites() {
 		return sites;
 	}
-	
-	public Site getSites(Vec2 pos) {
-		return sites.get(pos);
+
+	public Site getSite(int id) {
+		return sites.get(id);
 	}
 	
 	public List<Edge> getEdges() {
@@ -57,16 +57,16 @@ public class Voronoi {
 
 	
 	
-	private void setSites(Map<Vec2, Site> sites) {
-		this.sites = Collections.unmodifiableMap(sites);
+	private void setSites(List<Site> sites) {
+		this.sites = Collections.unmodifiableList(sites);
 	}
 
-	protected void setMutableSites(Vec2[] locations, Site[] sites) {
-		Map<Vec2, Site> map = new HashMap<Vec2, Site>(sites.length);
-		for (int i = 0; i < locations.length; i++) {
-			map.put(locations[i], sites[i]);
+	protected void setMutableSites(Site[] sitesArr) {
+		List<Site> sites = new ArrayList<>(sitesArr.length);
+		for (Site s : sitesArr) {
+			sites.add(s);
 		}
-		setSites(map);
+		setSites(sites);
 	}
 
 	private void setVertices(List<Vertex> vertices) {
@@ -91,6 +91,14 @@ public class Voronoi {
 			edges.add(e);
 		}
 		setEdges(edges);
+	}
+
+	public Voronoi relax(VoronoiBuilder builder) {
+		builder.clearSites(true);
+		for (Site s : sites) {
+			builder.addSite(s.getPolygon().getCentroid());
+		}
+		return builder.build();
 	}
 	
 }

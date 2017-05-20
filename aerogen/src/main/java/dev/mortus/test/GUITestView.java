@@ -12,13 +12,16 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.util.Random;
+import java.util.Scanner;
 
-import dev.mortus.cells.CellChunk;
-import dev.mortus.cells.CellChunkLoader;
-import dev.mortus.chunks.ChunkLoader;
-import dev.mortus.test.gui.View;
-import dev.mortus.test.gui.View2DChunkManager;
-import dev.mortus.test.gui.ViewerFrame;
+import dev.mortus.gui.View;
+import dev.mortus.gui.ViewerFrame;
+import dev.mortus.gui.chunks.InfiniteVoronoiChunk;
+import dev.mortus.gui.chunks.InfiniteVoronoiChunkLoader;
+import dev.mortus.gui.chunks.MinecraftViewChunk;
+import dev.mortus.gui.chunks.MinecraftViewChunkLoader;
+import dev.mortus.gui.chunks.ChunkLoader;
+import dev.mortus.gui.chunks.View2DChunkManager;
 import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Vec2;
@@ -29,20 +32,28 @@ import dev.mortus.voronoi.VoronoiWorker;
 
 public class GUITestView extends View {
 	
+	public static ViewerFrame frame;
+	
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) {		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ViewerFrame frame = new ViewerFrame(new GUITestView(0, 0, 1024, 768));
+					System.setProperty("sun.java2d.opengl", "true");
+					frame = new ViewerFrame(new GUITestView(0, 0, 1024, 768));
 					frame.setVisible(true);
 				} catch(Exception e) {
 					e.printStackTrace();
 				}
 			}
 		});
+	}
+	
+	@Override
+	protected double getMinZoom() {
+		return 0.005;
 	}
 	
 	@Override
@@ -55,9 +66,11 @@ public class GUITestView extends View {
 	
 	VoronoiBuilder voronoiBuilder;
 	VoronoiWorker voronoiWorker;
-	
-	ChunkLoader<CellChunk> chunkLoader;
-	View2DChunkManager<CellChunk> chunkManager;
+
+//	ChunkLoader<InfiniteVoronoiChunk> chunkLoader;
+//	View2DChunkManager<InfiniteVoronoiChunk> chunkManager;
+	ChunkLoader<MinecraftViewChunk> chunkLoader;
+	View2DChunkManager<MinecraftViewChunk> chunkManager;
 	
 	double seconds;
 	double printTime;
@@ -69,11 +82,15 @@ public class GUITestView extends View {
 		voronoiBuilder = new VoronoiBuilder();
 		
 		if (useChunkLoader) {
-			chunkLoader = new CellChunkLoader();
-			chunkManager = new View2DChunkManager<CellChunk>(chunkLoader, 3);
+//			chunkLoader = new InfiniteVoronoiChunkLoader(8964591453215L);
+//			chunkManager = new View2DChunkManager<InfiniteVoronoiChunk>(chunkLoader, 1);
+			chunkLoader = new MinecraftViewChunkLoader(8964591453215L);
+			chunkManager = new View2DChunkManager<MinecraftViewChunk>(chunkLoader, 1);
 		}
 	}
 
+	
+	
 	@Override
 	public void init() {}
 	
@@ -94,43 +111,42 @@ public class GUITestView extends View {
 		printTime += secondsPassed;
 		if (printTime > 1) {
 			printTime -= 1;
-			if (useChunkLoader) System.out.println("Loaded chunks = "+chunkManager.getNumLoaded());
-			System.out.println("FPS = "+getFPS());
+			frame.setTitle("FPS = "+String.format("%.2f", getFPS()));
 		}
 	}
 	
 	@Override
 	public void drawWorld(Graphics2D g2d) {
-		// Clock dots
-		g2d.setColor(Color.WHITE);
-		for (int i = 0; i < 60; i++) {
-			double an = i * (Math.PI / 30.0);
-			double ew = 5, eh = 5;
-			double ex = Math.cos(an)*100-ew/2;
-			double ey = Math.sin(an)*100-eh/2;
-			Ellipse2D ellipse = new Ellipse2D.Double(ex, ey, ew, eh);
-
-			if (ellipse.contains(mX, mY)) g2d.setColor(Color.YELLOW);
-			g2d.fill(ellipse);
-			g2d.setColor(Color.WHITE);
-		}
-		
-		// Clock center
-		Ellipse2D.Double ellipse2 = new Ellipse2D.Double(-5.0, -5.0, 10.0, 10.0);
-		if (ellipse2.contains(mX, mY)) g2d.setColor(Color.YELLOW);
-		g2d.fill(ellipse2);
-		g2d.setColor(Color.WHITE);
-		
-		// Clock hand
-		AffineTransform before = g2d.getTransform();
-		Path2D.Double path = new Path2D.Double();
-		path.moveTo(100, 0);
-		path.lineTo(0, 2);
-		path.lineTo(0, -2);
-		path.closePath();
-		g2d.rotate(seconds*(Math.PI / 30.0));
-		g2d.fill(path);
-		g2d.setTransform(before);
+//		// Clock dots
+//		g2d.setColor(Color.WHITE);
+//		for (int i = 0; i < 60; i++) {
+//			double an = i * (Math.PI / 30.0);
+//			double ew = 5, eh = 5;
+//			double ex = Math.cos(an)*100-ew/2;
+//			double ey = Math.sin(an)*100-eh/2;
+//			Ellipse2D ellipse = new Ellipse2D.Double(ex, ey, ew, eh);
+//
+//			if (ellipse.contains(mX, mY)) g2d.setColor(Color.YELLOW);
+//			g2d.fill(ellipse);
+//			g2d.setColor(Color.WHITE);
+//		}
+//		
+//		// Clock center
+//		Ellipse2D.Double ellipse2 = new Ellipse2D.Double(-5.0, -5.0, 10.0, 10.0);
+//		if (ellipse2.contains(mX, mY)) g2d.setColor(Color.YELLOW);
+//		g2d.fill(ellipse2);
+//		g2d.setColor(Color.WHITE);
+//		
+//		// Clock hand
+//		AffineTransform before = g2d.getTransform();
+//		Path2D.Double path = new Path2D.Double();
+//		path.moveTo(100, 0);
+//		path.lineTo(0, 2);
+//		path.lineTo(0, -2);
+//		path.closePath();
+//		g2d.rotate(seconds*(Math.PI / 30.0));
+//		g2d.fill(path);
+//		g2d.setTransform(before);
 		
 		if (useChunkLoader) { 
 			Rectangle2D bounds = this.getViewBounds();
@@ -145,7 +161,7 @@ public class GUITestView extends View {
 				Voronoi v = voronoiWorker.getResult();
 				Random r = new Random(0);
 				
-				for (Site site : v.getSites().values()) {					
+				for (Site site : v.getSites()) {					
 					// Draw shape
 					g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
 					Polygon poly = site.getPolygon();
@@ -172,6 +188,23 @@ public class GUITestView extends View {
 				g2d.fill(ellipse);
 			}
 		}
+		
+//		Rect r = new Rect(-60, -40, 120, 80);
+//		g2d.draw(r.getShape2D());
+//		
+//		Vec2[] verts = new Vec2[4];
+//		verts[0] = new Vec2(getMouseWorldX()+20, getMouseWorldY());
+//		verts[1] = new Vec2(getMouseWorldX(), getMouseWorldY()+20);
+//		verts[2] = new Vec2(getMouseWorldX()-20, getMouseWorldY());
+//		verts[3] = new Vec2(getMouseWorldX()-20, getMouseWorldY()-20);
+//		Polygon tri = new Polygon(verts);
+//		
+//		if (tri.intersects(r)) g2d.fill(tri.getShape2D());
+//		else g2d.draw(tri.getShape2D());
+//		
+//		Rect r2 = new Rect(200, -5, 10, 10);
+//		if (tri.intersects(r2)) g2d.fill(r2.getShape2D());
+//		else g2d.draw(r2.getShape2D());
 		
 //		// Mouse velocity trail
 //		g2d.setColor(Color.WHITE);
@@ -251,13 +284,13 @@ public class GUITestView extends View {
 				voronoiWorker = voronoiBuilder.getBuildWorker();
 			} else if (voronoiWorker.isDone()) {
 				Voronoi v = voronoiWorker.getResult();
-				for (Site s : v.getSites().values()) {
+				for (Site s : v.getSites()) {
 					if (s.getPolygon().getArea() == 0) {
 						throw new RuntimeException("Zero Area!");
 					}
 				}
 				voronoiBuilder.clearSites(true);
-				for (Site s : v.getSites().values()) {
+				for (Site s : v.getSites()) {
 					voronoiBuilder.addSite(s.getPolygon().getCentroid());
 				}
 				voronoiWorker = voronoiBuilder.getBuildWorker();

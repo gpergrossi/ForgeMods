@@ -63,7 +63,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	}
 	
 	private void checkPossible() {
-		if ( arcLeft.getSite().y == arcRight.getSite().y &&  arcLeft.getSite().x > arcRight.getSite().x) {
+		if ( arcLeft.getSite().point.y() == arcRight.getSite().point.y() &&  arcLeft.getSite().point.x() > arcRight.getSite().point.x()) {
 			// The parabolas are exactly side by side, there is only one intersection between
 			// them and the X coordinates of the parabola's focii are in the wrong order for
 			// the requested breakpoint to exist.
@@ -77,8 +77,8 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	 * @return
 	 */
 	public Vec2 getDirection() {
-		double dy = arcRight.getSite().y - arcLeft.getSite().y;
-		double dx = arcRight.getSite().x - arcLeft.getSite().x;
+		double dy = arcRight.getSite().point.y() - arcLeft.getSite().point.y();
+		double dx = arcRight.getSite().point.x() - arcLeft.getSite().point.x();
 		
 		if (Math.abs(dy) < Vec2.EPSILON) {
 			if (Math.abs(dx) < Vec2.EPSILON) return new Vec2(0, 0);
@@ -97,9 +97,9 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 			return null;
 		}
 
-		Vec2 ptLeft = left.arcLeft.getSite().toVec2();
-		Vec2 ptCenter = left.arcRight.getSite().toVec2();
-		Vec2 ptRight = right.arcRight.getSite().toVec2();
+		Vec2 ptLeft = left.arcLeft.getSite().point;
+		Vec2 ptCenter = left.arcRight.getSite().point;
+		Vec2 ptRight = right.arcRight.getSite().point;
 		
 		// Check if these breakpoints diverge
 		Vec2 dirL = left.getDirection();
@@ -144,7 +144,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 		}
 		if (lastResult == null) {
 			// null occurs when sites are on the same y value and have no intersection of their "parabolas"
-			double x = (arcLeft.getSite().x + arcRight.getSite().x) / 2.0;
+			double x = (arcLeft.getSite().point.x() + arcRight.getSite().point.x()) / 2.0;
 			double y = state.getBounds().minY()-50000; // TODO this should actually be a backwards intersection to the top boundary, not an average position
 			lastResult = new Vec2(x, y);
 		}
@@ -164,7 +164,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 		Vec2 pos = this.getPosition(state);
 		
 		double posX;
-		if (pos == null) posX = (this.arcLeft.getSite().x + this.arcRight.getSite().x) / 2.0;
+		if (pos == null) posX = (this.arcLeft.getSite().point.x() + this.arcRight.getSite().point.x()) / 2.0;
 		else posX = pos.x();
 				
 		if (siteX <= posX) {

@@ -265,7 +265,7 @@ public final class BuildState {
 			g.setXORMode(Color.BLACK);
 			g.setColor(Color.WHITE);
 			for (Site s : sites) {
-				Ellipse2D sitedot = new Ellipse2D.Double(s.x-1, s.y-1, 2, 2);
+				Ellipse2D sitedot = new Ellipse2D.Double(s.point.x()-1, s.point.y()-1, 2, 2);
 				g.fill(sitedot);
 			}
 			g.setPaintMode();
@@ -273,7 +273,7 @@ public final class BuildState {
 			g.setColor(Color.BLACK);
 			for (Site s : sites) {				
 				g.setTransform(identity);
-				Point2D pt = new Point2D.Double(s.x, s.y);
+				Point2D pt = new Point2D.Double(s.point.x(), s.point.y());
 				transform.transform(pt, pt);
 				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
 				g.setTransform(transform);
@@ -312,13 +312,13 @@ public final class BuildState {
 			
 			// Draw sites and site labels			
 			for (Site s : sites) {
-				Ellipse2D sitedot = new Ellipse2D.Double(s.x-1, s.y-1, 2, 2);
+				Ellipse2D sitedot = new Ellipse2D.Double(s.point.x()-1, s.point.y()-1, 2, 2);
 				g.setColor(new Color(0,128,0));
 				if (isCircleEventPassed(s)) g.setColor(Color.RED);				
 				g.draw(sitedot);
 				
 				g.setTransform(identity);
-				Point2D pt = new Point2D.Double(s.x, s.y);
+				Point2D pt = new Point2D.Double(s.point.x(), s.point.y());
 				transform.transform(pt, pt);
 				g.setColor(new Color(0,255,0));
 				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
@@ -359,7 +359,7 @@ public final class BuildState {
 		
 		// Create Site objects and assign them an ID corresponding to their index in the siteLocations array
 		for (int i = 0; i < siteLocations.length; i++) {
-			sites[i] = new Site(this.voronoi, i, siteLocations[i].x(), siteLocations[i].y());
+			sites[i] = new Site(this.voronoi, i, siteLocations[i]);
 		}
 		
 		return sites;
@@ -704,6 +704,7 @@ public final class BuildState {
 	 */
 	private boolean createLinks() {
 		for (Edge edge : edges) {
+			if (edge == null) break;
 			for (Vertex vertex : edge.vertices) {
 				vertex.addEdge(edge);
 				for (Site site : edge.sites) {
@@ -731,13 +732,13 @@ public final class BuildState {
 		final double[] vertexAngles = new double[s.numVertices];
 		for (int i = 0; i < s.numVertices; i++) {
 			Vertex vert = s.vertices[i];
-			vertexAngles[i] = Vec2.angle(vert.x, vert.y, s.x, s.y);
+			vertexAngles[i] = Vec2.angle(vert.x, vert.y, s.point.x(), s.point.y());
 		}
 		
 		final double[] edgeAngles = new double[s.numEdges];
 		for (int i = 0; i < s.numEdges; i++) {
 			Vec2 center = s.edges[i].getCenter();
-			edgeAngles[i] = Vec2.angle(center.x(), center.y(), s.x, s.y);
+			edgeAngles[i] = Vec2.angle(center.x(), center.y(), s.point.x(), s.point.y());
 		}
 		
 		s.sortVertices(vertexAngles);
@@ -761,8 +762,8 @@ public final class BuildState {
 			Site closest = null;
 			double distance2 = Double.MAX_VALUE;
 			for (Site s : sites) {
-				double dx = s.x - corner.x;
-				double dy = s.y - corner.y;
+				double dx = s.point.x() - corner.x;
+				double dy = s.point.y() - corner.y;
 				double dist2 = dx*dx + dy*dy;
 				if (dist2 < distance2) {
 					distance2 = dist2;
@@ -804,7 +805,7 @@ public final class BuildState {
 	}
 
 	private boolean finishComplete() {
-		this.voronoi.setMutableSites(this.locations, this.sites);
+		this.voronoi.setMutableSites(this.sites);
 		this.voronoi.setMutableVertices(this.vertices);
 		this.voronoi.setMutableEdges(this.edges);
 		finished = true;

@@ -35,7 +35,7 @@ public class WorldProviderSky extends WorldProviderSurface {
 	
 	@Override
 	public IChunkGenerator createChunkGenerator() {
-		return new GeneratorSky(world);
+		return new ChunkProviderSky(world, 905780913L, "seaLevel:0");
 	}
 	
 }

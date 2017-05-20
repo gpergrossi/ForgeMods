@@ -103,5 +103,12 @@ public class Edge implements StorageItem, Comparable<Edge> {
 	public void clearStorageIndex(Storage<?> storage) {
 		if (this.storage == storage) this.storage = null;
 	}
+
+	public Site getNeighbor(Site site) {
+		if (sites.first == site) return sites.second;
+		if (sites.second == site) return sites.first;
+		System.err.println("Looking for "+site+" in "+sites);
+		return null;
+	}
 		
 }

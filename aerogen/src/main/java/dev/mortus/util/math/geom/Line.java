@@ -26,6 +26,7 @@ public class Line {
 	}
 	
 	public void get(Vec2 ptr, double t) {
+		if (ptr == null) return;
 		ptr.x = getX(t);
 		ptr.y = getY(t);
 	}
@@ -79,13 +80,13 @@ public class Line {
 	}
 
 	public boolean intersect(Vec2 ptr, Line other) {
-		Pair<Double> tValues = getIntersectTValues(this, other);
+		Pair<Double> tValues = getIntersectTValues(this, other, true);
 		if (tValues == null) return false;
 		get(ptr, tValues.first);
 		return true;
 	}
 	
-	private static Pair<Double> getIntersectTValues(Line first, Line second) {
+	private static Pair<Double> getIntersectTValues(Line first, Line second, boolean canFail) {
 		double deltaX = second.x - first.x;
 		double deltaY = second.y - first.y;
 		
@@ -96,10 +97,10 @@ public class Line {
 		double v = Vec2.cross(first.dx,  first.dy,  deltaX, deltaY) / det;
 		
 		// No collision if t values outside of [tmin(), tmax()]. However we use EPISLON to resolve rounding issues
-		System.out.println("u: "+u+" : ("+first.tmin() +", "+first.tmax() +")");
-		System.out.println("v: "+v+" : ("+second.tmin()+", "+second.tmax()+")");
-		if (u+Vec2.EPSILON < first.tmin()  || u-Vec2.EPSILON > first.tmax() ) return null;
-		if (v+Vec2.EPSILON < second.tmin() || v-Vec2.EPSILON > second.tmax()) return null;
+		if (canFail) {
+			if (u+Vec2.EPSILON < first.tmin()  || u-Vec2.EPSILON > first.tmax() ) return null;
+			if (v+Vec2.EPSILON < second.tmin() || v-Vec2.EPSILON > second.tmax()) return null;
+		}
 	
 		// Given that u and v can be EPSILON away from the tmin() and tmax() values
 		// We must correct them, in order to prevent rounding errors elsewhere
@@ -109,6 +110,19 @@ public class Line {
 		v = Math.min(v, second.tmax());
 		
 		return new Pair<Double>(u, v); // u is the t value for the first line, v is for second
+	}
+	
+	public double closestPoint(Vec2 in, Vec2 out) {
+		Line line = new Line(in.x, in.y, this.dy, -this.dx);
+		Pair<Double> tvals = getIntersectTValues(this, line, false);
+		if (tvals == null) {
+			System.err.println("no closest point: "+this+" AND "+in);
+			return Double.POSITIVE_INFINITY;
+		} else {
+			out.x = this.getX(tvals.first);
+			out.y = this.getY(tvals.first);
+			return in.distanceTo(out);
+		}
 	}
 	
 
@@ -143,7 +157,7 @@ public class Line {
 	 */
 	public Pair<Line> slice(Line line) {
 		if (line == null) return new Pair<Line>(null, null);
-		Pair<Double> intersect = getIntersectTValues(this, line);
+		Pair<Double> intersect = getIntersectTValues(this, line, true);
 		
 		if (intersect == null) {
 			double deltaX = line.x - this.x;

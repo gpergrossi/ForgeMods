@@ -49,7 +49,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 	
 	public ShoreArc getArcUnderSite(final BuildState state, Site site) {
 		if (root == null) throw new RuntimeException("Tree has not yuet been initialized");
-		return root.getArc(state, site.x);
+		return root.getArc(state, site.point.x());
 	}
 		
 	public void draw(final BuildState state, Graphics2D g) {
@@ -113,7 +113,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			if (!(n instanceof ShoreArc)) continue;
 			ShoreArc arc = (ShoreArc) n;
 			
-			Function par = Quadratic.fromPointAndLine(arc.getSite().x, arc.getSite().y, state.getSweeplineY());
+			Function par = Quadratic.fromPointAndLine(arc.getSite().point.x(), arc.getSite().point.y(), state.getSweeplineY());
 			
 			Rect bounds = state.getBounds();
 			double minX = bounds.minX();

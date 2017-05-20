@@ -1,6 +1,8 @@
 package dev.mortus.voronoi;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
 import dev.mortus.util.math.geom.Polygon;
@@ -9,8 +11,8 @@ import dev.mortus.util.math.geom.Vec2;
 public class Site implements Comparable<Site> {
 
 	public final Voronoi voronoi;
-	protected int id;
-	public final double x, y;
+	public int id;
+	public final Vec2 point;
 	
 	protected int numVertices;
 	protected Vertex[] vertices;
@@ -22,11 +24,10 @@ public class Site implements Comparable<Site> {
 	protected boolean isFinished;
 	protected boolean isClosed;
 
-	protected Site(Voronoi voronoi, int id, double x, double y) {
+	protected Site(Voronoi voronoi, int id, Vec2 sitePoint) {
 		this.voronoi = voronoi;
 		this.id = id;
-		this.x = x;
-		this.y = y;
+		this.point = sitePoint;
 		this.edges = new Edge[8];
 		this.vertices = new Vertex[8];
 	}
@@ -35,16 +36,42 @@ public class Site implements Comparable<Site> {
 		return numVertices;
 	}
 	
-	public Vertex[] getVertices() {
-		return vertices;
+	public Iterable<Vertex> getVertices() {
+		return new Iterable<Vertex>() {
+			public Iterator<Vertex> iterator() {
+				return new Iterator<Vertex>() {
+					int index = 0;
+					public boolean hasNext() {
+						return index < numVertices;
+					}
+					public Vertex next() {
+						if (index >= numVertices) throw new NoSuchElementException();
+						return vertices[index++];
+					}
+				};
+			}
+		};
 	}
 	
 	public int numEdges() {
 		return numEdges;
 	}
 	
-	public Edge[] getEdges() {
-		return edges;
+	public Iterable<Edge> getEdges() {
+		return new Iterable<Edge>() {
+			public Iterator<Edge> iterator() {
+				return new Iterator<Edge>() {
+					int index = 0;
+					public boolean hasNext() {
+						return index < numEdges;
+					}
+					public Edge next() {
+						if (index >= numEdges) throw new NoSuchElementException();
+						return edges[index++];
+					}
+				};
+			}
+		};
 	}
 	
 	private static final IntFunction<Vec2[]> Vec2ArrayAllocator = new IntFunction<Vec2[]>() {
@@ -62,15 +89,11 @@ public class Site implements Comparable<Site> {
 	}
 
 	public double getX() {
-		return x;
+		return point.x();
 	}
 	
 	public double getY() {
-		return y;
-	}
-
-	public Vec2 toVec2() {
-		return new Vec2(x, y);
+		return point.y();
 	}
 	
 	public boolean isClosed() {
@@ -148,18 +171,18 @@ public class Site implements Comparable<Site> {
 
 	@Override
 	public int compareTo(Site o) {		
-		if (y < o.y) return -1;
-		if (y > o.y) return 1;
-		
-		if (x < o.x) return -1;
-		if (x > o.x) return 1;
+		if (point.y() < o.point.y()) return -1;
+		if (point.y() > o.point.y()) return 1;
+
+		if (point.x() < o.point.x()) return -1;
+		if (point.x() > o.point.x()) return 1;
 		
 		return Integer.compare(this.hashCode(), o.hashCode());
 	}
 	
 	@Override
 	public String toString() {
-		return "Site[ID="+id+", X="+x+", Y="+y+"]";
+		return "Site[ID="+id+", X="+point.x()+", Y="+point.y()+"]";
 	}
 
 	public int getID() {

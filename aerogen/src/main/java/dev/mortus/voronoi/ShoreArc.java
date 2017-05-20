@@ -48,7 +48,7 @@ public class ShoreArc extends ShoreTreeNode {
 	}
 	
 	public Function getParabola(double sweeplineY) {
-		return Quadratic.fromPointAndLine(site.x, site.y, sweeplineY);
+		return Quadratic.fromPointAndLine(site.point.x(), site.point.y(), sweeplineY);
 	}
 
 	@Override
@@ -102,7 +102,7 @@ public class ShoreArc extends ShoreTreeNode {
 		if (intersection == null) return null;
 		
 		// Create the circle event
-		double radius = intersection.distanceTo(this.site.toVec2());
+		double radius = intersection.distanceTo(this.site.point);
 		Circle circle = new Circle(intersection.x(), intersection.y(), radius);
 		Event circleEvent = Event.createCircleEvent(this, circle);
 		this.setCircleEvent(circleEvent);
@@ -115,14 +115,14 @@ public class ShoreArc extends ShoreTreeNode {
 		ShoreArc leftArc = null;
 		ShoreArc rightArc = null;
 		
-		if (Math.abs(this.site.y - site.y) < Vec2.EPSILON) {
+		if (Math.abs(this.site.point.y() - site.point.y()) < Vec2.EPSILON) {
 			
 			// Y coordinates equal, single breakpoint between sites
 			leftArc = new ShoreArc(this.site);
 			rightArc = newArc = new ShoreArc(site);
 			
 			// Swap the arcs if not in the right order
-			if (this.site.x > site.x) {
+			if (this.site.point.x() > site.point.x()) {
 				ShoreArc swap = leftArc;
 				leftArc = rightArc;
 				rightArc = swap;

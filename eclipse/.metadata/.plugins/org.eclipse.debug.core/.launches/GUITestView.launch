@@ -8,4 +8,5 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="dev.mortus.test.GUITestView"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="forge-1.11.2-13.20.0.2228-mdk"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xverify:none"/>
 </launchConfiguration>

@@ -1,4 +1,11 @@
 ..gitignore.un~
 aerogen/bin
 eclipse/RemoteSystemsTempFiles
+eclipse/.metadata
+eclipse/.recommenders
 aerogen/RemoteSystemsTempFiles
+aerogen/*.class
+aerogen/build/**
+aerogen/logs
+
+

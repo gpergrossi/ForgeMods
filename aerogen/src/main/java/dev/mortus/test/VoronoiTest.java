@@ -163,7 +163,7 @@ public class VoronoiTest {
 				relaxCount++;
 				if (verbosity >= 1) System.out.println("Relaxing "+relaxCount+"...");
 				builder.clearSites(true);
-				for (Site s : voronoi.getSites().values()) {
+				for (Site s : voronoi.getSites()) {
 					builder.addSite(s.getPolygon().getCentroid());
 				}
 				double center = canvasSize/2;
@@ -271,7 +271,7 @@ public class VoronoiTest {
 		int minEdges = Integer.MAX_VALUE;
 		int maxEdges = 0;
 		int[] numSitesPerEdgeCount = new int[20];
-		for (Site s : voronoi.getSites().values()) {
+		for (Site s : voronoi.getSites()) {
 			int edges = s.numEdges();
 			edgesPerSite += edges;
 			maxEdges = Math.max(maxEdges, edges);
@@ -292,7 +292,7 @@ public class VoronoiTest {
 		int i = 0;
 		double[] areas = new double[numSites];
 		double totalArea = 0, minArea = Double.MAX_VALUE, maxArea = 0;
-		for (Site s : voronoi.getSites().values()) {
+		for (Site s : voronoi.getSites()) {
 			double area = s.getPolygon().getArea();
 			areas[i++] = area;
 			totalArea += area;
@@ -380,7 +380,7 @@ public class VoronoiTest {
 			public void init() {
 				sizeNorm = new HashMap<>(v.numSites());
 				double minArea = Double.MAX_VALUE, maxArea = 0;
-				for (Site s : v.getSites().values()) {
+				for (Site s : v.getSites()) {
 					double area = s.getPolygon().getArea();
 					minArea = Math.min(minArea, area);
 					maxArea = Math.max(maxArea, area);
@@ -436,7 +436,7 @@ public class VoronoiTest {
 		Graphics2D g2d = image.createGraphics();
 		g2d.translate(padding, padding);
 		
-		for (Site site : v.getSites().values()) {
+		for (Site site : v.getSites()) {
 			Polygon poly = site.getPolygon();
 			double area = poly.getArea();
 			if (area <= 0 || area > maxArea || Double.isNaN(area)) {

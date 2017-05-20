@@ -41,7 +41,7 @@ public class VoronoiBuilder {
 			return -1;
 		}
 		for (Vec2 s : sites) {
-			if (point.distanceTo(s) < Vec2.EPSILON*4) return -1;
+			if (point.distanceTo(s) < 1) return -1;
 		}
 		int index = sites.put(point);
 		boundsAddPoint(point);

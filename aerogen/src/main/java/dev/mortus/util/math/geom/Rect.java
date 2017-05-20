@@ -1,6 +1,10 @@
 package dev.mortus.util.math.geom;
 
+import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Random;
 
 import dev.mortus.util.data.Pair;
 
@@ -94,6 +98,36 @@ public final class Rect {
 		this.height += padding*2;
 	}
 
+	public Iterable<LineSeg> edges() {
+		return new Iterable<LineSeg>() {
+			public Iterator<LineSeg> iterator() {
+				return new Iterator<LineSeg>() {
+					int index = 0;
+					Vec2[] vertices;
+					{
+						 vertices = new Vec2[4];
+						 vertices[0] = new Vec2(minX(), minY());
+						 vertices[1] = new Vec2(minX(), maxY());
+						 vertices[2] = new Vec2(maxX(), maxY());
+						 vertices[3] = new Vec2(maxX(), minY());
+					}
+					public boolean hasNext() {
+						return index < vertices.length;
+					}
+					public LineSeg next() {
+						if (index >= vertices.length) throw new NoSuchElementException();
+						Vec2 pt0 = vertices[index];
+						Vec2 pt1 = null;
+						index++;
+						if (index == vertices.length) pt1 = vertices[0]; 
+						else pt1 = vertices[index];
+						return new LineSeg(pt0.x, pt0.y, pt1.x, pt1.y);
+					}
+				};
+			}
+		};
+	}
+	
 	public Rectangle2D toRectangle2D() {
 		return new Rectangle2D.Double(x, y, width, height);
 	}
@@ -128,6 +162,50 @@ public final class Rect {
 	
 	public double centerY() {
 		return y + height/2;
+	}
+
+	public boolean intersects(Rect other) {
+		if (this.maxX() < other.minX()) return false;
+		if (this.minX() > other.maxX()) return false;
+		if (this.maxY() < other.minY()) return false;
+		if (this.minY() > other.maxY()) return false;
+		return true;
+	}
+	
+	public boolean intersects(Polygon poly) {
+		return poly.intersects(this);
+	}
+
+	public Rectangle2D getShape2D() {
+		return new Rectangle2D.Double(x, y, width, height);
+	}
+
+	public void toInt() {
+		this.x = Math.floor(minX());
+		this.y = Math.floor(minY());
+		this.width = Math.ceil(maxX())-x;
+		this.height = Math.ceil(maxY())-y;
+	}
+
+	public void toGrid(int gridWidth, int gridHeight) {
+		double minX = Math.floor(minX()/gridWidth)*gridWidth;
+		double minY = Math.floor(minY()/gridHeight)*gridHeight;
+		double maxX = Math.ceil(maxX()/gridWidth)*gridWidth;
+		double maxY = Math.ceil(maxY()/gridHeight)*gridHeight;
+		this.x = minX;
+		this.y = minY;
+		this.width = maxX-minX;
+		this.height = maxY-minY;
+	}
+
+	public double getArea() {
+		return width*height;
+	}
+
+	public Vec2 randomPoint(Random random) {
+		double x = this.x + random.nextDouble()*width;
+		double y = this.y + random.nextDouble()*height;
+		return new Vec2(x, y);
 	}
 	
 }
