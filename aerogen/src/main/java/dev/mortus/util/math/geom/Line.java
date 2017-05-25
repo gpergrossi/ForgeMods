@@ -21,8 +21,12 @@ public class Line {
 		return new Line(x, y, dx, dy);
 	}
 	
-	public LineSeg createLineSegment(double maxExtent) {
-		return new LineSeg(x - dx * maxExtent, y - dy * maxExtent, x + dx * maxExtent, y + dy * maxExtent);
+	public LineSeg toSegment(double tEnd) {
+		return new LineSeg(x - dx * tEnd, y - dy * tEnd, x + dx * tEnd, y + dy * tEnd);
+	}
+
+	public LineSeg toSegment(double tStart, double tEnd) {
+		return new LineSeg(getX(tStart), getY(tStart), getX(tEnd), getY(tEnd));
 	}
 	
 	public void get(Vec2 ptr, double t) {

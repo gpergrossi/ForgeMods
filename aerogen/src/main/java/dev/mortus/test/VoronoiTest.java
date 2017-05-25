@@ -42,9 +42,6 @@ public class VoronoiTest {
 		System.out.println("Options (Can use any combination):");
 		System.out.println("v - verbose, multiple allowed");
 		System.out.println("g - constrain initial points to a grid (useful with lots of points to prevent overlap errors)");
-		System.out.println("o - runs humphrey's voronoi generator instead (for a timing comparison)"); 
-		System.out.println("    Humphrey should be faster because it is an approximation and does not");
-		System.out.println("    build a traversable graph, just a list of edges"); 
 		System.out.println();
 		System.out.println("Animation (Frame sequence based on order of characters seen):");
 		System.out.println("a - add a point to the center of the diagram");
@@ -90,16 +87,9 @@ public class VoronoiTest {
 		String sequence = sequenceBuilder.toString();
 		
 		if (num != -1) {
-			if (line.contains("o")) test2(num, verbosity > 0);
-			else test(num, canvasSize, verbosity, grid, sequence, frameTime);
-			System.exit(0);
+			test(num, canvasSize, verbosity, grid, sequence, frameTime);
 		} else if (num != 0) {
-			if (line.contains("o")) {
-				for (num = 1050000; num > 0;  num -= 10000) test2(num, verbosity > 0);
-				System.exit(0);
-			} else {
-				for (num = 1050000; num > 0;  num -= 10000) test(num, canvasSize, verbosity, grid, "", 1000);
-			}
+			for (num = 1050000; num > 0;  num -= 10000) test(num, canvasSize, verbosity, grid, "", 1000);
 		} else {
 			System.err.println("please specify a size!");
 		}
@@ -470,37 +460,6 @@ public class VoronoiTest {
 		}
 		
 		return image;
-	}
-	
-	private static void test2(int num, boolean verbose) {
-		be.humphreys.simplevoronoi.Voronoi vor = new be.humphreys.simplevoronoi.Voronoi(0.0001);
-		boolean success = false;
-		long start = 0, end = 0;
-		
-		while (success == false) {
-			System.gc();
-			try {
-				if (verbose) System.out.println("Generating "+num+" points...");
-				double[] xValuesIn = new double[num];
-				double[] yValuesIn = new double[num];
-				for (int i = 0; i < num; i++) {
-					xValuesIn[i] = random.nextDouble()*10000.0;
-					yValuesIn[i] = random.nextDouble()*10000.0;
-				}
-
-				if (verbose) System.out.println("Constructing diagram...");
-				start = System.nanoTime();
-				vor.generateVoronoi(xValuesIn, yValuesIn, 0, 10000.0, 0, 10000.0);
-				end = System.nanoTime();
-				success = true;
-			} catch (RuntimeException re) {
-				System.out.println("FAIL");
-			}
-		}
-
-		long dur = end-start;
-		double time = dur*0.000000001;
-		System.out.println(num+", "+time);
 	}
 	
 }

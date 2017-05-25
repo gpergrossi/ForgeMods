@@ -52,7 +52,6 @@ public final class BuildState {
 	private ShoreTree shoreTree;
 	private GrowingStorage<Edge> edges;
 	private GrowingStorage<Vertex> vertices;
-	private Vec2[] locations;
 	private Site[] sites;
 	
 	private boolean initialized;
@@ -68,7 +67,6 @@ public final class BuildState {
 		// event Queue is initialized later because it is computationally expensive
 		// see the initialize() method, called by processNextEvent()
 		
-		this.locations = Arrays.copyOf(siteLocations, siteLocations.length);
 		this.sites = createSites(siteLocations);
 
 		this.voronoi = new Voronoi(bounds);

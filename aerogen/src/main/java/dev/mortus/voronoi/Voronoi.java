@@ -2,13 +2,9 @@ package dev.mortus.voronoi;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import dev.mortus.util.data.storage.GrowingStorage;
 import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
 
 public class Voronoi {
 

@@ -1,6 +1,5 @@
 package dev.mortus.util.math.geom;
 
-import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
 import java.util.Iterator;
 import java.util.NoSuchElementException;

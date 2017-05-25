@@ -13,7 +13,7 @@ public class LineSeg extends Line {
 		return new LineSeg(x, y, dx, dy);
 	}
 	
-	public LineSeg createLineSegment(double maxExtent) {
+	public LineSeg toSegment(double maxExtent) {
 		return this.copy();
 	}
 	
@@ -31,6 +31,10 @@ public class LineSeg extends Line {
 	
 	public Line toLine() {
 		return new Line(x, y, dx, dy);
+	}
+
+	public Ray toRay() {
+		return new Ray(x, y, dx, dy);
 	}
 	
 }

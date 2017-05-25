@@ -88,4 +88,11 @@ public class Pair<T> extends Tuple2<T,T> implements Iterable<T> {
 		return this.filter(elem -> other.contains(elem));
 	}
 	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Pair)) return false;
+		Pair<?> other = (Pair<?>) obj;
+		return first.equals(other.first) && second.equals(other.second);
+	}
+	
 }

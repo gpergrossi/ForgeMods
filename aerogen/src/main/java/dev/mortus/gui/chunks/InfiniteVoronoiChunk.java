@@ -6,14 +6,14 @@ import java.awt.Point;
 import java.awt.Shape;
 import java.util.Random;
 
-import dev.mortus.aerogen.cells.Cell;
+import dev.mortus.aerogen.world.voronoi.InfiniteCell;
 import dev.mortus.util.math.geom.Polygon;
 import dev.mortus.util.math.geom.Rect;
 
 public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 	
 	Rect bounds;
-	Cell cell;
+	InfiniteCell cell;
 	
 	Color color;
 	Shape shape;

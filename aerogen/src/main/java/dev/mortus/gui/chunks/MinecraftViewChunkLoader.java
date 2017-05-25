@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import dev.mortus.aerogen.regions.Region;
-import dev.mortus.aerogen.regions.RegionManager;
+import dev.mortus.aerogen.world.regions.Region;
+import dev.mortus.aerogen.world.regions.RegionManager;
 
 public class MinecraftViewChunkLoader extends ChunkLoader<MinecraftViewChunk> {
 	

@@ -1,11 +1,17 @@
 ..gitignore.un~
-aerogen/bin
 eclipse/RemoteSystemsTempFiles
 eclipse/.metadata
 eclipse/.recommenders
-aerogen/RemoteSystemsTempFiles
-aerogen/*.class
+aerogen/.gradle/**
+aerogen/.settings/**
+aerogen/.classpath
+aerogen/.project
+aerogen/aerogen_client.launch
+aerogen/aerogen_server.launch
+aerogen/bin
 aerogen/build/**
 aerogen/logs
-
+aerogen/run
+aerogen/RemoteSystemsTempFiles
+aerogen/*.class
 

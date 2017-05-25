@@ -6,9 +6,16 @@ import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
-import dev.mortus.aerogen.islands.Island;
-import dev.mortus.aerogen.regions.Region;
+import dev.mortus.aerogen.world.islands.Island;
+import dev.mortus.aerogen.world.islands.IslandShape;
+import dev.mortus.aerogen.world.islands.River;
+import dev.mortus.aerogen.world.islands.RiverCell;
+import dev.mortus.aerogen.world.islands.RiverWaterfall;
+import dev.mortus.aerogen.world.regions.Region;
+import dev.mortus.util.data.Int2D;
+import dev.mortus.util.math.geom.LineSeg;
 import dev.mortus.util.math.geom.Polygon;
+import dev.mortus.util.math.geom.Ray;
 import dev.mortus.util.math.geom.Rect;
 import dev.mortus.util.math.geom.Vec2;
 
@@ -68,15 +75,23 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 					float hue = r.nextFloat();
 					float bri = 1.0f;
 					
-					double maxEdge = island.getMaxEdgeDistance();
-					for (int x = 0; x < island.width(); x++) {
-						for (int z = 0; z < island.depth(); z++) {
-							if (!island.isIsland(x+island.minX(), z+island.minZ())) continue;
-							Color color = new Color(Color.HSBtoRGB(hue, 1, bri * (1.0f - (float)(island.getEdgeDistance(x+island.minX(), z+island.minZ())/maxEdge)) ));
-							g.setColor(color);
-							g.drawLine(x+island.minX(), z+island.minZ(), x+island.minX(), z+island.minZ());
-						}
-						Thread.yield();
+					IslandShape shape = island.getShape();
+
+					g.setColor(new Color(Color.HSBtoRGB(hue, 1, 1)));
+					g.drawString(""+island.getAltitudeLayer(), (shape.minX()+shape.maxX())/2, (shape.minZ()+shape.maxZ())/2);
+					
+					float maxEdge = shape.getMaxEdgeDistance();
+					for (Int2D.WithIndex tile : shape.range.getAllMutable()) {
+						if (tile.index % 100 == 0) Thread.yield();
+						if (!shape.contains(tile.x, tile.y)) continue;
+						
+						float edge = shape.getEdgeDistance(tile.x, tile.y);
+						
+						// Outlines guaranteed, interior speckled
+						if (edge > 1 && Math.random() < 0.9) continue;
+						
+						g.setColor(new Color(Color.HSBtoRGB(hue, 1, bri * (1.0f - edge/maxEdge))));
+						g.drawLine(tile.x, tile.y, tile.x, tile.y);
 					}
 					if (!alive) break;
 				}
@@ -117,10 +132,38 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 		if (islands != null)
 			g.drawImage(islands, imageX, imageY, null);
 		
-		for (Island island : region.getIslands()) {
-			if (!island.isComplete()) continue;
-			Rect bb = island.getBoundingBox();
-			g.draw(bb.getShape2D());
+//		for (Island island : region.getIslands()) {
+//			if (!island.isComplete()) continue;
+//			Rect bb = island.getShape().getBoundingBox();
+//			g.draw(bb.getShape2D());
+//		}
+		
+		float hue = 0;
+		g.setColor(Color.WHITE);
+		for (River river : region.getRivers()) {
+			for (RiverCell irc : river.getCells()) {
+				for (LineSeg seg : irc.getRiverCurve()) {
+					hue += 0.166f;
+					g.setColor(new Color(Color.HSBtoRGB(hue, 1, 1)));
+					g.drawLine((int) seg.getStartX(), (int) seg.getStartY(), (int) seg.getEndX(), (int) seg.getEndY());
+					
+					double ax = seg.getStartY() - seg.getEndY();
+					double ay = seg.getEndX() - seg.getStartX();
+					double l = Math.sqrt(ax*ax+ay*ay);
+					ax /= (l/2.0); ay /= (l/2.0);
+					
+					g.drawLine((int) seg.getEndX(), (int) seg.getEndY(), (int) (seg.getEndX()+ax), (int) (seg.getEndY()+ay));
+				}
+			}
+			g.setColor(Color.WHITE);
+			for (RiverWaterfall waterfall : river.getWaterfalls()) {
+				LineSeg seg = waterfall.getEdge();
+				g.drawLine((int) seg.getStartX(), (int) seg.getStartY(), (int) seg.getEndX(), (int) seg.getEndY());
+				
+				Ray ray = waterfall.getLocation();
+				seg = ray.toSegment(0.0, 5.0);
+				g.drawLine((int) seg.getStartX(), (int) seg.getStartY(), (int) seg.getEndX(), (int) seg.getEndY());
+			}
 		}
 		
 		g.setColor(Color.WHITE);

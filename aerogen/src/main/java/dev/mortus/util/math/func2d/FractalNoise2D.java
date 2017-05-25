@@ -29,18 +29,17 @@ public class FractalNoise2D implements Function2D {
 	public double getValue(double x, double y) {
 		double value = 0;
 		double dividend = 0;
-		double multiple = 0;
+		double multiple = 1;
 		for(int i = 0; i < octaves; i++) {
-			multiple = Math.pow(this.persistence, i+1);
 			value += generators[i].getValue(x, y)*multiple;
 			dividend += multiple;
+			multiple *= this.persistence;
 		}
 		return value/dividend;
 	}
 	
 	public void setPersistence(double persistence) {
 		this.persistence = persistence;
-		createGenerators();
 	}
 	
 	public void setFrequency(double frequency) {

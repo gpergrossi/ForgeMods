@@ -47,14 +47,8 @@ public class Edge implements StorageItem, Comparable<Edge> {
 		return false;
 	}
 	
-	
-	
-	
 	public LineSeg toLineSeg() {
-		if (lineSeg == null) {
-			lineSeg = new LineSeg(vertices.first.x, vertices.first.y, vertices.second.x, vertices.second.y);
-		}
-		return lineSeg;
+		return new LineSeg(vertices.first.x, vertices.first.y, vertices.second.x, vertices.second.y);
 	}
 	
 	public Vec2 getCenter() {

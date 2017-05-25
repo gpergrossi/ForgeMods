@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import dev.mortus.aerogen.cells.InfiniteVoronoi;
+import dev.mortus.aerogen.world.voronoi.InfiniteVoronoi;
 
 public class InfiniteVoronoiChunkLoader extends ChunkLoader<InfiniteVoronoiChunk> {
 	

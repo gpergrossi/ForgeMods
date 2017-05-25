@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">&#x0A;<refactoring comment="Delete resource &apos;forge-1.11.2-13.20.0.2228-mdk&apos;" deleteContents="false" description="Delete resource &apos;forge-1.11.2-13.20.0.2228-mdk&apos;" element1="/forge-1.11.2-13.20.0.2228-mdk" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1494714498194"/>&#x0A;<refactoring comment="Delete resource &apos;Aerogen1.8+&apos;" deleteContents="false" description="Delete resource &apos;Aerogen1.8+&apos;" element1="/Aerogen1.8+" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1494714829229"/>
-</session>
