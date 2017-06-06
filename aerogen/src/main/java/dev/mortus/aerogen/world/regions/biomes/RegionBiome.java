@@ -16,4 +16,18 @@ public abstract class RegionBiome {
 		return biomes.get(random.nextInt(biomes.size()));
 	}
 	
+	public int getIslandMinAltitude() {
+		return 64;
+	}
+	
+	public int getIslandMaxAltitude() {
+		return 128;
+	}
+	
+	public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
+		int altitude = random.nextInt(maxHeight-minHeight+1)+minHeight;
+		altitude += random.nextInt(maxHeight-minHeight+1)+minHeight;
+		return altitude / 2;
+	}
+	
 }

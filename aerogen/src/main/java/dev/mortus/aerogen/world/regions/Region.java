@@ -12,6 +12,7 @@ import dev.mortus.aerogen.world.islands.Island;
 import dev.mortus.aerogen.world.islands.IslandCell;
 import dev.mortus.aerogen.world.islands.River;
 import dev.mortus.aerogen.world.islands.RiverCell;
+import dev.mortus.aerogen.world.islands.biomes.IslandBiome;
 import dev.mortus.aerogen.world.regions.biomes.RegionBiome;
 import dev.mortus.aerogen.world.regions.biomes.RegionBiomes;
 import dev.mortus.aerogen.world.voronoi.InfiniteCell;
@@ -62,8 +63,8 @@ public class Region {
 		
 		System.out.println("Initializing "+this+" "+islands.size()+" islands");
 		
-		if (Region.DEBUG_VIEW) return;
-		biome = RegionBiomes.randomBiome(random);
+		if (regionCell.cellX == 0 && regionCell.cellY == 0) biome = RegionBiomes.START_AREA;
+		else biome = RegionBiomes.randomBiome(random);
 	}
 
 	private List<Site> createSubCells(double avgCellSize, int relax) {
@@ -321,9 +322,7 @@ public class Region {
 		this.numHeightLayers = 2*maxLayerUsed-2*minLayerUsed+1;
 		for (Island island : islands) {			
 			int layer = island.getAltitudeLayer(); 
-			if (layer == Island.LAYER_UNASSIGNED) {
-				island.setAltitudeLayer(random.nextInt(numHeightLayers));				
-			} else {
+			if (layer != Island.LAYER_UNASSIGNED) {
 				island.setAltitudeLayer(2*(layer-minLayerUsed));
 			}
 		}
@@ -370,6 +369,24 @@ public class Region {
 
 	public int numHeightLayers() {
 		return numHeightLayers;
+	}
+
+	public IslandBiome getIslandBiome(Island island, Random random) {
+		return biome.getRandomIslandBiome(random);
+	}
+
+	public int getAltitude(Island island, Random random) {
+		int minHeight = this.biome.getIslandMinAltitude();
+		int maxHeight = this.biome.getIslandMaxAltitude();
+		
+		if (island.getAltitudeLayer() != Island.LAYER_UNASSIGNED) {
+			int heightRange = maxHeight - minHeight + 1;
+			double heightPerLayer = heightRange / numHeightLayers();
+			minHeight = (int) (minHeight + island.getAltitudeLayer() * heightPerLayer);
+			maxHeight = (int) (minHeight + island.getAltitudeLayer() * heightPerLayer + heightPerLayer);
+		}
+		
+		return this.biome.getRandomIslandAltitude(random, minHeight, maxHeight);
 	}
 	
 }

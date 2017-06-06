@@ -9,8 +9,6 @@ import dev.mortus.aerogen.world.islands.biomes.IslandBiome;
 import dev.mortus.aerogen.world.regions.Region;
 import dev.mortus.util.data.Int2D;
 import dev.mortus.util.data.Int2DRange;
-import dev.mortus.util.math.func2d.FractalNoise2D;
-import dev.mortus.util.math.func2d.Function2D;
 import dev.mortus.util.math.geom.Ray;
 import dev.mortus.util.math.geom.Vec2;
 import net.minecraft.block.Block;
@@ -20,8 +18,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.ChunkPrimer;
-import net.minecraft.world.gen.feature.WorldGenBigTree;
-import net.minecraft.world.gen.feature.WorldGenTrees;
 
 public class Island {
 	
@@ -32,23 +28,17 @@ public class Island {
 	long seed;
 	Random random;
 	
-	List<IslandCell> cells;
-	
 	boolean constructed = false;
-	boolean built = false;
-	
-	IslandShape shape;
-	int altitudeLayer;
-	int altitude;
-	
-	IslandBiome biome;
+	boolean initialized = false;
 
-	int surfaceHeightMin;
-	int surfaceHeightMax;
-	int extendYDown;
-	Function2D noiseD;
-	Function2D noiseS;
-	double undersideSteepness;
+	IslandBiome biome;
+	IslandShape shape;
+	
+	protected int altitude;
+	IslandHeightmap heightmap;
+
+	int altitudeLayer;
+	List<IslandCell> cells;
 	
 	public Island(Region region, int regionIsleID, long seed) {
 		this.region = region;
@@ -79,129 +69,73 @@ public class Island {
 		this.altitudeLayer = altitudeLayer;
 	}
 	
-	public void build() {
+	public void initialize() {
 		if (!constructed) throw new IllegalStateException("Island needs to finishGrant() before being initialized");
-		if (built) return;
-		built = true;
-		
+		if (this.initialized) return;
+		this.initialized = true;
+
 		if (Region.DEBUG_VIEW) {
-			shape.build(random);
+			this.shape.erode(new IslandErosion(), random);
 			return;
 		}
+		
+		this.biome = region.getIslandBiome(this, random);
+		this.biome.generateShape(shape, random);
 
-		biome = region.getBiome().getRandomIslandBiome(random);
-		biome.generateShape(random, shape);
-				
-		int minHeight = 64;
-		int maxHeight = 128;
-		
-		if (altitudeLayer != LAYER_UNASSIGNED) {
-			int heightRange = maxHeight - minHeight + 1;
-			double heightPerLayer = heightRange / region.numHeightLayers();
-			maxHeight = (int) (minHeight + (this.altitudeLayer+1) * heightPerLayer);
-			minHeight = (int) (minHeight + this.altitudeLayer * heightPerLayer);
-		}
-		
-		altitude  = random.nextInt(maxHeight-minHeight+1)+minHeight;
-		altitude += random.nextInt(maxHeight-minHeight+1)+minHeight;
-		altitude /= 2;
-
-		extendYDown = (int) (shape.maxEdgeDistance*1.5);
-		surfaceHeightMin = -extendYDown/8;
-		surfaceHeightMax = extendYDown/4;
-		
-		int minY = altitude-extendYDown;
-		int maxY = altitude+surfaceHeightMax;
-		if (minY < 0) minY = 0;
-		if (maxY > 255) maxY = 255;
-		extendYDown = altitude-minY;
-		surfaceHeightMax = maxY-altitude;
-		if (surfaceHeightMin > surfaceHeightMax) surfaceHeightMin = surfaceHeightMax;
-		
-		noiseD = new FractalNoise2D(random.nextLong(), 1.0/64.0, 5, 0.6);
-		noiseS = new FractalNoise2D(random.nextLong(), 1.0/256.0, 5, 0.4);
-		undersideSteepness = 1.4;
-		
-		if (altitude < 63) undersideSteepness += 0.001 * (63-altitude);
-		undersideSteepness += 0.0005 * shape.maxEdgeDistance;
+		this.altitude = region.getAltitude(this, random);
+		this.heightmap = new IslandHeightmap(this);
+		this.heightmap.initialize(random);
 	}
 	
-	public boolean provideBiomes(int chunkX, int chunkZ, Biome[] biomes) {
-		Int2DRange chunkRange = new Int2DRange(chunkX*16, chunkZ*16, chunkX*16+15, chunkZ*16+15);
-		Int2DRange overlap = chunkRange.intersect(this.shape.range);
-		if (overlap.isEmpty()) return false;
-		this.build();
+	public void provideBiomes(Int2DRange range, int[] biomeIDs) {
+		Int2DRange overlap = range.intersect(this.shape.range);
+		if (overlap.isEmpty()) return;
+		this.initialize();
 		
-		return true;
+		for (Int2D tile : overlap.getAllMutable()) {
+			if (!shape.contains(tile)) continue;
+			int index = range.indexFor(tile);
+			biomeIDs[index] = Biome.getIdForBiome(this.biome);
+		}
 	}
+	
+	private static final IBlockState AIR = Blocks.AIR.getDefaultState();
 	
 	public boolean provideChunk(int chunkX, int chunkZ, ChunkPrimer primer, Biome[] biomes) {
 		Int2DRange chunkRange = new Int2DRange(chunkX*16, chunkZ*16, chunkX*16+15, chunkZ*16+15);
 		Int2DRange overlap = chunkRange.intersect(this.shape.range);
 		if (overlap.isEmpty()) return false;
-		this.build();
+		this.initialize();
 
-		for (Int2D.WithIndex tile : overlap.getAllMutable()) {
-			double edgeDistance = shape.getEdgeDistance(tile.x, tile.y);
-			double edgeWeight = edgeDistance/shape.maxEdgeDistance;
-			if (edgeWeight <= 0) continue;
+		for (Int2D tile : overlap.getAllMutable()) {
+			if (!shape.contains(tile)) continue;
 			
-			double d = (noiseD.getValue(tile.x, tile.y)*0.5 + 0.5);
-			double s = (noiseS.getValue(tile.x, tile.y)*0.5 + 0.5);
+			int startY = heightmap.getBottom(tile.x, tile.y);
+			int stopY = heightmap.getTop(tile.x, tile.y);
 			
-			// Start surface
-			double surface = ((surfaceHeightMax-surfaceHeightMin+1)*s + surfaceHeightMin);
-			
-			// Edge smoothing
-			double edgeSmoothing = 0;
-			if (edgeDistance > 3) edgeSmoothing = 1.0 - 1.0/(0.03*Math.pow(edgeDistance-3, 2)+1); 
-			
-			// River calculation
-			double riverDist = getShape().getRiverDistance(tile.x, tile.y);
-			double riverDepth = (s*4+1);
-			double riverWidth = (1-s)*6+1;
-			double riverBank = 1.2+d;
-			double river = Math.pow(riverDist/riverWidth, riverBank);
-			double riverSmoothing = 0.0;
-			if (river > 1.0) riverSmoothing = 1.0 - 1.0/(0.01*river+1);
-			
-			// River carving / smoothing
-			double carvedSurface = (river-1)*riverDepth-1;
-			if (carvedSurface > surface) carvedSurface = surface;
-			
-			// Water & River+Edge smoothing
-			if (surface < 0) surface *= edgeSmoothing;
-			else surface *= riverSmoothing + edgeSmoothing*(1-riverSmoothing);
-			if (carvedSurface < 0) carvedSurface *= edgeSmoothing;
-			else carvedSurface *= riverSmoothing + edgeSmoothing*(1-riverSmoothing);
-
-			// Finish surface
-			carvedSurface += altitude;
-			surface += altitude;
-			
-			double dirtDepth = edgeWeight*2+d*2+1;
-			double bottom = carvedSurface - extendYDown * Math.pow(edgeWeight, 1.0/undersideSteepness) * (d*0.6 + 0.4);
-			
-			int surfaceY = (int) (surface);
-			int stopY = (int) (carvedSurface);
-			int startY = (int) (bottom);
-			if (startY < 0) startY = 0;
-			if (stopY > 255) stopY = 255;
+			int cliffLedgeMinY = 0;
+			int cliffLedgeMaxY = 0;
+			int minNeighbor = heightmap.getTop(tile.x+1, tile.y);
+			minNeighbor = Math.min(minNeighbor, heightmap.getTop(tile.x-1, tile.y));
+			minNeighbor = Math.min(minNeighbor, heightmap.getTop(tile.x, tile.y+1));
+			minNeighbor = Math.min(minNeighbor, heightmap.getTop(tile.x, tile.y-1));
+			if (minNeighbor < stopY - 2) {
+				cliffLedgeMinY = minNeighbor;
+				cliffLedgeMaxY = (int) ((stopY - minNeighbor - 1) * heightmap.getUndersideNoise(tile.x*16, tile.y*16) + minNeighbor);
+			}
 			
 			for (int y = startY; y <= stopY; y++) {
-				IBlockState block = Blocks.STONE.getDefaultState();
-				if (y > surfaceY-dirtDepth) block = biome.fillerBlock;
-				if (y == stopY) {
-					if (stopY < altitude) block = Blocks.SAND.getDefaultState();
-					else if (block.getBlock() == Blocks.DIRT) block = Blocks.GRASS.getDefaultState();
+				if (y > cliffLedgeMinY && y <= cliffLedgeMaxY) {
+					if (y <= altitude) primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, biome.getWater());
+					else primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, AIR);
+					continue;
 				}
+				IBlockState block = biome.getBlockByDepth(this, tile.x, y, tile.y);
 				primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, block);
 			}
 			for (int y = stopY+1; y <= altitude; y++) {
-				IBlockState block = Blocks.WATER.getDefaultState();
-				primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, block);
+				primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, biome.getWater());
 			}
-			
 			
 			biomes[chunkRange.indexFor(tile)] = biome;
 		}
@@ -210,10 +144,10 @@ public class Island {
 	}
 	
 	public void populateChunk(World world, int chunkX, int chunkZ, Random random) {
-		Int2DRange chunkRange = new Int2DRange(chunkX*16, chunkZ*16, chunkX*16+15, chunkZ*16+15);
+		Int2DRange chunkRange = new Int2DRange(chunkX*16+8, chunkZ*16+8, chunkX*16+23, chunkZ*16+23);
 		Int2DRange overlap = chunkRange.intersect(this.shape.range);
 		if (overlap.isEmpty()) return;
-		this.build();
+		this.initialize();
 		
 		for (RiverWaterfall waterfall : shape.getWaterfalls()) {
 			Ray ray = waterfall.getLocation();
@@ -223,36 +157,13 @@ public class Island {
 			double rayZ = ray.getStartY();
 			if (rayZ < overlap.minY || rayZ > overlap.maxY+1) continue;
 			
-			double s = (noiseS.getValue(rayX, rayZ)*0.5 + 0.5);
+			double s = heightmap.getSurfaceNoise(rayX, rayZ);
 			double riverWidth = (1-s)*6+1;
 			if (waterfall.isSource(this)) genWaterfall(world, ray, riverWidth, random);
 			if (waterfall.isDestination(this)) genWaterBasin(world, new Vec2(ray.getX(3), ray.getY(3)), riverWidth+4, 5, random);
 		}
 		
-		Int2DRange chunkPopulateRange = chunkRange.offset(8, 8);
-		
-		WorldGenTrees treeGen = new WorldGenTrees(false);
-		WorldGenBigTree bigTreeGen = new WorldGenBigTree(false);
-		
-		double bigTreeChance = 0.05;
-		int treesPerChunk = 6;
-		
-        for (int i = 0; i < treesPerChunk; i++) {
-        	Int2D pos = chunkPopulateRange.randomTile(random);
-            if (!shape.contains(pos)) continue;
-            
-            BlockPos blockpos = world.getHeight(new BlockPos(pos.x, 0, pos.y));
-            if (random.nextDouble() < bigTreeChance) {
-            	if (bigTreeGen.generate(world, random, blockpos)) {
-	            	bigTreeGen.generateSaplings(world, random, blockpos);
-	            }
-            } else {
-            	if (treeGen.generate(world, random, blockpos)) {
-	            	treeGen.generateSaplings(world, random, blockpos);
-	            }
-            }
-        }
-
+		biome.decorate(world, this, chunkRange, overlap, random);
 	}
 	
 	private void genWaterBasin(World world, Vec2 location, double radius, double depth, Random random) {
@@ -271,10 +182,11 @@ public class Island {
 			double bottom = (Math.pow(dist/radius, 3.0)-1)*depth;
 			
 			if (pos.getY()-altitude >= bottom) {
-				world.setBlockState(pos, Blocks.WATER.getDefaultState());
+				world.setBlockState(pos, biome.getWater());
 			} else if (pos.getY()-altitude >= bottom-edge) {
 				Block block = world.getBlockState(pos).getBlock();
 				if (block == Blocks.WATER || block == Blocks.FLOWING_WATER) continue;
+				if (block == Blocks.LAVA || block == Blocks.FLOWING_LAVA) continue;
 				
 				if (pos.getY() == altitude) {
 					world.setBlockState(pos, Blocks.GRASS.getDefaultState());
@@ -322,7 +234,7 @@ public class Island {
 				if (j <= -4 || j >= -0.5) y = -1;
 				BlockPos pos = anchor.add(perp.getDX()*i+ray.getDX()*j, y, perp.getDY()*i+ray.getDY()*j);
 				world.setBlockState(pos, Blocks.STONE.getDefaultState());
-				world.setBlockState(pos.add(0, 1, 0), Blocks.WATER.getDefaultState());
+				world.setBlockState(pos.add(0, 1, 0), biome.getWater());
 				world.setBlockToAir(pos.add(0, 2, 0));
 				world.setBlockToAir(pos.add(0, 3, 0));
 				
@@ -374,8 +286,16 @@ public class Island {
 		return shape;
 	}
 
-	public boolean isComplete() {
-		return built;
+	public boolean isInitialized() {
+		return initialized;
+	}
+
+	public IslandBiome getBiome() {
+		return biome;
+	}
+
+	public IslandHeightmap getHeightmap() {
+		return heightmap;
 	}
 
 }

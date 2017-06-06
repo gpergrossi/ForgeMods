@@ -2,21 +2,16 @@ package dev.mortus.aerogen.world.islands.biomes;
 
 import dev.mortus.aerogen.world.islands.IslandDecorator;
 
-public class IslandBiomeVoid extends IslandBiome {
-	
+public class IslandBiomeForestClearing extends IslandBiome {
+
 	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Void");
+		BiomeProperties properties = new BiomeProperties("Forest");
 		properties.setWaterColor(0x0077FF);
 		return properties;
 	}
-	
-	public IslandBiomeVoid() {
+
+	public IslandBiomeForestClearing(BiomeProperties properties) {
 		super(getBiomeProperties());
-	}
-	
-	@Override
-	public boolean isVoid() {
-		return true;
 	}
 
 	@Override

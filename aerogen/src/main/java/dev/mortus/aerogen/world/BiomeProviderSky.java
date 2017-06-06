@@ -1,61 +1,151 @@
 package dev.mortus.aerogen.world;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
+import dev.mortus.aerogen.world.islands.Island;
+import dev.mortus.aerogen.world.islands.biomes.IslandBiomes;
+import dev.mortus.aerogen.world.regions.Region;
+import dev.mortus.aerogen.world.regions.RegionManager;
+import dev.mortus.util.data.Int2DRange;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeProvider;
 import net.minecraft.world.gen.layer.GenLayer;
-import net.minecraft.world.gen.layer.GenLayerVoronoiZoom;
+import net.minecraft.world.gen.layer.IntCache;
 import net.minecraftforge.event.terraingen.WorldTypeEvent.InitBiomeGens;
 
 public class BiomeProviderSky extends BiomeProvider {
 
+	RegionManager manager;
+	List<Biome> spawnBiomes;
+	
 	public BiomeProviderSky(World worldIn) {
 		super(worldIn.getWorldInfo());
+		RegionManager.put(worldIn, manager);
+		this.spawnBiomes = Lists.newArrayList(IslandBiomes.FOREST);
 	}
-	
-    public GenLayer[] getModdedBiomeGenerators(WorldType worldType, long seed, GenLayer[] original) {
-        net.minecraftforge.event.terraingen.WorldTypeEvent.InitBiomeGens event = new net.minecraftforge.event.terraingen.WorldTypeEvent.InitBiomeGens(worldType, seed, original);
-        net.minecraftforge.common.MinecraftForge.TERRAIN_GEN_BUS.post(event);
-        if (!event.isCanceled()) getSkyBiomeGenerators(event);
-        return event.getNewBiomeGens();
-    }
 
     /**
-     * This does not subscribe to the event because I have no way of modifying "WorldType" as far as I can tell.
-     * Without control over WorldType, I cannot know if I should be using the Sky generator or not. By overriding 
-     * the getModdedBiomeGenerators, I am sure the call comes from the BiomeProviderSky. 
+     * Gets the list of valid biomes for the player to spawn in.
      */
+    public List<Biome> getBiomesToSpawnIn() {
+        return this.spawnBiomes;
+    }
+	
+    @Override
+	public GenLayer[] getModdedBiomeGenerators(WorldType worldType, long seed, GenLayer[] original) {
+		net.minecraftforge.event.terraingen.WorldTypeEvent.InitBiomeGens event = new net.minecraftforge.event.terraingen.WorldTypeEvent.InitBiomeGens(worldType, seed, original);
+		net.minecraftforge.common.MinecraftForge.TERRAIN_GEN_BUS.post(event);
+		if (!event.isCanceled()) getSkyBiomeGenerators(event);
+		return event.getNewBiomeGens();
+	}
+	
+	/**
+	 * This does not subscribe to the event because I have no way of modifying
+	 * "WorldType" as far as I can tell. Without control over WorldType, I
+	 * cannot know if I should be using the Sky generator or not. By overriding
+	 * the getModdedBiomeGenerators, I am sure the call comes from the
+	 * BiomeProviderSky.
+	 */
 	private void getSkyBiomeGenerators(InitBiomeGens event) {
-		System.out.println("Creating a sky biome generator. (worldType == WorldTypeSky) = "+(event.getWorldType().getName().equals("aerogen_sky")));
+		System.out.println("Creating a sky biome generator. (worldType == WorldTypeSky) = "	+ (event.getWorldType().getName().equals("aerogen_sky")));
 		
-		GenLayer original = new GenLayerSkyBiomes(event.getSeed());
-		
-        //GenLayer zoomedOut = new GenLayerVoronoiZoom(10L, original);
-        
-        original.initWorldGenSeed(event.getSeed());
-        zoomedOut.initWorldGenSeed(event.getSeed());
-		
+		manager = new RegionManager(event.getSeed());
+		GenLayer original = new GenLayerSkyBiomes(event.getSeed(), manager);
+		GenLayer zoomedOut = new GenLayerUnzoom(event.getSeed(), original);
+		zoomedOut = new GenLayerUnzoom(event.getSeed(), zoomedOut);
+
+		original.initWorldGenSeed(event.getSeed());
+		zoomedOut.initWorldGenSeed(event.getSeed());
+
 		GenLayer[] layers = event.getNewBiomeGens();
 		layers[0] = zoomedOut; // 4x4 area is now a 1x1 area, (0,0) to (3,3) becomes (0,0)
 		layers[1] = original;
 	}
-	
+
 	/**
 	 * Returns the biome ID's for any requested range via getInts()
 	 */
 	public static class GenLayerSkyBiomes extends GenLayer {
-
-		public GenLayerSkyBiomes(long baseSeed) {
+		RegionManager manager;
+		public GenLayerSkyBiomes(long baseSeed, RegionManager manager) {
 			super(baseSeed);
+			this.manager = manager;
 		}
 
 		@Override
 		public int[] getInts(int areaX, int areaY, int areaWidth, int areaHeight) {
-			int[] biomeIDs = new int[areaWidth*areaHeight];
+			int[] biomeIDs = IntCache.getIntCache(areaWidth * areaHeight);
+			Int2DRange range = new Int2DRange(areaX, areaY, areaX+areaWidth-1, areaY+areaHeight-1);
 			
-			return null;
+			int voidID = Biome.getIdForBiome(IslandBiomes.VOID);
+			for (int i = 0; i < range.size(); i++) {
+				biomeIDs[i] = voidID;
+			}
+			
+			List<Region> regions = new ArrayList<>();
+			manager.getAll(regions, areaX, areaY, areaX+areaWidth, areaY+areaHeight);
+			for (Region region : regions) {
+				for (Island island : region.getIslands()) {
+					island.provideBiomes(range, biomeIDs);
+				}
+			}
+			return biomeIDs;
+		}
+	}
+
+	public static class GenLayerUnzoom extends GenLayer {
+		public GenLayerUnzoom(long seed, GenLayer parent) {
+			super(seed);
+			super.parent = parent;
+		}
+
+		@Override
+		public int[] getInts(int areaX, int areaY, int areaWidth, int areaHeight) {
+			int[] parentInts = this.parent.getInts(areaX << 1, areaY << 1, areaWidth << 1, areaHeight << 1);
+			int[] thisInts = IntCache.getIntCache(areaWidth * areaHeight);
+
+			int parentScansize = areaWidth << 1;
+
+			for (int j = 0; j < areaHeight; j++) {
+				for (int i = 0; i < areaWidth; i++) {
+					this.initChunkSeed((long) (areaX + i), (long) (areaY + j));
+					int parentIndex = (j << 1) * parentScansize + (i << 1);
+					int i00 = parentInts[parentIndex];
+					int i01 = parentInts[parentIndex + 1];
+					int i10 = parentInts[parentIndex + parentScansize];
+					int i11 = parentInts[parentIndex + parentScansize + 1];
+					thisInts[j * areaWidth + i] = this.selectModeOrRandom(i00, i01, i10, i11);
+				}
+			}
+
+			return thisInts;
 		}
 		
+	    protected int selectModeOrRandom(int a, int b, int c, int d) {
+	    	// VOID biome(s) must always 'win' so that the spawn locator code won't
+	    	// ever accept a spawn area over the void
+	    	if (a == IslandBiomes.VOID.getBiomeID()) return a;
+	    	if (b == IslandBiomes.VOID.getBiomeID()) return b;
+	    	if (c == IslandBiomes.VOID.getBiomeID()) return c;
+	    	if (d == IslandBiomes.VOID.getBiomeID()) return d;
+	        return (b == c && c == d) ? b 
+	        	:( (a == b && a == c) ? a 
+	        	:( (a == b && a == d) ? a 
+	        	:( (a == c && a == d) ? a 
+	        	:( (a == b && c != d) ? a 
+	        	:( (a == c && b != d) ? a 
+	        	:( (a == d && b != c) ? a 
+	        	:( (b == c && a != d) ? b 
+	        	:( (b == d && a != c) ? b 
+	        	:( (c == d && a != b) ? c 
+	        	: super.selectRandom(new int[] {a, b, c, d})
+	        	))) ))) )));
+	    }
 	}
 	
 }

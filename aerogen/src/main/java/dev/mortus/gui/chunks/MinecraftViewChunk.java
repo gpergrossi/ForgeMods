@@ -69,7 +69,7 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 				Graphics2D g = islands.createGraphics();
 				g.translate(-bounds.minX(), -bounds.minY());
 				for (Island island : region.getIslands()) {					
-					island.build();
+					island.initialize();
 					
 					r.setSeed(island.getSeed());
 					float hue = r.nextFloat();
@@ -78,7 +78,9 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 					IslandShape shape = island.getShape();
 
 					g.setColor(new Color(Color.HSBtoRGB(hue, 1, 1)));
-					g.drawString(""+island.getAltitudeLayer(), (shape.minX()+shape.maxX())/2, (shape.minZ()+shape.maxZ())/2);
+					String label = ""+island.getAltitudeLayer();
+					if (island.getAltitudeLayer() == Island.LAYER_UNASSIGNED) label = "U";
+					g.drawString(label, (shape.minX()+shape.maxX())/2, (shape.minZ()+shape.maxZ())/2);
 					
 					float maxEdge = shape.getMaxEdgeDistance();
 					for (Int2D.WithIndex tile : shape.range.getAllMutable()) {
@@ -132,11 +134,11 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 		if (islands != null)
 			g.drawImage(islands, imageX, imageY, null);
 		
-//		for (Island island : region.getIslands()) {
-//			if (!island.isComplete()) continue;
-//			Rect bb = island.getShape().getBoundingBox();
-//			g.draw(bb.getShape2D());
-//		}
+		for (Island island : region.getIslands()) {
+			if (!island.isInitialized()) continue;
+			Rect bb = island.getShape().getBoundingBox();
+			g.draw(bb.getShape2D());
+		}
 		
 		float hue = 0;
 		g.setColor(Color.WHITE);

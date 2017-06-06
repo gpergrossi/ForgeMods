@@ -2,19 +2,43 @@ package dev.mortus.aerogen.world.regions;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import net.minecraft.world.World;
 import dev.mortus.aerogen.world.voronoi.InfiniteCell;
 import dev.mortus.aerogen.world.voronoi.InfiniteVoronoi;
 import dev.mortus.util.math.geom.Rect;
 
 public class RegionManager extends InfiniteVoronoi {
 
+	public static Map<World, RegionManager> managers = new HashMap<>();
+	
+	public static synchronized RegionManager instanceFor(World world) {
+		RegionManager manager = managers.get(world);
+		if (manager == null) {
+			manager = new RegionManager();
+			managers.put(world, manager);
+		}
+		System.out.println("Manager for world: "+manager+" : "+world);
+		System.out.flush();
+		return manager;
+	}
+	
+	public static void put(World world, RegionManager manager) {
+		managers.put(world, manager);		
+	}
+	
 	final double regionSize;
 	final double cellSize;
 	
 	public RegionManager() {
 		this(512, 64, 875849390123L);
+	}
+	
+	public RegionManager(long seed) {
+		this(512, 64, 875849390123L); // TODO fix seed when done testing
 	}
 	
 	public RegionManager(double regionSize, double cellSize, long seed) {

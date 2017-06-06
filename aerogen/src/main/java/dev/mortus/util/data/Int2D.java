@@ -6,6 +6,11 @@ import java.util.function.Function;
 public class Int2D {
 	
 	public int x, y;
+	
+	public Int2D() {
+		this(0, 0);
+	}
+	
 	public Int2D(int x, int y) {
 		this.x = x;
 		this.y = y;
@@ -39,6 +44,48 @@ public class Int2D {
 		public Optional<StoredFloat> getNeighbor(int i, int j) {
 			if (!floats.contains(x+i, y+j)) return Optional.empty();
 			return Optional.of(new StoredFloat(this.floats, x+i, y+j, index+j*floats.width+i));
+		}
+	}
+
+	public static class StoredByte extends WithIndex {
+		Int2DRange.Bytes bytes;
+		public StoredByte(Int2DRange.Bytes bytes, int x, int y, int index) {
+			super(bytes, x, y, index);
+			this.bytes = bytes;
+		}
+		public float getValue() {
+			return bytes.get(index);
+		}
+		public void setValue(byte value) {
+			bytes.set(index, value);
+		}
+		public void setValue(Function<Byte, Byte> operation) {
+			bytes.set(index, operation.apply(bytes.get(index)));
+		}
+		public Optional<StoredByte> getNeighbor(int i, int j) {
+			if (!bytes.contains(x+i, y+j)) return Optional.empty();
+			return Optional.of(new StoredByte(this.bytes, x+i, y+j, index+j*bytes.width+i));
+		}
+	}
+
+	public static class StoredBit extends WithIndex {
+		Int2DRange.Bits bits;
+		public StoredBit(Int2DRange.Bits bits, int x, int y, int index) {
+			super(bits, x, y, index);
+			this.bits = bits;
+		}
+		public boolean getValue() {
+			return bits.get(index);
+		}
+		public void setValue(boolean value) {
+			bits.set(index, value);
+		}
+		public void setValue(Function<Boolean, Boolean> operation) {
+			bits.set(index, operation.apply(bits.get(index)));
+		}
+		public Optional<StoredBit> getNeighbor(int i, int j) {
+			if (!bits.contains(x+i, y+j)) return Optional.empty();
+			return Optional.of(new StoredBit(this.bits, x+i, y+j, index+j*bits.width+i));
 		}
 	}
 	

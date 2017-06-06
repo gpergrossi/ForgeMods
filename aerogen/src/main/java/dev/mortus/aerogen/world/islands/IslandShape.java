@@ -12,15 +12,16 @@ import dev.mortus.util.data.Int2DRange;
 public class IslandShape {
 
 	public final Island island;
-	public final Int2DRange range;
+	public Int2DRange range;
 	public List<IslandCell> cells;
 	
 	public List<RiverCell> riverCells;
 	public List<RiverWaterfall> waterfalls;
 	
-	public boolean isBuilt;
 	public Int2DRange.Floats edgeDistance;
 	public float maxEdgeDistance;
+	
+	
 	
 	public IslandShape(Island island, List<IslandCell> cells) {
 		this.island = island;
@@ -35,17 +36,11 @@ public class IslandShape {
 		range = Int2DRange.fromRect(boundsXZ);
 	}
 	
-	public void build(Random random) {
-		build(random, new IslandErosion());
-	}
 	
 	/**
 	 * Generate the top-down shape of the island.
 	 */
-	public void build(Random random, IslandErosion erosion) {
-		if (isBuilt) return;
-		isBuilt = true;
-		
+	public void erode(IslandErosion erosion, Random random) {		
 		// The operations needed to compute edge distance are extremely computation intense.
 		// In order to make the outline computation as efficient as possible, the code has
 		// become somewhat complex. Follow the comments. Basically I am doing am generating
@@ -65,7 +60,6 @@ public class IslandShape {
 		
 		// Create the small matrix representation of this island
 		int smallScale = (int) multiplier;
-
 
 		int padding = 1;
 		Int2DRange.Floats smallDist;
@@ -99,10 +93,10 @@ public class IslandShape {
 
 		// If we are not working at full scale, we need to remember
 		// the boundary distances to estimate the full size matrix later
-		float[] boundDist = null;
+		Int2DRange.Floats boundDist = null;
 		if (smallScale > 1) {
-			boundDist = new float[smallDist.size()];
-			System.arraycopy(smallDist.data, 0, boundDist, 0, boundDist.length);
+			boundDist = new Int2DRange.Floats(smallDist);
+			System.arraycopy(smallDist.data, 0, boundDist.data, 0, boundDist.size());
 		}
 		
 		// Begin erosion. Removes some of the island's tiles to make it more natural
@@ -123,7 +117,7 @@ public class IslandShape {
 				tile.setValue(0f);
 				needsUpdate = true;
 			}
-		}
+		}		
 		
 		// Update the distance transform to include the new erosion information
 		if (needsUpdate) maxDistance = distanceTransform(smallDist) * smallScale;
@@ -131,24 +125,29 @@ public class IslandShape {
 		// Done! Now to create the require return values
 		
 		// If the smallScale representation is full size, we just need to fix the padding
-		if (smallScale == 1) {					
-			this.edgeDistance = range.copyFloats(smallDist, range.minX, range.minY);
+		if (smallScale == 1) {
+			Int2DRange trimRange = smallDist.getTrimRange(v -> (v <= 0));
+			int originalMinX = range.minX;
+			int originalMinY = range.minY;
+			this.range = trimRange.offset(originalMinX, originalMinY);
+			this.edgeDistance = this.range.copyFloats(smallDist, originalMinX, originalMinY);
 			this.maxEdgeDistance = maxDistance;
 			return;
 		}
 		
 		// Otherwise, we need to do a bit of magic to up-scale the values
+		Int2DRange trimRange = smallDist.getTrimRange(v -> (v <= 0)).grow(0, 0, 2, 2);
+		int originalMinX = range.minX;
+		int originalMinY = range.minY;
+		this.range = trimRange.scale(smallScale).offset(range.minX, range.minY);
 		Int2DRange.Floats fullSize = new Int2DRange.Floats(this.range);
 		
 		for (Int2D.StoredFloat tile : fullSize.getAllFloatsMutable()) {
 			if (tile.index % 100 == 0) Thread.yield();
-			int i = tile.x - fullSize.minX;
-			int j = tile.y - fullSize.minY;
-			int index = (j/smallScale + padding)*smallDist.width + (i/smallScale + padding);	
-			float lerpX = ((float) (i % smallScale)) / ((float) smallScale);
-			float lerpZ = ((float) (j % smallScale)) / ((float) smallScale);
+			float x = (float) (tile.x - originalMinX) / (float) (smallScale);
+			float y = (float) (tile.y - originalMinY) / (float) (smallScale);
 			
-			float edgeDist = lerp2dMatrix(lerpX, lerpZ, smallDist.data, index, smallDist.width);
+			float edgeDist = smallDist.lerp(x, y);
 			
 			// All small matrix zeros correspond to true matrix zeros
 			if (edgeDist <= 0) {
@@ -167,7 +166,7 @@ public class IslandShape {
 			// a simple linear interpolation will not be good enough
 			if (edgeDist <= 1.0f) {
 				// We apply the erosion function from earlier
-				float borderDist = lerp2dMatrix(lerpX, lerpZ, boundDist, index, smallDist.width) * smallScale;
+				float borderDist = boundDist.lerp(x, y) * smallScale;
 				if (erosion.erode(tile.x, tile.y, borderDist)) {
 					tile.setValue(0f);
 					
@@ -185,7 +184,8 @@ public class IslandShape {
 			edgeDist *= smallScale;
 			
 			// Perfect edge
-			if (tile.getValue() == 1f && edgeDist > 1) continue;
+			if (tile.getValue() == 1f && edgeDist > 0) continue;
+			
 			tile.setValue(edgeDist);
 		}
 		this.edgeDistance = fullSize;
@@ -252,30 +252,6 @@ public class IslandShape {
 		return maxDistance;
 	}
 	
-	/**
-	 * Apply a 2d lerp using the matrix stored in the float[] arr. The existence of neighbors
-	 * in arr[index], arr[index+1], arr[index+scansize], and arr[index+scansize+1] is assumed.
-	 */
-	private float lerp2dMatrix(float x, float y, float[] arr, int index, int scansize) {
-		return lerp2d(x, y, arr[index], arr[index+scansize], arr[index+1], arr[index+scansize+1]);
-	}
-	
-	/**
-	 * Two-dimensional linear interpolation. (x, y) in the range of (0, 0) to (1, 1)
-	 */
-	private float lerp2d(float x, float y, float lowXlowY, float lowXhighY, float highXlowY, float highXhighY) {
-		float lowX  = lerp(y, lowXlowY, lowXhighY);
-		float highX = lerp(y, highXlowY, highXhighY);
-		return lerp(x, lowX, highX);
-	}
-	
-	/**
-	 * Linear interpolation between lowX and highX as x moves between 0 and 1
-	 */
-	private float lerp(float x, float lowX, float highX) {
-		return (1f-x)*lowX + x*highX;
-	}
-	
 	public int minX() { return range.minX; }
 	public int maxX() { return range.maxX; }
 	public int width() { return range.width; }
@@ -295,13 +271,17 @@ public class IslandShape {
 	public float getEdgeDistance(int x, int z) {
 		return edgeDistance.getSafe(x, z, 0);
 	}
+	
+	public float getEdgeDistance(Int2D pos) {
+		return edgeDistance.getSafe(pos.x, pos.y, 0);
+	}
 
 	public float getMaxEdgeDistance() {
 		return maxEdgeDistance;
 	}
 
 	public Rect getBoundingBox() {
-		return new Rect(range.minX, range.maxX, range.width+1, range.height+1);
+		return new Rect(range.minX, range.minY, range.width+1, range.height+1);
 	}
 
 	public IslandCell getCell(int x, int z) {
@@ -350,5 +330,6 @@ public class IslandShape {
 	public List<IslandCell> getCells() {
 		return cells;
 	}
+
 	
 }

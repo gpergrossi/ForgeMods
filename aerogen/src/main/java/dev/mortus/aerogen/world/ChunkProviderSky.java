@@ -27,7 +27,7 @@ public class ChunkProviderSky implements IChunkGenerator {
 	
 	public ChunkProviderSky(World world, long seed, String settingsJSON) {
 		this.world = world;
-		this.regionManager = new RegionManager();
+		this.regionManager = RegionManager.instanceFor(world);
 		this.settings = ChunkProviderSettings.Factory.jsonToFactory(settingsJSON).build();
 	}
 

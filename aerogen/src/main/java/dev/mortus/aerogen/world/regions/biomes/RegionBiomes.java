@@ -10,20 +10,22 @@ import dev.mortus.aerogen.world.islands.biomes.IslandBiomes;
 public class RegionBiomes {
 	
 	public static RegionBiome randomBiome(Random random) {
-		return TEST;
+		return REGION_FOREST;
 		//return ALL.get(random.nextInt(ALL.size()));
 	}
 	
-	public static final RegionBiome TEST = new RegionBiome() {
+	public static final RegionBiome REGION_FOREST = new RegionBiome() {
 		public String getName() {
 			return "Test";
 		}
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
-			biomes.add(IslandBiomes.TEST);
+			biomes.add(IslandBiomes.FOREST);
 			return biomes;
 		}
 	};
+	
+	public static final RegionBiome START_AREA = REGION_FOREST;
 	
 //	public static final RegionBiome FOREST = new RegionBiome() {
 //		
