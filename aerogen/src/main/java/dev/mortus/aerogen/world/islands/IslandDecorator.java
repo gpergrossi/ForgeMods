@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import dev.mortus.aerogen.world.gen.FeaturePlacement;
-import dev.mortus.aerogen.world.gen.IslandFeature;
+import dev.mortus.aerogen.world.gen.Placement;
+import dev.mortus.aerogen.world.gen.Feature;
 import dev.mortus.util.data.Int2D;
 import dev.mortus.util.data.Int2DRange;
 import net.minecraft.util.math.BlockPos;
@@ -37,13 +37,13 @@ public class IslandDecorator {
 //	/** The water lily generation! */
 //	public WorldGenerator waterlilyGen = new WorldGenWaterlily();
 	
-	List<IslandFeature> features;
+	List<Feature> features;
 	
 	public IslandDecorator() {
 		this.features = new ArrayList<>();
 	}
 
-	public IslandDecorator addFeature(IslandFeature feature) {
+	public IslandDecorator addFeature(Feature feature) {
 		this.features.add(feature);
 		return this;
 	}
@@ -53,8 +53,8 @@ public class IslandDecorator {
 
 		//System.out.println("Decorating with "+features.size()+" fatures");
 		
-		for (IslandFeature feature : features) {
-			FeaturePlacement placement = feature.getPlacement();
+		for (Feature feature : features) {
+			Placement placement = feature.getPlacement();
 			if (placement == null) continue;
 
 			int numAttempts = placement.getNumAttemptsPerChunk(random);
@@ -77,7 +77,6 @@ public class IslandDecorator {
 				boolean success = feature.generate(world, island, new BlockPos(pos.x, height, pos.y), random);
 				if (success) {
 					placements++;
-					System.out.println("Successfully placed ("+placements+"/"+maxPlacements+")");
 					if (placements >= maxPlacements) break;
 				}
 			}

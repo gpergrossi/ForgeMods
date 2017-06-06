@@ -99,8 +99,6 @@ public class Island {
 		}
 	}
 	
-	private static final IBlockState AIR = Blocks.AIR.getDefaultState();
-	
 	public boolean provideChunk(int chunkX, int chunkZ, ChunkPrimer primer, Biome[] biomes) {
 		Int2DRange chunkRange = new Int2DRange(chunkX*16, chunkZ*16, chunkX*16+15, chunkZ*16+15);
 		Int2DRange overlap = chunkRange.intersect(this.shape.range);
@@ -113,23 +111,7 @@ public class Island {
 			int startY = heightmap.getBottom(tile.x, tile.y);
 			int stopY = heightmap.getTop(tile.x, tile.y);
 			
-			int cliffLedgeMinY = 0;
-			int cliffLedgeMaxY = 0;
-			int minNeighbor = heightmap.getTop(tile.x+1, tile.y);
-			minNeighbor = Math.min(minNeighbor, heightmap.getTop(tile.x-1, tile.y));
-			minNeighbor = Math.min(minNeighbor, heightmap.getTop(tile.x, tile.y+1));
-			minNeighbor = Math.min(minNeighbor, heightmap.getTop(tile.x, tile.y-1));
-			if (minNeighbor < stopY - 2) {
-				cliffLedgeMinY = minNeighbor;
-				cliffLedgeMaxY = (int) ((stopY - minNeighbor - 1) * heightmap.getUndersideNoise(tile.x*16, tile.y*16) + minNeighbor);
-			}
-			
 			for (int y = startY; y <= stopY; y++) {
-				if (y > cliffLedgeMinY && y <= cliffLedgeMaxY) {
-					if (y <= altitude) primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, biome.getWater());
-					else primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, AIR);
-					continue;
-				}
 				IBlockState block = biome.getBlockByDepth(this, tile.x, y, tile.y);
 				primer.setBlockState(tile.x-chunkRange.minX, y, tile.y-chunkRange.minY, block);
 			}

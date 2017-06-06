@@ -6,15 +6,15 @@ import dev.mortus.aerogen.world.islands.Island;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-public abstract class IslandFeature {
+public abstract class Feature {
 	
-	protected FeaturePlacement placement;
+	protected Placement placement;
 	
-	public FeaturePlacement getPlacement() {
+	public Placement getPlacement() {
 		return placement;
 	}
 	
-	public IslandFeature withPlacement(FeaturePlacement placement) {
+	public Feature withPlacement(Placement placement) {
 		this.placement = placement;
 		return this;
 	}

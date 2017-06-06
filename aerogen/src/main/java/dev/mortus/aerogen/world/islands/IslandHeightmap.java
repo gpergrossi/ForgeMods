@@ -67,16 +67,24 @@ public class IslandHeightmap {
 			return;
 		}
 		
-		double u = (noiseUnderside.getValue(x, z)*0.5 + 0.5);
-		double s = (noiseSurface.getValue(x, z)*0.5 + 0.5);
-		double c = (noiseCliff.getValue(x, z)*0.5 + 0.5);
+		double noiseU = getUndersideNoise(x, z);
+		double noiseS = getSurfaceNoise(x, z);
+		double noiseC = getCliffNoise(x, z);
 		
 		// Start surface
-		double surface = ((surfaceHeightMax-surfaceHeightMin+1)*s + surfaceHeightMin);
+		double surface = ((surfaceHeightMax-surfaceHeightMin+1)*noiseS + surfaceHeightMin);
 		
 		// Cliffs
 		double cliff = 0;
-		if (island.getBiome().hasCliffs() && c*Math.pow(edgeWeight, 0.5) > 0.45 && surface < 6) cliff = 6 - surface;
+		if (island.getBiome().hasCliffs()) {
+			double cliffValue = noiseC*Math.pow(edgeWeight, 0.5);
+			if (cliffValue > 0.45) {
+				int height = 6;
+				int surfaceHeight = (int) Math.floor(surface);
+				if (cliffValue < 0.5) height = (int) (6.0 * (cliffValue - 0.45)/0.05);
+				if (surfaceHeight < height) cliff = height - surfaceHeight;
+			}
+		}
 		surface += cliff;
 		
 		// Edge smoothing
@@ -85,9 +93,9 @@ public class IslandHeightmap {
 		
 		// River calculation
 		double riverDist = shape.getRiverDistance(x, z);
-		double riverDepth = (s*4+1);
-		double riverWidth = (1-s)*6+1;
-		double riverBank = 1.2+u;
+		double riverDepth = (noiseS*4+1);
+		double riverWidth = (1-noiseS)*6+1;
+		double riverBank = 1.2+noiseU;
 		double river = Math.pow(riverDist/riverWidth, riverBank);
 		double riverSmoothing = 0.0;
 		if (river > 1.0) riverSmoothing = 1.0 - 1.0/(0.01*river+1);
@@ -103,7 +111,7 @@ public class IslandHeightmap {
 		else carvedSurface *= riverSmoothing + edgeSmoothing*(1-riverSmoothing);
 
 		// Finish surface
-		double bottom = ((1.0 - edgeWeight) * (carvedSurface - cliff)) - (Math.pow(edgeWeight, 1.0/undersideSteepness) * bottomDepthMax * (u * 0.6 + 0.4));
+		double bottom = ((1.0 - edgeWeight) * (carvedSurface - cliff)) - (Math.pow(edgeWeight, 1.0/undersideSteepness) * bottomDepthMax * (noiseU * 0.6 + 0.4));
 		
 		int bottomY = (int) (bottom);
 		int carvedY = (int) (carvedSurface);
@@ -117,13 +125,17 @@ public class IslandHeightmap {
 		this.top.set(x, z, (byte) carvedY);
 		this.defined.set(x, z, true);
 	}
-	
+
 	public double getSurfaceNoise(double x, double z) {
 		return (noiseSurface.getValue(x, z)*0.5 + 0.5);
 	}
 	
 	public double getUndersideNoise(double x, double z) {
 		return (noiseUnderside.getValue(x, z)*0.5 + 0.5);
+	}
+	
+	public double getCliffNoise(double x, double z) {
+		return (noiseCliff.getValue(x, z)*0.5 + 0.5);
 	}
 	
 	public int getSurfaceBeforeCarving(int x, int z) {
@@ -159,7 +171,9 @@ public class IslandHeightmap {
 
 	public int getDirtLayerDepth(int x, int z) {
 		float edgeWeight = shape.getEdgeDistance(x, z) / shape.maxEdgeDistance;
-		return (int) Math.floor(1 + 2*edgeWeight + 2*getUndersideNoise(x, z));
+		boolean isCliff = (getCliffNoise(x, z) * Math.pow(edgeWeight, 0.5) > 0.45);
+		if (isCliff) return (int) Math.floor(1.0 + 1.0*getUndersideNoise(x, z));
+		return (int) Math.floor(1.0 + 2.0*edgeWeight + 2.0*getUndersideNoise(x, z));
 	}
 	
 }

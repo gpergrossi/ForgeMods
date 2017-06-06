@@ -7,7 +7,7 @@ import net.minecraft.world.World;
 import dev.mortus.aerogen.world.islands.Island;
 import dev.mortus.util.data.Int2D;
 
-public abstract class FeaturePlacement {
+public abstract class Placement {
 	
 	public abstract int getNumAttemptsPerChunk(Random random);
 	public abstract int getMaxPlacementsPerChunk(Random random);
@@ -17,29 +17,25 @@ public abstract class FeaturePlacement {
 	
 	public abstract boolean canGenerate(World world, Island island, BlockPos position, Random random);
 
-	public static class Surface extends FeaturePlacement {
-
+	public static abstract class ConfigurablePlacement extends Placement {
 		int desiredPlacementsPerChunk = 1;
 		float chanceForExtraPlacement = 0;
 		
-		public Surface() {}
+		public ConfigurablePlacement() {}
 		
-		public Surface withDesiredCount(int num) {
+		public ConfigurablePlacement withDesiredCount(int num) {
 			this.desiredPlacementsPerChunk = num;
 			return this;
 		}
 		
-		public Surface withChanceForExtra(float chance) {
+		public ConfigurablePlacement withChanceForExtra(float chance) {
 			this.chanceForExtraPlacement = chance;
 			return this;
 		}
 		
 		@Override
 		public int getNumAttemptsPerChunk(Random random) {
-			if (chanceForExtraPlacement > 0 && random.nextFloat() < chanceForExtraPlacement) {
-				return (desiredPlacementsPerChunk+1)*2;
-			}
-			return desiredPlacementsPerChunk*2;
+			return getMaxPlacementsPerChunk(random)*2;
 		}
 
 		@Override
@@ -49,32 +45,73 @@ public abstract class FeaturePlacement {
 			}
 			return desiredPlacementsPerChunk;
 		}
-
-		@Override
-		public int getMinY(World world, Island island, Int2D position) {
-			return island.getHeightmap().getTop(position.x, position.y)+1;
-		}
-
-		@Override
-		public int getMaxY(World world, Island island, Int2D position) {
-			return island.getHeightmap().getTop(position.x, position.y)+1;
-		}
-
+		
 		@Override
 		public boolean canGenerate(World world, Island island, BlockPos position, Random random) {
 			return true;
 		}
-		
 	}
 	
-	public static class Interior extends FeaturePlacement {
+	public static class WaterSurface extends ConfigurablePlacement {
+		
+		public WaterSurface withDesiredCount(int num) {
+			this.desiredPlacementsPerChunk = num;
+			return this;
+		}
+		
+		public WaterSurface withChanceForExtra(float chance) {
+			this.chanceForExtraPlacement = chance;
+			return this;
+		}
+		
+		@Override
+		public int getMinY(World world, Island island, Int2D position) {
+			return world.getTopSolidOrLiquidBlock(new BlockPos(position.x, 0, position.y)).getY();
+		}
 
-		int desiredPlacementsPerChunk = 1;
-		float chanceForExtraPlacement = 0;
+		@Override
+		public int getMaxY(World world, Island island, Int2D position) {
+			return world.getTopSolidOrLiquidBlock(new BlockPos(position.x, 0, position.y)).getY();
+		}
+		
+		@Override
+		public boolean canGenerate(World world, Island island, BlockPos position, Random random) {
+			return (position.getY() > 0);
+		}
+	}
+	
+	public static class HighestBlock extends ConfigurablePlacement {
+		
+		public HighestBlock withDesiredCount(int num) {
+			this.desiredPlacementsPerChunk = num;
+			return this;
+		}
+		
+		public HighestBlock withChanceForExtra(float chance) {
+			this.chanceForExtraPlacement = chance;
+			return this;
+		}
+
+		@Override
+		public int getMinY(World world, Island island, Int2D position) {
+			return world.getHeight(position.x, position.y);
+		}
+
+		@Override
+		public int getMaxY(World world, Island island, Int2D position) {
+			return world.getHeight(position.x, position.y);
+		}
+
+		@Override
+		public boolean canGenerate(World world, Island island, BlockPos position, Random random) {
+			return (position.getY() > 0);
+		}
+	}
+	
+	public static class Interior extends ConfigurablePlacement {
+		
 		int minDepth = 0;
 		int maxDepth = 256;
-		
-		public Interior() {}
 		
 		public Interior withDesiredCount(int num) {
 			this.desiredPlacementsPerChunk = num;
@@ -97,43 +134,17 @@ public abstract class FeaturePlacement {
 		}
 
 		@Override
-		public int getNumAttemptsPerChunk(Random random) {
-			if (chanceForExtraPlacement > 0 && random.nextFloat() < chanceForExtraPlacement) {
-				return (desiredPlacementsPerChunk+1)*2;
-			}
-			return desiredPlacementsPerChunk*2;
-		}
-
-		@Override
-		public int getMaxPlacementsPerChunk(Random random) {
-			if (chanceForExtraPlacement > 0 && random.nextFloat() < chanceForExtraPlacement) {
-				return (desiredPlacementsPerChunk+1);
-			}
-			return desiredPlacementsPerChunk;
-		}
-
-		@Override
 		public int getMinY(World world, Island island, Int2D position) {
-//			int top = island.getHeightmap().getTop(position.x, position.y);
-//			int bottom = island.getHeightmap().getBottom(position.x, position.y);
-//			return Math.max(bottom, top - maxDepth);
-			
-			return world.getHeight(position.x, position.y);
+			int top = island.getHeightmap().getTop(position.x, position.y);
+			int bottom = island.getHeightmap().getBottom(position.x, position.y);
+			return Math.max(bottom, top - maxDepth);
 		}
 
 		@Override
 		public int getMaxY(World world, Island island, Int2D position) {
-//			int top = island.getHeightmap().getTop(position.x, position.y);
-//			return top - minDepth;
-
-			return world.getHeight(position.x, position.y);
+			int top = island.getHeightmap().getTop(position.x, position.y);
+			return top - minDepth;
 		}
-		
-		@Override
-		public boolean canGenerate(World world, Island island, BlockPos position, Random random) {
-			return true;
-		}
-		
 	}
 	
 }

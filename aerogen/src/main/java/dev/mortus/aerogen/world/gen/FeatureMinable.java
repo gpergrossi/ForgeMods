@@ -5,7 +5,6 @@ import java.util.Random;
 import com.google.common.base.Predicate;
 
 import dev.mortus.aerogen.world.islands.Island;
-import dev.mortus.util.data.Int2D;
 import net.minecraft.block.BlockStone;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -13,36 +12,36 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
-public class IslandMinable extends IslandFeature {
+public class FeatureMinable extends Feature {
 	
 	protected IBlockState oreBlock;
 	protected int maxVeinSize;
 	protected Predicate<IBlockState> predicateCanReplace;
 	protected boolean allowUndersideVisible;
 
-	public IslandMinable() {
+	public FeatureMinable() {
 		this.oreBlock = null;
 		this.maxVeinSize = 0;
 		this.predicateCanReplace = new StonePredicate();
 		this.allowUndersideVisible = true;
 	}
 
-	public IslandMinable withOre(IBlockState block) {
+	public FeatureMinable withOre(IBlockState block) {
 		this.oreBlock = block;
 		return this;
 	}
 	
-	public IslandMinable withVeinSize(int size) {
+	public FeatureMinable withVeinSize(int size) {
 		this.maxVeinSize = size;
 		return this;
 	}
 	
-	public IslandMinable allowUndersideVisible(boolean visible) {
+	public FeatureMinable allowUndersideVisible(boolean visible) {
 		this.allowUndersideVisible = visible;
 		return this;
 	}
 	
-	public IslandMinable withReplacePredicate(Predicate<IBlockState> canReplace) {
+	public FeatureMinable withReplacePredicate(Predicate<IBlockState> canReplace) {
 		this.predicateCanReplace = canReplace;
 		return this;
 	}
