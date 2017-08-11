@@ -3,9 +3,9 @@ package dev.mortus.aerogen.world.islands;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.mortus.util.math.geom.LineSeg;
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.LineSeg;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class RiverCell {
 	
@@ -50,8 +50,8 @@ public class RiverCell {
 	}
 	
 	private void genRiverCurve() {
-		Vec2 pt0 = this.getPolygon().getCentroid();
-		Vec2 pt1 = pt0, pt2 = pt0, pt3 = pt0, pt4 = pt0;
+		Double2D pt0 = this.getPolygon().getCentroid();
+		Double2D pt1 = pt0, pt2 = pt0, pt3 = pt0, pt4 = pt0;
 		RiverCell prev = getRiverPrevious(); 
 		if (prev != null) {
 			pt0 = pt1 = prev.getPolygon().getCentroid();
@@ -67,12 +67,12 @@ public class RiverCell {
 
 		riverCurve = new ArrayList<>();
 		
-		// Do previous blend
+		// Do blend with previous segment
 		if (pt1 != pt2) {
 			riverCurvePre = new ArrayList<>();
-			Vec2 last = catmullRomSmooth2d(0.5f, pt0, pt1, pt2, pt3);
+			Double2D last = catmullRomSmooth2d(0.5f, pt0, pt1, pt2, pt3);
 			for (int i = 6; i <= 10; i++) {
-				Vec2 pt = catmullRomSmooth2d(i*0.1f, pt0, pt1, pt2, pt3);
+				Double2D pt = catmullRomSmooth2d(i*0.1f, pt0, pt1, pt2, pt3);
 				LineSeg seg = new LineSeg(last.x(), last.y(), pt.x(), pt.y());
 				riverCurve.add(seg);
 				riverCurvePre.add(seg);
@@ -80,13 +80,13 @@ public class RiverCell {
 			}
 		}
 		
-		// Do next blend
+		// Do blend with next segment
 		if (pt2 != pt3) {
 			riverCurvePost = new ArrayList<>();
-			Vec2 last = catmullRomSmooth2d(0.0f, pt1, pt2, pt3, pt4);
+			Double2D last = catmullRomSmooth2d(0.0f, pt1, pt2, pt3, pt4);
 			for (int i = 1; i <= 5; i++) {
-				Vec2 pt = catmullRomSmooth2d(i*0.1f, pt1, pt2, pt3, pt4);
-				LineSeg seg = new LineSeg(last.x(), last.y(), pt.x(), pt.y());
+				Double2D pt = catmullRomSmooth2d(i*0.1f, pt1, pt2, pt3, pt4);
+				LineSeg seg = new LineSeg(last, pt);
 				riverCurve.add(seg);
 				riverCurvePost.add(seg);
 				last = pt;
@@ -94,18 +94,18 @@ public class RiverCell {
 		}
 	}
 
-	private Vec2 catmullRomSmooth2d(float t, Vec2 pt0, Vec2 pt1, Vec2 pt2, Vec2 pt3) {
-		double x = catmullRomSmooth(t, (float) pt0.x(), (float) pt1.x(), (float) pt2.x(), (float) pt3.x());
-		double y = catmullRomSmooth(t, (float) pt0.y(), (float) pt1.y(), (float) pt2.y(), (float) pt3.y());
-		return new Vec2(x, y);
+	private Double2D catmullRomSmooth2d(double t, Double2D pt0, Double2D pt1, Double2D pt2, Double2D pt3) {
+		double x = catmullRomSmooth(t, pt0.x(), pt1.x(), pt2.x(), pt3.x());
+		double y = catmullRomSmooth(t, pt0.y(), pt1.y(), pt2.y(), pt3.y());
+		return new Double2D(x, y);
 	}
 	
 	/**
 	 * Thanks to Richard Hawkes
 	 * http://hawkesy.blogspot.com/2010/05/catmull-rom-spline-curve-implementation.html
 	 */
-	private double catmullRomSmooth(float t, float x0, float x1, float x2, float x3) {
-		return 0.5f * ((2*x1) + (x2-x0)*t + (2*x0-5*x1+4*x2-x3)*t*t + (-x0+3*x1-3*x2+x3)*t*t*t);
+	private double catmullRomSmooth(double t, double x0, double x1, double x2, double x3) {
+		return 0.5 * ((2*x1) + (x2-x0)*t + (2*x0-5*x1+4*x2-x3)*t*t + (-x0+3*x1-3*x2+x3)*t*t*t);
 	}
 
 	public List<LineSeg> getRiverCurve() {
@@ -127,11 +127,12 @@ public class RiverCell {
 		getRiverCurve();
 		
 		double minDist = Double.POSITIVE_INFINITY;
-		Vec2 queryPt = new Vec2(x, z);
-		Vec2 scratch = new Vec2(0, 0);
+		Double2D queryPt = new Double2D(x, z);
+		Double2D.Mutable scratch = new Double2D.Mutable();
 		
 		for (LineSeg line : riverCurve) {
-			minDist = Math.min(minDist, line.closestPoint(queryPt, scratch));
+			double closestDist = line.closestPoint(queryPt, scratch);
+			minDist = Math.min(minDist, closestDist);
 		}
 		
 		return minDist;

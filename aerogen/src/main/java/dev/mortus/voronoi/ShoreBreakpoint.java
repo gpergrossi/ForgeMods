@@ -3,8 +3,8 @@ package dev.mortus.voronoi;
 import dev.mortus.util.data.LinkedBinaryNode;
 import dev.mortus.util.math.func.Function;
 import dev.mortus.util.math.func.Quadratic;
-import dev.mortus.util.math.geom.Circle;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Circle;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class ShoreBreakpoint extends ShoreTreeNode {
 	
@@ -76,34 +76,34 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	 * A point is returned representing a vector. The length is not normalized.
 	 * @return
 	 */
-	public Vec2 getDirection() {
+	public Double2D getDirection() {
 		double dy = arcRight.getSite().point.y() - arcLeft.getSite().point.y();
 		double dx = arcRight.getSite().point.x() - arcLeft.getSite().point.x();
 		
-		if (Math.abs(dy) < Vec2.EPSILON) {
-			if (Math.abs(dx) < Vec2.EPSILON) return new Vec2(0, 0);
-			return new Vec2(0, 1);
+		if (Math.abs(dy) < Double2D.EPSILON) {
+			if (Math.abs(dx) < Double2D.EPSILON) return new Double2D(0, 0);
+			return new Double2D(0, 1);
 		}
 		if (dy < 0) {
-			return new Vec2(1, -dx/dy);
+			return new Double2D(1, -dx/dy);
 		} else {
-			return new Vec2(-1, dx/dy);
+			return new Double2D(-1, dx/dy);
 		}
 	}
 	
-	public static Vec2 getIntersection(final BuildState state, ShoreBreakpoint left, ShoreBreakpoint right) {	
+	public static Double2D getIntersection(final BuildState state, ShoreBreakpoint left, ShoreBreakpoint right) {	
 		if (left.arcRight != right.arcLeft) {
 			System.out.println("ERROR: expected a shared site between breakpoints! (left.arcRight="+left.arcRight+", right.arcLeft="+right.arcLeft+")");
 			return null;
 		}
 
-		Vec2 ptLeft = left.arcLeft.getSite().point;
-		Vec2 ptCenter = left.arcRight.getSite().point;
-		Vec2 ptRight = right.arcRight.getSite().point;
+		Double2D ptLeft = left.arcLeft.getSite().point;
+		Double2D ptCenter = left.arcRight.getSite().point;
+		Double2D ptRight = right.arcRight.getSite().point;
 		
 		// Check if these breakpoints diverge
-		Vec2 dirL = left.getDirection();
-		Vec2 dirR = right.getDirection();
+		Double2D dirL = left.getDirection();
+		Double2D dirR = right.getDirection();
 		
 		if (Voronoi.DEBUG) {
 			System.out.println("Checking intersect on");
@@ -113,8 +113,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 			System.out.println("       pos:"+right.getPosition(state)+" dir:"+dirR);
 		}
 		
-		Vec2 delta = ptRight.copy();
-		delta.subtract(ptLeft);
+		Double2D delta = ptRight.subtract(ptLeft);
 		double r = dirR.dot(delta); // positive if right breakpoint is moving to the "right" (this is based on the delta vector)
 		double l = dirL.dot(delta); // positive if left breakpoint is moving to the "left" (this is based on the delta vector)
 		if (r > l) {
@@ -129,15 +128,15 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 			return null; // sites are co-linear
 		}
 
-		Vec2 result = new Vec2(circle.x(), circle.y());
+		Double2D result = new Double2D(circle.x(), circle.y());
 		if (Voronoi.DEBUG) System.out.println("Collision at "+result);
 		return result;
 	}
 
 	private double lastRequest = Double.NaN;
-	private Vec2 lastResult = null;
+	private Double2D lastResult = null;
 	
-	public Vec2 getPosition(final BuildState state) {
+	public Double2D getPosition(final BuildState state) {
 		if (state.getSweeplineY()  != lastRequest) {
 			lastRequest = state.getSweeplineY();
 			lastResult = calculatePosition(lastRequest);
@@ -146,12 +145,12 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 			// null occurs when sites are on the same y value and have no intersection of their "parabolas"
 			double x = (arcLeft.getSite().point.x() + arcRight.getSite().point.x()) / 2.0;
 			double y = state.getBounds().minY()-50000; // TODO this should actually be a backwards intersection to the top boundary, not an average position
-			lastResult = new Vec2(x, y);
+			lastResult = new Double2D(x, y);
 		}
 		return lastResult;
 	}
 	
-	private Vec2 calculatePosition(double sweeplineY) {		
+	private Double2D calculatePosition(double sweeplineY) {		
 		Function leftParabola = arcLeft.getParabola(sweeplineY);
 		Function rightParabola = arcRight.getParabola(sweeplineY);
 		
@@ -161,7 +160,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	@Override
 	public ShoreArc getArc(final BuildState state, double siteX) {
 		// Call down the tree based on breakpoint positions
-		Vec2 pos = this.getPosition(state);
+		Double2D pos = this.getPosition(state);
 		
 		double posX;
 		if (pos == null) posX = (this.arcLeft.getSite().point.x() + this.arcRight.getSite().point.x()) / 2.0;

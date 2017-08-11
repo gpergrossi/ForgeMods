@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import dev.mortus.util.data.storage.GrowingStorage;
-import dev.mortus.util.math.geom.Rect;
+import dev.mortus.util.math.geom2d.Rect;
 
 public class Voronoi {
 

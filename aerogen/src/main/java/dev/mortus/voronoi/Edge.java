@@ -3,8 +3,8 @@ package dev.mortus.voronoi;
 import dev.mortus.util.data.Pair;
 import dev.mortus.util.data.storage.Storage;
 import dev.mortus.util.data.storage.StorageItem;
-import dev.mortus.util.math.geom.LineSeg;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.LineSeg;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class Edge implements StorageItem, Comparable<Edge> {
 	
@@ -14,7 +14,7 @@ public class Edge implements StorageItem, Comparable<Edge> {
 	protected Pair<Site> sites;
 	protected Pair<Vertex> vertices;
 	
-	protected Vec2 center;
+	protected Double2D center;
 	protected LineSeg lineSeg;
 	
 	protected Edge(Vertex start, Vertex end, Site left, Site right) {
@@ -51,11 +51,11 @@ public class Edge implements StorageItem, Comparable<Edge> {
 		return new LineSeg(vertices.first.x, vertices.first.y, vertices.second.x, vertices.second.y);
 	}
 	
-	public Vec2 getCenter() {
+	public Double2D getCenter() {
 		if (center == null) {
 			double cx = (vertices.first.x + vertices.second.x) / 2.0;
 			double cy = (vertices.first.y + vertices.second.y) / 2.0;
-			center = new Vec2(cx, cy);
+			center = new Double2D(cx, cy);
 		}
 		return center;
 	}

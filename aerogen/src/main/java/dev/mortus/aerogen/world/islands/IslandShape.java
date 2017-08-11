@@ -5,9 +5,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.data.Int2D;
-import dev.mortus.util.data.Int2DRange;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.ranges.Int2DRange;
+import dev.mortus.util.math.vectors.Int2D;
 
 public class IslandShape {
 
@@ -72,15 +72,15 @@ public class IslandShape {
 		// Set tiles inside the island to Float.Infinity and outside the island to Zero.
 		// Note that there is also a padding of 1 tile around the outside, this makes neighbor checks faster.
 		for (Int2D.StoredFloat tile : smallDist.getAllFloatsMutable()) {
-			if (tile.index % 100 == 0) Thread.yield();
+			if (tile.index % 200 == 0) Thread.yield();
 			
 			// If in the padding region, we are done. All padding tiles should be 0
 			if (smallDist.onBorder(tile, padding)) continue;
 			
 			// Otherwise, check if the cells are in one of the island polygons
 			for (IslandCell cell : cells) {
-				float trueX = this.range.minX + tile.x*smallScale;
-				float trueZ = this.range.minY + tile.y*smallScale;
+				float trueX = this.range.minX + tile.x()*smallScale;
+				float trueZ = this.range.minY + tile.y()*smallScale;
 				if (cell.polygon.contains(trueX, trueZ)) {
 					tile.setValue(Float.POSITIVE_INFINITY);
 					break;
@@ -104,15 +104,15 @@ public class IslandShape {
 		
 		boolean needsUpdate = false;
 		for (Int2D.StoredFloat tile : smallDist.getAllFloatsMutable()) {
-			if (tile.index % 100 == 0) Thread.yield();
+			if (tile.index % 200 == 0) Thread.yield();
 			float edgeDist = tile.getValue() * smallScale;
 			
 			// Some tiles are already outside the island boundary, no need to erode them
 			if (edgeDist == 0f) continue; 
 
 			// For the rest we apply the erode function
-			float trueX = this.range.minX + tile.x*smallScale;
-			float trueZ = this.range.minY + tile.y*smallScale;
+			float trueX = this.range.minX + tile.x()*smallScale;
+			float trueZ = this.range.minY + tile.y()*smallScale;
 			if (erosion.erode(trueX, trueZ, edgeDist)) {
 				tile.setValue(0f);
 				needsUpdate = true;
@@ -143,11 +143,11 @@ public class IslandShape {
 		Int2DRange.Floats fullSize = new Int2DRange.Floats(this.range);
 		
 		for (Int2D.StoredFloat tile : fullSize.getAllFloatsMutable()) {
-			if (tile.index % 100 == 0) Thread.yield();
-			float x = (float) (tile.x - originalMinX) / (float) (smallScale);
-			float y = (float) (tile.y - originalMinY) / (float) (smallScale);
+			if (tile.index % 200 == 0) Thread.yield();
+			float x = (float) (tile.x() - originalMinX) / (float) (smallScale);
+			float y = (float) (tile.y() - originalMinY) / (float) (smallScale);
 			
-			float edgeDist = smallDist.lerp(x, y);
+			float edgeDist = smallDist.lerp(x, y, 0);
 			
 			// All small matrix zeros correspond to true matrix zeros
 			if (edgeDist <= 0) {
@@ -166,8 +166,8 @@ public class IslandShape {
 			// a simple linear interpolation will not be good enough
 			if (edgeDist <= 1.0f) {
 				// We apply the erosion function from earlier
-				float borderDist = boundDist.lerp(x, y) * smallScale;
-				if (erosion.erode(tile.x, tile.y, borderDist)) {
+				float borderDist = boundDist.lerp(x, y, 0) * smallScale;
+				if (erosion.erode(tile.x(), tile.y(), borderDist)) {
 					tile.setValue(0f);
 					
 					// Perfect edge
@@ -214,7 +214,7 @@ public class IslandShape {
 				dist = Math.min(array[index-1]+1, dist);
 				dist = Math.min(array[index-width-1]+1.414f, dist);
 				array[index] = dist;
-				if (i++ % 200 == 0) Thread.yield();
+				if (i++ == 200) { Thread.yield(); i = 0; }
 			}
 			for (int x = width-2; x >= 0; x--) {
 				int index = y*width+x;
@@ -223,7 +223,7 @@ public class IslandShape {
 				dist = Math.min(array[index+1]+1, dist);
 				dist = Math.min(array[index-width+1]+1.414f, dist);
 				array[index] = dist;
-				if (i++ % 200 == 0) Thread.yield();
+				if (i++ == 200) { Thread.yield(); i = 0; }
 			}
 		}
 		float maxDistance = 0;
@@ -236,7 +236,7 @@ public class IslandShape {
 				dist = Math.min(array[index-1]+1, dist);
 				dist = Math.min(array[index+width-1]+1.414f, dist);
 				array[index] = dist;
-				if (i++ % 200 == 0) Thread.yield();
+				if (i++ == 200) { Thread.yield(); i = 0; }
 			}
 			for (int x = width-2; x >= 0; x--) {
 				int index = y*width+x;
@@ -246,7 +246,7 @@ public class IslandShape {
 				dist = Math.min(array[index+width+1]+1.414f, dist);
 				array[index] = dist;
 				maxDistance = Math.max(maxDistance, array[index]);
-				if (i++ % 200 == 0) Thread.yield();
+				if (i++ == 200) { Thread.yield(); i = 0; }
 			}
 		}
 		return maxDistance;
@@ -265,15 +265,20 @@ public class IslandShape {
 	}
 
 	public boolean contains(Int2D pos) {
-		return contains(pos.x, pos.y);
+		return contains(pos.x(), pos.y());
 	}
 	
 	public float getEdgeDistance(int x, int z) {
+		if (edgeDistance == null) {
+			System.out.println("Island coord: "+this.island.region.getCoord() +":"+this.island.id);
+			System.out.println("Island biome: "+this.island.getBiome());
+			System.out.println("Island range: "+this.range);
+		}
 		return edgeDistance.getSafe(x, z, 0);
 	}
 	
 	public float getEdgeDistance(Int2D pos) {
-		return edgeDistance.getSafe(pos.x, pos.y, 0);
+		return edgeDistance.getSafe(pos.x(), pos.y(), 0);
 	}
 
 	public float getMaxEdgeDistance() {
@@ -290,6 +295,15 @@ public class IslandShape {
 			if (cell.polygon.contains(x, z)) return cell;
 		}
 		return null;
+	}
+	
+	public double riverHeadDist(int x, int z) {
+		double riverDist = Double.POSITIVE_INFINITY;
+		for (RiverCell irc : island.getShape().getRiverCells()) {
+			if (irc.getRiverPrevious() != null) continue;
+			riverDist = Math.min(riverDist, irc.minDistToRiver(x, z));
+		}
+		return riverDist;
 	}
 	
 	public double getRiverDistance(int x, int z) {

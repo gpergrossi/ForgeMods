@@ -1,7 +1,11 @@
 ..gitignore.un~
+.metadata
 eclipse/RemoteSystemsTempFiles
 eclipse/.metadata
 eclipse/.recommenders
+eclipse/
+eclipse
+RemoteSystemsTempFiles
 aerogen/.gradle/**
 aerogen/.settings/**
 aerogen/.classpath

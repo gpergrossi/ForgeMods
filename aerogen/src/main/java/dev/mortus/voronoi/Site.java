@@ -5,14 +5,14 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class Site implements Comparable<Site> {
 
 	public final Voronoi voronoi;
 	public int id;
-	public final Vec2 point;
+	public final Double2D point;
 	
 	protected int numVertices;
 	protected Vertex[] vertices;
@@ -24,7 +24,7 @@ public class Site implements Comparable<Site> {
 	protected boolean isFinished;
 	protected boolean isClosed;
 
-	protected Site(Voronoi voronoi, int id, Vec2 sitePoint) {
+	protected Site(Voronoi voronoi, int id, Double2D sitePoint) {
 		this.voronoi = voronoi;
 		this.id = id;
 		this.point = sitePoint;
@@ -74,15 +74,15 @@ public class Site implements Comparable<Site> {
 		};
 	}
 	
-	private static final IntFunction<Vec2[]> Vec2ArrayAllocator = new IntFunction<Vec2[]>() {
-		public Vec2[] apply(int value) {
-			return new Vec2[value];
+	private static final IntFunction<Double2D[]> Vec2ArrayAllocator = new IntFunction<Double2D[]>() {
+		public Double2D[] apply(int value) {
+			return new Double2D[value];
 		}
 	};
 	
 	public Polygon getPolygon() {
 		if (polygon == null) {
-			Vec2[] verts = Arrays.stream(vertices, 0, numVertices).map(vert -> vert.toVec2()).toArray(Vec2ArrayAllocator);
+			Double2D[] verts = Arrays.stream(vertices, 0, numVertices).map(vert -> vert.toVec2()).toArray(Vec2ArrayAllocator);
 			polygon = new Polygon(verts);
 		}
 		return polygon;

@@ -6,9 +6,9 @@ import java.awt.Point;
 import java.awt.Shape;
 import java.util.Random;
 
-import dev.mortus.aerogen.world.voronoi.InfiniteCell;
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Rect;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.voronoi.InfiniteCell;
 
 public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 	
@@ -17,6 +17,10 @@ public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 	
 	Color color;
 	Shape shape;
+	
+	public static InfiniteVoronoiChunk constructor(ChunkManager<InfiniteVoronoiChunk> manager, int chunkX, int chunkY) {
+		return new InfiniteVoronoiChunk(manager, chunkX, chunkY);
+	}
 	
 	public InfiniteVoronoiChunk(ChunkManager<InfiniteVoronoiChunk> manager, int chunkX, int chunkY) {
 		super(manager, chunkX, chunkY);

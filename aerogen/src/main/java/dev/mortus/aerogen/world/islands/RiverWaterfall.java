@@ -1,9 +1,9 @@
 package dev.mortus.aerogen.world.islands;
 
-import dev.mortus.util.math.geom.Line;
-import dev.mortus.util.math.geom.LineSeg;
-import dev.mortus.util.math.geom.Ray;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Line;
+import dev.mortus.util.math.geom2d.LineSeg;
+import dev.mortus.util.math.geom2d.Ray;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class RiverWaterfall {
 
@@ -23,7 +23,7 @@ public class RiverWaterfall {
 	public Ray getLocation() {
 		if (location == null) {
 			Line edgeLine = edge.toLine();
-			Vec2 intersection = new Vec2(0, 0);
+			Double2D.Mutable intersection = new Double2D.Mutable();
 			LineSeg edgeSeg = null;
 			for (LineSeg seg : source.getRiverCurvePost()) {
 				if (seg.intersect(intersection, edgeLine)) { edgeSeg = seg; break; }
@@ -51,5 +51,12 @@ public class RiverWaterfall {
 	public boolean isDestination(Island island) {
 		return this.destination.getIsland() == island;
 	}
-	
+
+	public RiverCell getSource() {
+		return source;
+	}
+
+	public RiverCell getDestination() {
+		return destination;
+	}
 }

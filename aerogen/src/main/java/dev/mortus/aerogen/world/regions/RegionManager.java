@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 import net.minecraft.world.World;
-import dev.mortus.aerogen.world.voronoi.InfiniteCell;
-import dev.mortus.aerogen.world.voronoi.InfiniteVoronoi;
-import dev.mortus.util.math.geom.Rect;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.voronoi.InfiniteCell;
+import dev.mortus.voronoi.InfiniteVoronoi;
 
 public class RegionManager extends InfiniteVoronoi {
 

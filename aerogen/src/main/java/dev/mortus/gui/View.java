@@ -51,10 +51,12 @@ public abstract class View {
 		this.init();
 	}
 
-	public final void setAspect(double aspect) { 
-		this.viewHeight = this.viewWidth / aspect;
+	public final void onResize(double width, double height) { 
+		this.viewWidth = width;
+		this.viewHeight = height;
 		if (viewerPane != null) viewerPane.needsViewUpdate = true;
 	}
+	
 	public final void setSlowZoom(double multiplierPerSecond) { 
 		this.slowZoom = multiplierPerSecond;
 	}
@@ -75,7 +77,7 @@ public abstract class View {
 	public final double getViewY() { return viewY; }
 	public final double getViewWidth() { return viewWidth; }
 	public final double getViewHeight() { return viewHeight; }
-	public final Rectangle2D getViewBounds() { 
+	public final Rectangle2D getViewWorldBounds() { 
 		double extentX = viewWidth/viewZoom;
 		double extentY = viewHeight/viewZoom;
 		return new Rectangle2D.Double(viewX-extentX/2, viewY-extentY/2, extentX, extentY);
@@ -95,6 +97,7 @@ public abstract class View {
 	public double getViewZoom() { return viewZoom; }
 	protected double getMinZoom() { return 0.01; }
 	protected double getMaxZoom() { return 100; }
+	protected double getZoomMultiplier() { return 1.2; }
 	
 	public abstract void init();
 	public abstract void start();
@@ -146,6 +149,11 @@ public abstract class View {
 	void internalUpdate(double secondsPassed) {
 		this.viewX += this.driftVelocityX*secondsPassed;
 		this.viewY += this.driftVelocityY*secondsPassed;
+		
+		if (Math.abs(this.driftVelocityX*secondsPassed) > 0.1 || Math.abs(this.driftVelocityY*secondsPassed) > 0.1) {
+			Point2D world = this.viewerPane.screenToWorld(mouseScreenX, mouseScreenY);
+			internalMouseMoved(world.getX(), world.getY(), mouseScreenX, mouseScreenY);
+		}
 		
 		double decay = Math.pow(0.75, secondsPassed);
 		this.driftVelocityX *= decay;
@@ -257,24 +265,24 @@ public abstract class View {
 	}
 	
 	void internalMouseMoved(double worldX, double worldY, double screenX, double screenY) {
-		mouseWorldDX = (worldX - mouseWorldX); 
-		mouseWorldDY = (worldY - mouseWorldY); 
+		mouseWorldDX = (worldX - mouseWorldX);
+		mouseWorldDY = (worldY - mouseWorldY);
 		mouseWorldX = worldX;
 		mouseWorldY = worldY;
-		
-		mouseScreenDX = (screenX - mouseScreenX); 
-		mouseScreenDY = (screenY - mouseScreenY); 
+
+		mouseScreenDX = (screenX - mouseScreenX);
+		mouseScreenDY = (screenY - mouseScreenY);
 		mouseScreenX = screenX;
 		mouseScreenY = screenY;
 		
-		dragVelocityX = 0; 
-		dragVelocityY = 0; 
+		dragVelocityX = 0;
+		dragVelocityY = 0;
 		this.mouseMoved();
 	}
 
 	void internalMouseScrolled(double clicks) {
 		if (!panning) {
-			double multiply = Math.pow(1.2, -clicks);
+			double multiply = Math.pow(getZoomMultiplier(), -clicks);
 			viewZoom *= multiply;
 			if (viewZoom > getMaxZoom()) viewZoom = getMaxZoom();
 			if (viewZoom < getMinZoom()) viewZoom = getMinZoom();

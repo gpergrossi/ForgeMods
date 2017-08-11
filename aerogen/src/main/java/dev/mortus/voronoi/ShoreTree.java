@@ -18,9 +18,9 @@ import dev.mortus.util.data.Pair;
 import dev.mortus.util.math.func.Function;
 import dev.mortus.util.math.func.Quadratic;
 import dev.mortus.util.math.func.Vertical;
-import dev.mortus.util.math.geom.Circle;
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Circle;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 	
@@ -83,11 +83,11 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			ShoreBreakpoint leftBP = (ShoreBreakpoint) arc.getPredecessor();
 			ShoreBreakpoint rightBP = (ShoreBreakpoint) arc.getSuccessor();
 			
-			Vec2 intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
+			Double2D intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
 			if (intersection != null) {
 				g.setColor(new Color(0,0,128));
-				Vec2 leftPos = leftBP.getPosition(state);
-				Vec2 rightPos = rightBP.getPosition(state);
+				Double2D leftPos = leftBP.getPosition(state);
+				Double2D rightPos = rightBP.getPosition(state);
 				Line2D lineBP0 = new Line2D.Double(leftPos.toPoint2D(), intersection.toPoint2D());
 				Line2D lineBP1 = new Line2D.Double(rightPos.toPoint2D(), intersection.toPoint2D());
 				g.draw(lineBP0);
@@ -121,7 +121,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			double minY = bounds.minY();
 			
 			ShoreTreeNode pred = n.getPredecessor(); 
-			Vec2 predBreakpoint = null;
+			Double2D predBreakpoint = null;
 			if (pred != null && pred instanceof ShoreBreakpoint) {
 				ShoreBreakpoint breakpoint = (ShoreBreakpoint) pred;
 				predBreakpoint = breakpoint.getPosition(state);
@@ -131,7 +131,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			}
 			
 			ShoreTreeNode succ = n.getSuccessor(); 
-			Vec2 succBreakpoint = null;
+			Double2D succBreakpoint = null;
 			if (succ != null && succ instanceof ShoreBreakpoint) {
 				ShoreBreakpoint breakpoint = (ShoreBreakpoint) succ;
 				succBreakpoint = breakpoint.getPosition(state);
@@ -175,7 +175,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			if (!(n instanceof ShoreBreakpoint)) continue;
 			ShoreBreakpoint breakpoint = (ShoreBreakpoint) n;
 			
-			Vec2 posVec = breakpoint.getPosition(state);
+			Double2D posVec = breakpoint.getPosition(state);
 			if (posVec == null) continue;
 			Point2D pos = posVec.toPoint2D();
 
@@ -202,7 +202,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		Edge edge = bp.getEdge();
 		if (edge != null) {
 			Vertex start = edge.getStart();
-			Vec2 end = null;
+			Double2D end = null;
 			if (edge.isFinished()) end = edge.getEnd().toVec2();
 			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
@@ -227,7 +227,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		List<LinkedBinaryNode> next = new ArrayList<>();
 		layer.add(this.getRoot());
 		
-		Map<LinkedBinaryNode, Vec2> positions = new HashMap<>();
+		Map<LinkedBinaryNode, Double2D> positions = new HashMap<>();
 		Map<LinkedBinaryNode, Double> splitWidth = new HashMap<>();
 
 		g.setColor(Color.ORANGE);
@@ -256,7 +256,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 					}
 				}
 				
-				Vec2 pos = new Vec2(x, minY + dy*depth);
+				Double2D pos = new Double2D(x, minY + dy*depth);
 				positions.put(n, pos);
 
 				// Draw line from parent

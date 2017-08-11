@@ -9,7 +9,8 @@ import dev.mortus.aerogen.world.islands.Island;
 import dev.mortus.aerogen.world.islands.biomes.IslandBiomes;
 import dev.mortus.aerogen.world.regions.Region;
 import dev.mortus.aerogen.world.regions.RegionManager;
-import dev.mortus.util.data.Int2DRange;
+import dev.mortus.util.math.ranges.Int2DRange;
+import dev.mortus.util.math.vectors.Int2D;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.Biome;
@@ -90,6 +91,16 @@ public class BiomeProviderSky extends BiomeProvider {
 			List<Region> regions = new ArrayList<>();
 			manager.getAll(regions, areaX, areaY, areaX+areaWidth, areaY+areaHeight);
 			for (Region region : regions) {
+				
+				// Assign void biome for region
+				for (Int2D.Mutable coord : range.getAllMutable()) {
+					if (region.getRegionPolygon().contains(coord.x(), coord.y())) {
+						int index = range.indexFor(coord);
+						biomeIDs[index] = region.getBiome().getVoidBiome().getBiomeID();
+					}
+				}
+				
+				// Assign island biome for each island
 				for (Island island : region.getIslands()) {
 					island.provideBiomes(range, biomeIDs);
 				}
@@ -129,10 +140,10 @@ public class BiomeProviderSky extends BiomeProvider {
 	    protected int selectModeOrRandom(int a, int b, int c, int d) {
 	    	// VOID biome(s) must always 'win' so that the spawn locator code won't
 	    	// ever accept a spawn area over the void
-	    	if (a == IslandBiomes.VOID.getBiomeID()) return a;
-	    	if (b == IslandBiomes.VOID.getBiomeID()) return b;
-	    	if (c == IslandBiomes.VOID.getBiomeID()) return c;
-	    	if (d == IslandBiomes.VOID.getBiomeID()) return d;
+	    	if (IslandBiomes.isVoid(a)) return a;
+	    	if (IslandBiomes.isVoid(b)) return b;
+	    	if (IslandBiomes.isVoid(c)) return c;
+	    	if (IslandBiomes.isVoid(d)) return d;
 	        return (b == c && c == d) ? b 
 	        	:( (a == b && a == c) ? a 
 	        	:( (a == b && a == d) ? a 

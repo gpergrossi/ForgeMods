@@ -114,11 +114,17 @@ public class ViewerPane extends JPanel implements Runnable {
 		addMouseListener(mouseListener);
 		addMouseWheelListener(mouseWheelListener);
 		addKeyListener(keyListener);
-		onResize(new Dimension(100, 100));
+		
+		Dimension preferredSize = new Dimension((int) view.getViewWidth(), (int) view.getViewHeight());
+		this.setPreferredSize(preferredSize);
+		onResize(preferredSize);
+		
 		this.setDoubleBuffered(true);
 	}
 
 	private void onResize(Dimension size) {
+		if (buffer != null && size.width == buffer.getWidth() && size.height == buffer.getHeight()) return;
+		
 		// We need a new buffers to write to
 		buffer = new BufferedImage(
 				(int) size.getWidth(), (int) size.getHeight(),
@@ -127,7 +133,8 @@ public class ViewerPane extends JPanel implements Runnable {
 				(int) size.getWidth(), (int) size.getHeight(),
 				BufferedImage.TYPE_INT_ARGB);
 		rebuildBuffers = true;
-		view.setAspect((double) size.width/size.height);
+		
+		view.onResize(size.getWidth(), size.getHeight());
 		this.needsViewUpdate = true;
 	}
 	
@@ -286,12 +293,10 @@ public class ViewerPane extends JPanel implements Runnable {
 			worldToScreen.setTransform(freshTransform);
 			worldToScreen.translate(getWidth()/2.0, getHeight()/2.0);
 			worldToScreen.scale(view.getViewZoom(), view.getViewZoom());
-			worldToScreen.scale(getWidth()/view.getViewWidth(), getHeight()/view.getViewHeight());
 			worldToScreen.translate(-view.getViewX(), -view.getViewY());
 			
 			screenToWorld.setTransform(freshTransform);
 			screenToWorld.translate(view.getViewX(), view.getViewY());
-			screenToWorld.scale(view.getViewWidth()/getWidth(),	view.getViewHeight()/getHeight());
 			screenToWorld.scale(1.0/view.getViewZoom(), 1.0/view.getViewZoom());
 			screenToWorld.translate(-getWidth()/2.0, -getHeight()/2.0);
 			

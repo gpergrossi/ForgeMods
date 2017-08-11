@@ -17,8 +17,8 @@ import dev.mortus.gui.chunks.MinecraftViewChunkLoader;
 import dev.mortus.gui.chunks.ChunkLoader;
 import dev.mortus.gui.chunks.View2DChunkManager;
 import dev.mortus.util.data.LinkedBinaryNode;
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.vectors.Double2D;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.VoronoiBuilder;
@@ -31,7 +31,7 @@ public class GUITestView extends View {
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) {		
+	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -47,7 +47,7 @@ public class GUITestView extends View {
 	
 	@Override
 	protected double getMinZoom() {
-		return 0.005;
+		return 0.25;
 	}
 	
 	@Override
@@ -79,7 +79,7 @@ public class GUITestView extends View {
 //			chunkLoader = new InfiniteVoronoiChunkLoader(8964591453215L);
 //			chunkManager = new View2DChunkManager<InfiniteVoronoiChunk>(chunkLoader, 1);
 			chunkLoader = new MinecraftViewChunkLoader(8964591453215L);
-			chunkManager = new View2DChunkManager<MinecraftViewChunk>(chunkLoader, 1);
+			chunkManager = new View2DChunkManager<MinecraftViewChunk>(chunkLoader, 3);
 		}
 	}
 
@@ -143,7 +143,7 @@ public class GUITestView extends View {
 //		g2d.setTransform(before);
 		
 		if (useChunkLoader) { 
-			Rectangle2D bounds = this.getViewBounds();
+			Rectangle2D bounds = this.getViewWorldBounds();
 			chunkManager.setView(bounds);
 			chunkManager.update();
 			chunkManager.draw(g2d);
@@ -169,7 +169,7 @@ public class GUITestView extends View {
 					
 					// Draw centroid
 					g2d.setColor(Color.BLACK);
-					Vec2 centroid = poly.getCentroid();
+					Double2D centroid = poly.getCentroid();
 					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
 					g2d.fill(siteCentroid);
 				}
@@ -177,7 +177,7 @@ public class GUITestView extends View {
 				voronoiWorker.debugDraw(g2d);
 			}
 		} else {
-			for (Vec2 site : voronoiBuilder.getSites()) {
+			for (Double2D site : voronoiBuilder.getSites()) {
 				Ellipse2D ellipse = new Ellipse2D.Double(site.x()-1, site.y()-1, 2, 2);
 				g2d.fill(ellipse);
 			}
@@ -242,7 +242,7 @@ public class GUITestView extends View {
 			clickP = new Point2D.Double(x*4, y*4);
 
 			if (click == View.RIGHT_CLICK) {
-				for (Vec2 site : voronoiBuilder.getSites()) {
+				for (Double2D site : voronoiBuilder.getSites()) {
 					Point2D point = site.toPoint2D();
 					if (clickP.distance(point) < 4) {
 						System.out.println("Removing site");
@@ -253,7 +253,7 @@ public class GUITestView extends View {
 			}
 			
 			if (click == View.LEFT_CLICK) {
-				int id = voronoiBuilder.addSite(new Vec2(clickP.getX(), clickP.getY()));
+				int id = voronoiBuilder.addSite(new Double2D(clickP.getX(), clickP.getY()));
 				System.out.println("Adding site "+id);
 			}
 			
@@ -342,9 +342,9 @@ public class GUITestView extends View {
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_SLASH) {
 			for (double d = Math.PI/2.0; d < Math.PI*1.0; d += Math.PI/17.3) {
-				voronoiBuilder.addSite(new Vec2(Math.cos(d)*d*100, Math.sin(d)*d*100));
-				voronoiBuilder.addSite(new Vec2(Math.cos(d+Math.PI*2.0/3.0)*d*100, Math.sin(d+Math.PI*2.0/3.0)*d*100));
-				voronoiBuilder.addSite(new Vec2(Math.cos(d-Math.PI*2.0/3.0)*d*100, Math.sin(d-Math.PI*2.0/3.0)*d*100));
+				voronoiBuilder.addSite(new Double2D(Math.cos(d)*d*100, Math.sin(d)*d*100));
+				voronoiBuilder.addSite(new Double2D(Math.cos(d+Math.PI*2.0/3.0)*d*100, Math.sin(d+Math.PI*2.0/3.0)*d*100));
+				voronoiBuilder.addSite(new Double2D(Math.cos(d-Math.PI*2.0/3.0)*d*100, Math.sin(d-Math.PI*2.0/3.0)*d*100));
 			}
 		}
 	}

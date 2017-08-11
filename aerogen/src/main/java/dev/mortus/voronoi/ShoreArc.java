@@ -3,8 +3,8 @@ package dev.mortus.voronoi;
 import dev.mortus.util.data.Pair;
 import dev.mortus.util.math.func.Function;
 import dev.mortus.util.math.func.Quadratic;
-import dev.mortus.util.math.geom.Circle;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Circle;
+import dev.mortus.util.math.vectors.Double2D;
 
 /**
  * Arcs are parabolas formed from a site as a focus point and the
@@ -98,7 +98,7 @@ public class ShoreArc extends ShoreTreeNode {
 		// Check for a collision point, fail if none exists
 		ShoreBreakpoint leftBP = (ShoreBreakpoint) getPredecessor();
 		ShoreBreakpoint rightBP = (ShoreBreakpoint) getSuccessor();
-		Vec2 intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
+		Double2D intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
 		if (intersection == null) return null;
 		
 		// Create the circle event
@@ -115,7 +115,7 @@ public class ShoreArc extends ShoreTreeNode {
 		ShoreArc leftArc = null;
 		ShoreArc rightArc = null;
 		
-		if (Math.abs(this.site.point.y() - site.point.y()) < Vec2.EPSILON) {
+		if (Math.abs(this.site.point.y() - site.point.y()) < Double2D.EPSILON) {
 			
 			// Y coordinates equal, single breakpoint between sites
 			leftArc = new ShoreArc(this.site);

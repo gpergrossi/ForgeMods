@@ -3,7 +3,7 @@ package dev.mortus.aerogen.world.islands;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.mortus.util.math.geom.Polygon;
+import dev.mortus.util.math.geom2d.Polygon;
 
 public class IslandCell {
 

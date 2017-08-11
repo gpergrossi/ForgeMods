@@ -1,7 +1,7 @@
 package dev.mortus.voronoi;
 
-import dev.mortus.util.math.geom.Circle;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Circle;
+import dev.mortus.util.math.vectors.Double2D;
 import dev.mortus.voronoi.exception.OverlappingSiteException;
 
 public final class Event implements Comparable<Event> {
@@ -60,7 +60,7 @@ public final class Event implements Comparable<Event> {
 	public int compareTo(Event o) {
 		double dyd = this.y - o.y;
 		double dxd = this.x - o.x;
-		if (Math.abs(dyd) > Vec2.EPSILON || Math.abs(dxd) > Vec2.EPSILON) {
+		if (Math.abs(dyd) > Double2D.EPSILON || Math.abs(dxd) > Double2D.EPSILON) {
 			// Lowest Y value first
 			int dy = (int) Math.signum(dyd);
 			if (dy != 0) return dy;

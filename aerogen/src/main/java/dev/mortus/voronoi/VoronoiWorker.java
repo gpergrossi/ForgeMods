@@ -4,18 +4,17 @@ import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
-import dev.mortus.voronoi.exception.UnfinishedStateException;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class VoronoiWorker {
 
 	BuildState state;
 
 	Rect bounds;
-	Vec2[] siteArray;
+	Double2D[] siteArray;
 	
-	public VoronoiWorker(Rect bounds, Vec2[] siteArray) {
+	public VoronoiWorker(Rect bounds, Double2D[] siteArray) {
 		this.bounds = bounds;
 		this.siteArray = siteArray;
 	}
@@ -44,7 +43,7 @@ public class VoronoiWorker {
 	}
 
 	public Voronoi getResult() {
-		if (!isDone()) throw new UnfinishedStateException();
+		if (!isDone()) throw new IllegalStateException("Can't get result because builder is not complete");
 		return state.getResult();
 	}
 	
@@ -86,7 +85,7 @@ public class VoronoiWorker {
 			g.draw(rect2d);
 		}
 		if (state == null) {
-			for (Vec2 site : siteArray) {
+			for (Double2D site : siteArray) {
 				Ellipse2D ellipse = new Ellipse2D.Double(site.x()-1, site.y()-1, 2, 2);
 				g.fill(ellipse);
 			}

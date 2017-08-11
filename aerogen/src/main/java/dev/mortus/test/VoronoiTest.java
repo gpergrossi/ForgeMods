@@ -18,9 +18,9 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.stream.ImageOutputStream;
 
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.VoronoiBuilder;
@@ -105,7 +105,7 @@ public class VoronoiTest {
 	}
 
 	private static void test(int numSites, double canvasSize, int verbosity, boolean useGrid, String sequence, int frameTime) throws IOException {		
-		Vec2.ALLOCATION_COUNT = 0;
+		Double2D.ALLOCATION_COUNT = 0;
 
 		BufferedImage frameImage = null;
 		ImageOutputStream gifOutput = null;
@@ -162,7 +162,7 @@ public class VoronoiTest {
 					while (true) {
 						double x = center + random.nextDouble()*2.0*range - range;
 						double y = center + random.nextDouble()*2.0*range - range;
-						int index = builder.addSiteSafe(new Vec2(x, y));
+						int index = builder.addSiteSafe(new Double2D(x, y));
 						if (index != -1) break;
 						range += 1;
 					}
@@ -184,7 +184,7 @@ public class VoronoiTest {
 		double runtimeSeconds = runtimeNanos*0.000000001;
 		System.out.println(numSites+", "+runtimeSeconds);
 
-		if (verbosity >= 2) System.out.println(Vec2.ALLOCATION_COUNT+" Vec2's allocated");
+		if (verbosity >= 2) System.out.println(Double2D.ALLOCATION_COUNT+" Vec2's allocated");
 		
 		if (verbosity >= 2) printStats(voronoi, canvasSize);
 		if (sequence.contains("f")) {
@@ -197,7 +197,7 @@ public class VoronoiTest {
 		for (int i = 0; i < num; i++) {
 			double px = random.nextDouble()*canvasSize;
 			double py = random.nextDouble()*canvasSize;
-			builder.addSite(new Vec2(px, py));
+			builder.addSite(new Double2D(px, py));
 		}
 	}
 	
@@ -207,9 +207,9 @@ public class VoronoiTest {
 		int i = 0;
 		for (int x = 0; x < grid; x++) {
 			for (int y = 0; y < grid; y++) {
-				double px = x * gridSize + random.nextDouble()*(gridSize-Vec2.EPSILON*8) + Vec2.EPSILON*4;
-				double py = y * gridSize + random.nextDouble()*(gridSize-Vec2.EPSILON*8) + Vec2.EPSILON*4;
-				builder.addSite(new Vec2(px, py));
+				double px = x * gridSize + random.nextDouble()*(gridSize-Double2D.EPSILON*8) + Double2D.EPSILON*4;
+				double py = y * gridSize + random.nextDouble()*(gridSize-Double2D.EPSILON*8) + Double2D.EPSILON*4;
+				builder.addSite(new Double2D(px, py));
 				if (i++ >= num) return;
 			}
 		}
@@ -442,7 +442,7 @@ public class VoronoiTest {
 			// Draw centroid
 			if (coloring.drawCentroids()) {
 				g2d.setColor(Color.BLACK);
-				Vec2 centroid = poly.getCentroid();
+				Double2D centroid = poly.getCentroid();
 				if (centroid != null) {
 					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
 					g2d.fill(siteCentroid);

@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import dev.mortus.aerogen.world.islands.Island;
 import dev.mortus.aerogen.world.regions.Region;
 import dev.mortus.aerogen.world.regions.RegionManager;
-import net.minecraft.block.BlockFalling;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -61,8 +60,7 @@ public class ChunkProviderSky implements IChunkGenerator {
 	}
 
 	public void populate(int chunkX, int chunkZ) {
-		BlockFalling.fallInstantly = true;
-		
+//		BlockFalling.fallInstantly = false;
 		Random random = new Random(this.world.getSeed());
 		long k = random.nextLong() / 2L * 2L + 1L;
 		long l = random.nextLong() / 2L * 2L + 1L;
@@ -77,8 +75,6 @@ public class ChunkProviderSky implements IChunkGenerator {
 				island.populateChunk(world, chunkX, chunkZ, random);
 			}
 		}
-
-		BlockFalling.fallInstantly = false;
 	}
 
 	public boolean generateStructures(Chunk chunkIn, int x, int z) {

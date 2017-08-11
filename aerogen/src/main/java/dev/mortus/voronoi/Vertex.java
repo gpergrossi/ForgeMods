@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 import dev.mortus.util.data.storage.Storage;
 import dev.mortus.util.data.storage.StorageItem;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class Vertex implements Comparable<Vertex>, StorageItem {
 
@@ -34,12 +34,12 @@ public class Vertex implements Comparable<Vertex>, StorageItem {
 		this(x, y, false);
 	}
 	
-	Vertex(Vec2 pos) {
+	Vertex(Double2D pos) {
 		this(pos.x(), pos.y(), false);
 	}
 
-	public Vec2 toVec2() {
-		return new Vec2(x, y);
+	public Double2D toVec2() {
+		return new Double2D(x, y);
 	}
 	
 	public Point2D toPoint2D() {

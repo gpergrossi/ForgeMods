@@ -17,10 +17,10 @@ import java.util.function.Predicate;
 import dev.mortus.util.data.Pair;
 import dev.mortus.util.data.queue.FixedSizeArrayQueue;
 import dev.mortus.util.data.queue.MultiQueue;
-import dev.mortus.util.math.geom.LineSeg;
-import dev.mortus.util.math.geom.Ray;
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.LineSeg;
+import dev.mortus.util.math.geom2d.Ray;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 import dev.mortus.voronoi.Event.Type;
 import dev.mortus.util.data.storage.GrowingStorage;
 
@@ -57,7 +57,7 @@ public final class BuildState {
 	private boolean initialized;
 	private boolean finished;
 	
-	public BuildState (Rect bounds, Vec2[] siteLocations) {
+	public BuildState (Rect bounds, Double2D[] siteLocations) {
 		this.bounds = bounds;
 		this.shoreTree = new ShoreTree();
 
@@ -246,7 +246,7 @@ public final class BuildState {
 				g.fill(ellipse1);
 
 				g.setColor(new Color(0,255,0));
-				Vec2 center = edge.getCenter();
+				Double2D center = edge.getCenter();
 				int firstID = -1;
 				if (edge.sites.first != null) firstID = edge.sites.first.id;
 				int secondID = -1;
@@ -286,7 +286,7 @@ public final class BuildState {
 				Line2D line = new Line2D.Double(edge.getStart().toPoint2D(), edge.getEnd().toPoint2D());
 				g.draw(line);
 				
-				Vec2 center = edge.getCenter();
+				Double2D center = edge.getCenter();
 				int firstID = -1;
 				if (edge.sites.first != null) firstID = edge.sites.first.id;
 				int secondID = -1;
@@ -352,7 +352,7 @@ public final class BuildState {
 		sweeplineY = e.y;
 	}
 
-	private Site[] createSites(Vec2[] siteLocations) {
+	private Site[] createSites(Double2D[] siteLocations) {
 		Site[] sites = new Site[siteLocations.length];
 		
 		// Create Site objects and assign them an ID corresponding to their index in the siteLocations array
@@ -440,7 +440,7 @@ public final class BuildState {
 		ShoreBreakpoint successor = arc.getSuccessor();
 		
 		// Step 1. Finish the edges of each breakpoint
-		Vec2 predPos = predecessor.getPosition(this);
+		Double2D predPos = predecessor.getPosition(this);
 		Vertex sharedVertex = new Vertex(predPos.x(), predPos.y());
 		addVertex(sharedVertex);
 		for (ShoreBreakpoint bp : arc.getBreakpoints()) {
@@ -582,7 +582,7 @@ public final class BuildState {
 	 * Projects all unfinished edges out to the bounding box and gives them a closing vertex
 	 */
 	private boolean extendUnfinishedEdges() {
-		Vec2 temp = new Vec2(0, 0);
+		Double2D.Mutable temp = new Double2D.Mutable();
 		for (ShoreTreeNode node : shoreTree) {
 			if (!(node instanceof ShoreBreakpoint)) continue;
 			ShoreBreakpoint bp = (ShoreBreakpoint) node;
@@ -593,12 +593,12 @@ public final class BuildState {
 			}
 			
 			Vertex start = edge.getStart();
-			Vec2 direction = bp.getDirection();
+			Double2D direction = bp.getDirection();
 			
 			Ray edgeRay = new Ray(start.x, start.y, direction.x(), direction.y());
 			LineSeg intersect = bounds.clip(edgeRay);
 			
-			Vec2 endPoint = null;
+			Double2D endPoint = null;
 			if (intersect == null) {
 				endPoint = bp.getPosition(this); 
 			} else {
@@ -674,8 +674,8 @@ public final class BuildState {
 				continue;
 			}
 			
-			boolean sameStart = Vec2.equals(seg.getStartX(), seg.getStartY(), start.x, start.y);
-			boolean sameEnd = Vec2.equals(seg.getEndX(), seg.getEndY(), end.x, end.y);
+			boolean sameStart = Double2D.equals(seg.getStartX(), seg.getStartY(), start.x, start.y);
+			boolean sameEnd = Double2D.equals(seg.getEndX(), seg.getEndY(), end.x, end.y);
 			if (sameStart && sameEnd) continue;
 			
 			if (!sameStart) {
@@ -730,13 +730,13 @@ public final class BuildState {
 		final double[] vertexAngles = new double[s.numVertices];
 		for (int i = 0; i < s.numVertices; i++) {
 			Vertex vert = s.vertices[i];
-			vertexAngles[i] = Vec2.angle(vert.x, vert.y, s.point.x(), s.point.y());
+			vertexAngles[i] = Double2D.angle(vert.x, vert.y, s.point.x(), s.point.y());
 		}
 		
 		final double[] edgeAngles = new double[s.numEdges];
 		for (int i = 0; i < s.numEdges; i++) {
-			Vec2 center = s.edges[i].getCenter();
-			edgeAngles[i] = Vec2.angle(center.x(), center.y(), s.point.x(), s.point.y());
+			Double2D center = s.edges[i].getCenter();
+			edgeAngles[i] = Double2D.angle(center.x(), center.y(), s.point.x(), s.point.y());
 		}
 		
 		s.sortVertices(vertexAngles);

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import dev.mortus.aerogen.world.gen.Placement;
-import dev.mortus.aerogen.world.gen.Feature;
-import dev.mortus.util.data.Int2D;
-import dev.mortus.util.data.Int2DRange;
+import dev.mortus.util.math.ranges.Int2DRange;
+import dev.mortus.util.math.vectors.Int2D;
+import dev.mortus.aerogen.world.gen.features.AbstractFeature;
+import dev.mortus.aerogen.world.gen.placement.IPlacement;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -37,13 +37,13 @@ public class IslandDecorator {
 //	/** The water lily generation! */
 //	public WorldGenerator waterlilyGen = new WorldGenWaterlily();
 	
-	List<Feature> features;
+	List<AbstractFeature> features;
 	
 	public IslandDecorator() {
 		this.features = new ArrayList<>();
 	}
 
-	public IslandDecorator addFeature(Feature feature) {
+	public IslandDecorator addFeature(AbstractFeature feature) {
 		this.features.add(feature);
 		return this;
 	}
@@ -53,28 +53,30 @@ public class IslandDecorator {
 
 		//System.out.println("Decorating with "+features.size()+" fatures");
 		
-		for (Feature feature : features) {
-			Placement placement = feature.getPlacement();
+		for (AbstractFeature feature : features) {
+			IPlacement placement = feature.getPlacement();
 			if (placement == null) continue;
 
 			int numAttempts = placement.getNumAttemptsPerChunk(random);
 			int maxPlacements = placement.getMaxPlacementsPerChunk(random); 
 			
-			Int2D pos = new Int2D();			
+			Int2D.Mutable pos = new Int2D.Mutable();
 			int placements = 0;
 			for (int n = 0; n < numAttempts; n++) {
-				pos.x = chunkPos.getX() + random.nextInt(16);
-				pos.y = chunkPos.getZ() + random.nextInt(16);
+				pos.x(chunkPos.getX() + random.nextInt(16));
+				pos.y(chunkPos.getZ() + random.nextInt(16));
 				
 				int minY = placement.getMinY(world, island, pos);
 				int maxY = placement.getMaxY(world, island, pos);
 				if (minY > maxY) continue;
 				
-				int height = random.nextInt(maxY - minY + 1) + minY;
-				BlockPos blockPos = new BlockPos(pos.x, height, pos.y);
+				int height = minY;
+				if (maxY > minY) height += random.nextInt(maxY - minY + 1);
+				
+				BlockPos blockPos = new BlockPos(pos.x(), height, pos.y());
 				if (!placement.canGenerate(world, island, blockPos, random)) continue;
 				
-				boolean success = feature.generate(world, island, new BlockPos(pos.x, height, pos.y), random);
+				boolean success = feature.generate(world, island, new BlockPos(pos.x(), height, pos.y()), random);
 				if (success) {
 					placements++;
 					if (placements >= maxPlacements) break;

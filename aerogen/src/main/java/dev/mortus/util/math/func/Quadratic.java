@@ -1,6 +1,6 @@
 package dev.mortus.util.math.func;
 
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.vectors.Double2D;
 
 public final class Quadratic extends Function {
 
@@ -57,7 +57,7 @@ public final class Quadratic extends Function {
 		return a * x * x + b * x + c;
 	}
 
-	public static Vec2 getIntersect(Function leftGreater, Function rightGreater) {
+	public static Double2D getIntersect(Function leftGreater, Function rightGreater) {
 		Function difference = rightGreater.subtract(leftGreater);
 
 		double[] zeros = difference.zeros();
@@ -68,11 +68,11 @@ public final class Quadratic extends Function {
 			if (rightGreater instanceof Undefined) {
 				double x = zeros[0];
 				double y = leftGreater.getValue(x);
-				return new Vec2(x, y);
+				return new Double2D(x, y);
 			} else {
 				double x = zeros[0];
 				double y = rightGreater.getValue(x);
-				return new Vec2(x, y);
+				return new Double2D(x, y);
 			}
 		}
 
@@ -82,7 +82,7 @@ public final class Quadratic extends Function {
 			if (derivative.getValue(zero) > 0) {
 				double x = zero;
 				double y = rightGreater.getValue(zero);
-				return new Vec2(x, y);
+				return new Double2D(x, y);
 			}
 		}
 

@@ -9,12 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.mortus.util.data.StableArrayList;
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class VoronoiBuilder {
 
-	private StableArrayList<Vec2> sites;
+	private StableArrayList<Double2D> sites;
 	private double padding = 5.0;
 	private Rect bounds = null;
 	private boolean userBounds = false;
@@ -24,10 +24,10 @@ public class VoronoiBuilder {
 	}
 	
 	public VoronoiBuilder(int initialCapacity) {
-		sites = new StableArrayList<>(t -> new Vec2[t], initialCapacity);
+		sites = new StableArrayList<>(t -> new Double2D[t], initialCapacity);
 	}
 
-	public int addSite(Vec2 point) {
+	public int addSite(Double2D point) {
 		if (userBounds && !bounds.contains(point.x(), point.y())) {
 			return -1;
 		}
@@ -36,11 +36,11 @@ public class VoronoiBuilder {
 		return index;
 	}
 	
-	public int addSiteSafe(Vec2 point) {
+	public int addSiteSafe(Double2D point) {
 		if (userBounds && !bounds.contains(point.x(), point.y())) {
 			return -1;
 		}
-		for (Vec2 s : sites) {
+		for (Double2D s : sites) {
 			if (point.distanceTo(s) < 1) return -1;
 		}
 		int index = sites.put(point);
@@ -48,7 +48,7 @@ public class VoronoiBuilder {
 		return index;
 	}
 
-	public void removeSite(Vec2 site) {
+	public void removeSite(Double2D site) {
 		sites.remove(site);
 	}
 	
@@ -79,8 +79,8 @@ public class VoronoiBuilder {
 		return new VoronoiWorker(getBounds(), getSiteArray());
 	}
 	
-	private Vec2[] getSiteArray() {
-		Vec2[] siteArray = new Vec2[sites.size()];
+	private Double2D[] getSiteArray() {
+		Double2D[] siteArray = new Double2D[sites.size()];
 		siteArray = sites.toArray(siteArray);
 		return siteArray;
 	}
@@ -93,7 +93,7 @@ public class VoronoiBuilder {
 	public void setBounds(Rect bounds) {
 		this.bounds = bounds;
 		this.userBounds = true;
-		for (Vec2 v : sites) {
+		for (Double2D v : sites) {
 			if (!bounds.contains(v.x(), v.y())) {
 				removeSite(v);
 			}
@@ -104,7 +104,7 @@ public class VoronoiBuilder {
 		return bounds;
 	}
 	
-	private void boundsAddPoint(Vec2 point) {
+	private void boundsAddPoint(Double2D point) {
 		Rect pointRect = new Rect(point.x(), point.y(), 0, 0);
 		if (!userBounds) pointRect.expand(padding);
 		if (bounds == null) {
@@ -114,7 +114,7 @@ public class VoronoiBuilder {
 		}
 	}
 
-	public List<Vec2> getSites() {
+	public List<Double2D> getSites() {
 		return sites;
 	}
 
@@ -131,11 +131,11 @@ public class VoronoiBuilder {
 		FileOutputStream fos = new FileOutputStream("saved");
 		DataOutputStream dos = new DataOutputStream(fos);
 		
-		List<Vec2> packed = new ArrayList<>();
+		List<Double2D> packed = new ArrayList<>();
 		sites.iterator().forEachRemaining(e -> packed.add(e));
 		
 		dos.writeInt(packed.size());
-		for (Vec2 site : packed) {
+		for (Double2D site : packed) {
 			dos.writeDouble(site.x());
 			dos.writeDouble(site.y());
 		}
@@ -153,7 +153,7 @@ public class VoronoiBuilder {
 			double x = dis.readDouble();
 			double y = dis.readDouble();
 			
-			addSite(new Vec2(x,y));
+			addSite(new Double2D(x,y));
 		}
 		
 		dis.close();

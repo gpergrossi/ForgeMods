@@ -10,74 +10,106 @@ import dev.mortus.aerogen.world.islands.biomes.IslandBiomes;
 public class RegionBiomes {
 	
 	public static RegionBiome randomBiome(Random random) {
-		return REGION_FOREST;
-		//return ALL.get(random.nextInt(ALL.size()));
+		return ALL.get(random.nextInt(ALL.size()));
 	}
 	
 	public static final RegionBiome REGION_FOREST = new RegionBiome() {
 		public String getName() {
-			return "Test";
+			return "Forest";
 		}
+		
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.FOREST);
+			biomes.add(IslandBiomes.FOREST_CLEARING);
 			return biomes;
 		}
+		
+		public int getRandomNumberOfRivers(Random random) {
+			double roll = random.nextDouble();
+			if (roll < 0.75) return 1;
+			return 2;
+		};
 	};
 	
 	public static final RegionBiome START_AREA = REGION_FOREST;
 	
-//	public static final RegionBiome FOREST = new RegionBiome() {
-//		
-//		@Override
-//		public String getName() {
-//			return "Forest";
-//		}
-//
-//		@Override
-//		public List<Biome> getPossibleIslandBiomes() {
-//			List<Biome> biomes = new ArrayList<>();
-//			
-//			biomes.add(Biomes.FOREST);
-//			biomes.add(Biomes.FOREST_HILLS);
-//			biomes.add(Biomes.BIRCH_FOREST);
-//			biomes.add(Biomes.BIRCH_FOREST_HILLS);
-//			biomes.add(Biomes.ROOFED_FOREST);
-//			biomes.add(Biomes.TAIGA);
-//			biomes.add(Biomes.TAIGA_HILLS);
-//			
-//			biomes.add(Biomes.MUTATED_BIRCH_FOREST);
-//			biomes.add(Biomes.MUTATED_BIRCH_FOREST_HILLS);
-//			biomes.add(Biomes.MUTATED_FOREST);
-//			biomes.add(Biomes.MUTATED_ROOFED_FOREST);
-//			biomes.add(Biomes.MUTATED_TAIGA);
-//			
-//			return biomes;
-//		}
-//		
-//	};
-//	
-//	public static final RegionBiome DESERT = new RegionBiome() {
-//		
-//		@Override
-//		public String getName() {
-//			return "Desert";
-//		}
-//
-//		@Override
-//		public List<Biome> getPossibleIslandBiomes() {
-//			List<Biome> biomes = new ArrayList<>();
-//			
-//			biomes.add(Biomes.DESERT);
-//			biomes.add(Biomes.DESERT_HILLS);
-//			biomes.add(Biomes.MUTATED_DESERT);
-//			biomes.add(Biomes.MESA_ROCK);
-//			
-//			return biomes;
-//		}
-//		
-//	};
-//	
+	public static final RegionBiome REGION_DESERT = new RegionBiome() {
+		public String getName() {
+			return "Desert";
+		}
+
+		public List<IslandBiome> getPossibleIslandBiomes() {
+			List<IslandBiome> biomes = new ArrayList<>();
+			biomes.add(IslandBiomes.DESERT);
+			biomes.add(IslandBiomes.DESERT_DUNES);
+			return biomes;
+		}
+		
+		public int getRandomNumberOfRivers(Random random) {
+			return 0;
+		};
+		
+		@Override
+		public double getIslandCellGatherPercentage() {
+			return 0.75;
+		}
+		
+		public double getCellSizeMultiplier() {
+			return 1.5;
+		};
+		
+		@Override
+		public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
+			int altitude = random.nextInt(maxHeight-minHeight+1)+minHeight;
+			altitude = Math.min(altitude, random.nextInt(maxHeight-minHeight+1)+minHeight);
+			return altitude;
+		}
+		
+	};
+	
+	public static final RegionBiome REGION_JUNGLE = new RegionBiome() {
+		public String getName() {
+			return "Jungle";
+		}
+
+		public List<IslandBiome> getPossibleIslandBiomes() {
+			List<IslandBiome> biomes = new ArrayList<>();
+			biomes.add(IslandBiomes.JUNGLE);
+			return biomes;
+		}
+		
+		public int getRandomNumberOfRivers(Random random) {
+			return 2;
+		};
+		
+		@Override
+		public double getIslandCellGatherPercentage() {
+			return 0.25;
+		}
+		
+		public double getCellSizeMultiplier() {
+			return 1.5;
+		};
+		
+		@Override
+		public int getIslandMinAltitude() {
+			return 52;
+		};
+		
+		@Override
+		public int getIslandMaxAltitude() {
+			return 132;
+		};
+		
+		@Override
+		public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
+			int altitude = random.nextInt(maxHeight-minHeight+1)+minHeight;
+			return altitude;
+		}
+		
+	};
+	
 //	public static final RegionBiome SAVANNA = new RegionBiome() {
 //		
 //		@Override
@@ -116,28 +148,6 @@ public class RegionBiomes {
 //			return biomes;
 //		}
 //		
-//	};
-//	
-//	public static final RegionBiome JUNGLE = new RegionBiome() {
-//		
-//		@Override
-//		public String getName() {
-//			return "Jungle";
-//		}
-//
-//		@Override
-//		public List<Biome> getPossibleIslandBiomes() {
-//			List<Biome> biomes = new ArrayList<>();
-//			
-//			biomes.add(Biomes.JUNGLE);
-//			biomes.add(Biomes.JUNGLE_EDGE);
-//			biomes.add(Biomes.JUNGLE_HILLS);
-//			biomes.add(Biomes.MUTATED_JUNGLE);
-//			biomes.add(Biomes.MUTATED_JUNGLE_EDGE);
-//			
-//			return biomes;
-//		}
-//
 //	};
 //	
 //	public static final RegionBiome TAIGA = new RegionBiome() {
@@ -277,19 +287,11 @@ public class RegionBiomes {
 //
 //	};
 //	
-//	private static List<RegionBiome> ALL = new ArrayList<>();
-//	static {
-//		ALL.add(FOREST);
-//		ALL.add(DESERT);
-//		ALL.add(SAVANNA);
-//		ALL.add(SWAMP);
-//		ALL.add(JUNGLE);
-//		ALL.add(TAIGA);
-//		ALL.add(EXTREME_HILLS);
-//		ALL.add(FROSTLAND);
-//		ALL.add(MESA);
-//		ALL.add(MUSHROOM_LAND);
-//		ALL.add(OCEAN);
-//	}
+	private static List<RegionBiome> ALL = new ArrayList<>();
+	static {
+		//ALL.add(REGION_FOREST);
+		//ALL.add(REGION_DESERT);
+		ALL.add(REGION_JUNGLE);
+	}
 	
 }

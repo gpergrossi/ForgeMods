@@ -15,11 +15,11 @@ import dev.mortus.aerogen.world.islands.RiverCell;
 import dev.mortus.aerogen.world.islands.biomes.IslandBiome;
 import dev.mortus.aerogen.world.regions.biomes.RegionBiome;
 import dev.mortus.aerogen.world.regions.biomes.RegionBiomes;
-import dev.mortus.aerogen.world.voronoi.InfiniteCell;
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 import dev.mortus.voronoi.Edge;
+import dev.mortus.voronoi.InfiniteCell;
 import dev.mortus.voronoi.Site;
 import dev.mortus.voronoi.Voronoi;
 import dev.mortus.voronoi.VoronoiBuilder;
@@ -54,7 +54,10 @@ public class Region {
 	}
 	
 	public void init() {
-		List<Site> subCells = createSubCells(manager.cellSize, 4);
+		if (regionCell.cellX == 0 && regionCell.cellY == 0) biome = RegionBiomes.START_AREA;
+		else biome = RegionBiomes.randomBiome(random);
+		
+		List<Site> subCells = createSubCells(manager.cellSize * biome.getCellSizeMultiplier(), 4);
 		
 		double avgRadius = Math.sqrt(manager.cellSize)/2.0;
 		Map<Site, IslandCell> siteToCell = createIslands(subCells);
@@ -62,9 +65,6 @@ public class Region {
 		createRivers(subCells, siteToCell, avgRadius);
 		
 		System.out.println("Initializing "+this+" "+islands.size()+" islands");
-		
-		if (regionCell.cellX == 0 && regionCell.cellY == 0) biome = RegionBiomes.START_AREA;
-		else biome = RegionBiomes.randomBiome(random);
 	}
 
 	private List<Site> createSubCells(double avgCellSize, int relax) {
@@ -111,7 +111,7 @@ public class Region {
 			double area = kernel.getPolygon().getArea();
 			double perimeter = kernel.getPolygon().getPerimeter();
 			
-			int maxGather = (unallocated.size()+1)/2;
+			int maxGather = (int) Math.ceil((unallocated.size()+1) * biome.getIslandCellGatherPercentage());
 			if (maxGather < 1) maxGather = 1; 
 			
 			islandSites.clear();
@@ -210,7 +210,7 @@ public class Region {
 
 	private void createRivers(List<Site> subCells, Map<Site, IslandCell> siteToCell, double avgCellRadius) {
 		rivers = new ArrayList<>();
-		int numRivers = 1;
+		int numRivers = biome.getRandomNumberOfRivers(random);
 		
 		List<Edge> nextEdges = new ArrayList<>();
 		List<Double> nextWeights = new ArrayList<>();
@@ -228,7 +228,7 @@ public class Region {
 			River currentRiver = new River();
 			
 			double a = random.nextDouble()*Math.PI*2.0;
-			Vec2 previousMove = new Vec2(Math.cos(a), Math.sin(a));
+			Double2D previousMove = new Double2D(Math.cos(a), Math.sin(a));
 			Site currentSite = riverHeadSite;
 			RiverCell previousRiverCell = null;
 			Edge previouseEdge = null;
@@ -284,8 +284,8 @@ public class Region {
 				for (Edge e : currentSite.getEdges()) {
 					Site n = e.getNeighbor(currentSite);
 					if (consumed.contains(n)) continue;
-					Vec2 nCenter = n.getPolygon().getCentroid();
-					Vec2 nVector = nCenter.copy();
+					Double2D nCenter = n.getPolygon().getCentroid();
+					Double2D nVector = nCenter.copy();
 					nVector.subtract(currentSite.getPolygon().getCentroid());
 					nVector.normalize();
 					double weight = Math.pow(e.toLineSeg().length(), 4) + nVector.dot(previousMove)*avgCellRadius*10;

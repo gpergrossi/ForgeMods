@@ -12,12 +12,12 @@ import dev.mortus.aerogen.world.islands.River;
 import dev.mortus.aerogen.world.islands.RiverCell;
 import dev.mortus.aerogen.world.islands.RiverWaterfall;
 import dev.mortus.aerogen.world.regions.Region;
-import dev.mortus.util.data.Int2D;
-import dev.mortus.util.math.geom.LineSeg;
-import dev.mortus.util.math.geom.Polygon;
-import dev.mortus.util.math.geom.Ray;
-import dev.mortus.util.math.geom.Rect;
-import dev.mortus.util.math.geom.Vec2;
+import dev.mortus.util.math.vectors.Int2D;
+import dev.mortus.util.math.geom2d.LineSeg;
+import dev.mortus.util.math.geom2d.Polygon;
+import dev.mortus.util.math.geom2d.Ray;
+import dev.mortus.util.math.geom2d.Rect;
+import dev.mortus.util.math.vectors.Double2D;
 
 public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 	
@@ -46,7 +46,7 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 	@Override
 	public void load() {
 		region = getChunkLoader().regionManager.getRegion(chunkX, chunkY);
-		Vec2 center = region.getRegionPolygon().getCentroid();
+		Double2D center = region.getRegionPolygon().getCentroid();
 		centerX = center.x();
 		centerY = center.y();
 		
@@ -85,15 +85,15 @@ public class MinecraftViewChunk extends View2DChunk<MinecraftViewChunk> {
 					float maxEdge = shape.getMaxEdgeDistance();
 					for (Int2D.WithIndex tile : shape.range.getAllMutable()) {
 						if (tile.index % 100 == 0) Thread.yield();
-						if (!shape.contains(tile.x, tile.y)) continue;
+						if (!shape.contains(tile.x(), tile.y())) continue;
 						
-						float edge = shape.getEdgeDistance(tile.x, tile.y);
+						float edge = shape.getEdgeDistance(tile.x(), tile.y());
 						
 						// Outlines guaranteed, interior speckled
 						if (edge > 1 && Math.random() < 0.9) continue;
 						
 						g.setColor(new Color(Color.HSBtoRGB(hue, 1, bri * (1.0f - edge/maxEdge))));
-						g.drawLine(tile.x, tile.y, tile.x, tile.y);
+						g.drawLine(tile.x(), tile.y(), tile.x(), tile.y());
 					}
 					if (!alive) break;
 				}
