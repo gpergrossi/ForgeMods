@@ -1,0 +1,16 @@
+problems:
+- cliffs always on (whoops)
+- cactus only spawn 1 high
+- no memory management yet
+- world seeds always the same
+- rivers should be a terrain feature, not part of heightmap
+- river head lakes need a solution that separates them from the heightmap code
+- rivers should carve out caves if terrain is high enough around them
+
+
+
+
+Feature idea: a long line of stone spires with a treasure at the end
+Biome idea: stone forest
+
+Great Polish: custom sky sphere with floating islands in the distance?
