@@ -1,12 +1,12 @@
 package com.gpergrossi.voronoi;
 
-import com.gpergrossi.util.data.Pair;
+import com.gpergrossi.util.data.OrderedPair;
 
 public class HalfEdge extends Edge {
 
 	private HalfEdge twin;
 	
-	static Pair<HalfEdge> createTwinPair(Pair<ShoreBreakpoint> bps, Vertex vert) {
+	static OrderedPair<HalfEdge> createTwinPair(OrderedPair<ShoreBreakpoint> bps, Vertex vert) {
 		if (bps.size() != 2) throw new RuntimeException("Cannot construct twin pair with a partial pair of breakpoints");
 		
 		HalfEdge edge = new HalfEdge(bps.first, vert);
@@ -15,7 +15,7 @@ public class HalfEdge extends Edge {
 		edge.twin = twin;
 		twin.twin = edge;
 		
-		Pair<HalfEdge> twins = new Pair<HalfEdge>(edge, edge.twin);
+		OrderedPair<HalfEdge> twins = new OrderedPair<HalfEdge>(edge, edge.twin);
 		return twins;
 	}
 	

@@ -1,12 +1,13 @@
 package com.gpergrossi.aerogen.definitions.biomes;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
-import java.util.ArrayList;
-import java.util.List;
+import net.minecraft.world.biome.Biome;
+
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -18,22 +19,11 @@ import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
 
 public class IslandBiomeForest extends IslandBiome {
     
-	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Forest");
-		properties.setWaterColor(0x0077FF);
-		properties.setTemperature(0.7F).setRainfall(0.8F);
-		return properties;
-	}
-
-	protected IslandDecorator decorator;
+	public IslandBiomeForest() {}
 	
-	public IslandBiomeForest(BiomeProperties properties) {
-		super(properties);
-	}
-	
-	public IslandBiomeForest() {
-		this(getBiomeProperties());
-		this.setRegistryName(AeroGenMod.MODID, "biome/sky_forest");
+	@Override
+	public Biome getMinecraftBiome() {
+		return Biomes.FOREST;
 	}
 	
 	@Override
@@ -66,10 +56,11 @@ public class IslandBiomeForest extends IslandBiome {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(6)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 
-		addDefaultWaterFeatures(decorator);
+		addDefaultWaterFeatures(decorator, true, true);
 		
 		decorator.addFeature(
 			new FeatureSurfaceCluster()
@@ -130,12 +121,6 @@ public class IslandBiomeForest extends IslandBiome {
 		);
 		
 		return decorator;
-	}
-
-	@Override
-	protected List<SpawnListEntry> getWaterCreatureList() {
-		List<SpawnListEntry> waterCreatureList = new ArrayList<>();
-		return waterCreatureList;
 	}
 	
 }

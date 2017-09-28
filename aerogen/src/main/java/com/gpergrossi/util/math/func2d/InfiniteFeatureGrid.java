@@ -16,7 +16,7 @@ public class InfiniteFeatureGrid implements Function2D {
 	int tileSizeX;
 	int tileSizeY;
 	
-	double maxRadius = 0; //TODO: replace with extents left, top, right, bottom (including after rotations)
+	float maxRadius = 0; //TODO: replace with extents left, top, right, bottom (including after rotations)
 	
 	boolean rotation = false;
 	float minAngle = 0, maxAngle = 0;

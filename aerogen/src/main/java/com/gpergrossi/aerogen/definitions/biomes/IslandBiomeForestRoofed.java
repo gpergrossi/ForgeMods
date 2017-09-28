@@ -1,12 +1,13 @@
 package com.gpergrossi.aerogen.definitions.biomes;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
-import java.util.ArrayList;
-import java.util.List;
+import net.minecraft.world.biome.Biome;
+
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSingle;
@@ -18,24 +19,12 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
 
 public class IslandBiomeForestRoofed extends IslandBiome {
-    
-	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Roofed Forest");
-		properties.setWaterColor(0x0077FF);
-		properties.setBaseBiome("roofed_forest");
-		properties.setTemperature(0.7F).setRainfall(0.8F);
-		return properties;
-	}
-
-	protected IslandDecorator decorator;
 	
-	public IslandBiomeForestRoofed(BiomeProperties properties) {
-		super(properties);
-	}
+	public IslandBiomeForestRoofed() {}
 	
-	public IslandBiomeForestRoofed() {
-		this(getBiomeProperties());
-		this.setRegistryName(AeroGenMod.MODID, "biome/sky_forest_roofed");
+	@Override
+	public Biome getMinecraftBiome() {
+		return Biomes.ROOFED_FOREST;
 	}
 	
 	@Override
@@ -75,10 +64,11 @@ public class IslandBiomeForestRoofed extends IslandBiome {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(20)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 
-		addDefaultWaterFeatures(decorator);
+		addDefaultWaterFeatures(decorator, true, true);
 		
 		decorator.addFeature(
 			new FeatureSurfaceCluster()
@@ -139,12 +129,6 @@ public class IslandBiomeForestRoofed extends IslandBiome {
 		);
 		
 		return decorator;
-	}
-
-	@Override
-	protected List<SpawnListEntry> getWaterCreatureList() {
-		List<SpawnListEntry> waterCreatureList = new ArrayList<>();
-		return waterCreatureList;
 	}
 	
 }

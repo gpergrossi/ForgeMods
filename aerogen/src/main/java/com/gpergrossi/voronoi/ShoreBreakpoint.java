@@ -144,7 +144,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 		if (lastResult == null) {
 			// null occurs when sites are on the same y value and have no intersection of their "parabolas"
 			double x = (arcLeft.getSite().point.x() + arcRight.getSite().point.x()) / 2.0;
-			double y = state.getBounds().minY()-50000; // TODO this should actually be a backwards intersection to the top boundary, not an average position
+			double y = state.getBounds().getBounds().minY()-50000; // TODO this should actually be a backwards intersection to the top boundary, not an average position
 			lastResult = new Double2D(x, y);
 		}
 		return lastResult;

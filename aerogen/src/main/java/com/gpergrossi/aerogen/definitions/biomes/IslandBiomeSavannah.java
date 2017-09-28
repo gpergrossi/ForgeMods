@@ -1,20 +1,12 @@
 package com.gpergrossi.aerogen.definitions.biomes;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.passive.EntityDonkey;
-import net.minecraft.entity.passive.EntityHorse;
-import net.minecraft.entity.passive.EntityLlama;
-import net.minecraft.entity.passive.EntityRabbit;
-import net.minecraft.entity.passive.EntityWolf;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.Biome.SpawnListEntry;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureTrees;
@@ -27,23 +19,12 @@ import com.gpergrossi.util.math.func2d.Function2D;
 import com.gpergrossi.util.math.func2d.RemapOperation;
 
 public class IslandBiomeSavannah extends IslandBiome {
-    
-	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Savannah");
-		properties.setWaterColor(0x0077FF);
-		properties.setTemperature(0.7F).setRainfall(0.8F);
-		return properties;
-	}
 
-	protected IslandDecorator decorator;
+	public IslandBiomeSavannah() {}
 	
-	public IslandBiomeSavannah(BiomeProperties properties) {
-		super(properties);
-	}
-	
-	public IslandBiomeSavannah() {
-		this(getBiomeProperties());
-		this.setRegistryName(AeroGenMod.MODID, "biome/sky_savannah");
+	@Override
+	public Biome getMinecraftBiome() {
+		return Biomes.SAVANNA;
 	}
 	
 	@Override
@@ -61,8 +42,8 @@ public class IslandBiomeSavannah extends IslandBiome {
 			}
 			@Override
 			protected Function2D createSurfaceNoise(Random random) {
-				Function2D func = new FractalNoise2D(random.nextLong(), 1.0/256.0, 4, 0.4);
-				return new RemapOperation(func, v -> v*0.5+0.5);
+				Function2D func = new FractalNoise2D(random.nextLong(), 1.0f/256.0f, 4, 0.4f);
+				return new RemapOperation(func, v -> v*0.5f+0.5f);
 			}
 		};
 	}
@@ -81,10 +62,11 @@ public class IslandBiomeSavannah extends IslandBiome {
 				new PlacementHighestBlock()
 				.withDesiredCount(0)
 				.withChanceForExtra(0.125f)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 
-		addDefaultWaterFeatures(decorator);
+		addDefaultWaterFeatures(decorator, false, true);
 		
 		decorator.addFeature(
 			new FeatureSurfaceCluster()
@@ -100,21 +82,6 @@ public class IslandBiomeSavannah extends IslandBiome {
 		);
 		
 		return decorator;
-	}
-
-	@Override
-	protected List<SpawnListEntry> getCreatureList() {
-		List<SpawnListEntry> creatureList = super.getCreatureList();
-		creatureList.add(new Biome.SpawnListEntry(EntityHorse.class, 1, 2, 6));
-		creatureList.add(new Biome.SpawnListEntry(EntityDonkey.class, 1, 1, 1));
-		creatureList.add(new Biome.SpawnListEntry(EntityLlama.class, 8, 4, 4));
-		return creatureList;
-	}
-	
-	@Override
-	protected List<SpawnListEntry> getWaterCreatureList() {
-		List<SpawnListEntry> waterCreatureList = new ArrayList<>();
-		return waterCreatureList;
 	}
 	
 }

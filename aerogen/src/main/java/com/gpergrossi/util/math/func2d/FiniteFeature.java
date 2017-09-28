@@ -6,14 +6,14 @@ public class FiniteFeature implements Function2D {
 
 	Int2DRange.Floats feature;
 	
-	double radius;
+	float radius;
 
 	public FiniteFeature(Int2DRange.Floats details) {
 		this.feature = details;
 		
-		double dx = details.width / 2.0;
-		double dy = details.height / 2.0;
-		this.radius = Math.sqrt(dx*dx + dy*dy);
+		float dx = details.width / 2.0f;
+		float dy = details.height / 2.0f;
+		this.radius = (float) Math.sqrt(dx*dx + dy*dy);
 	}
 	
 	@Override
@@ -21,12 +21,12 @@ public class FiniteFeature implements Function2D {
 		return feature.lerp((float) x, (float) y, 0);
 	}
 	
-	public double getCenterX() {
-		return (feature.maxX + feature.minX) / 2.0;
+	public float getCenterX() {
+		return (feature.maxX + feature.minX) / 2.0f;
 	}
 	
-	public double getCenterY() {
-		return (feature.maxY + feature.minY) / 2.0;
+	public float getCenterY() {
+		return (feature.maxY + feature.minY) / 2.0f;
 	}
 	
 	public int getWidth() {
@@ -37,7 +37,7 @@ public class FiniteFeature implements Function2D {
 		return feature.height;
 	}
 	
-	public double getRadius() {
+	public float getRadius() {
 		return radius;
 	}
 	

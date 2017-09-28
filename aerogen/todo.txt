@@ -13,4 +13,42 @@ problems:
 Feature idea: a long line of stone spires with a treasure at the end
 Biome idea: stone forest
 
+Polish: spawn chest
 Great Polish: custom sky sphere with floating islands in the distance?
+
+Beach
+Birch Forest
+Birch Forest Hills
+Cold Beach
+Cold Taiga
+Cold Taiga Hills
+Deep Ocean
+Desert
+Desert Hills
+Extreme Hills
+Extreme Hills+
+Forest
+ForestHills
+FrozenRiver
+Ice Mountains
+Ice Plains
+Jungle
+Jungle Edge
+Jungle Hills
+Mega Taiga
+Mega Taiga Hills
+Mesa
+Mesa Plateau
+Mesa Plateau F
+Mushroom Island
+MushroomIslandShore
+Ocean
+Plains
+River
+Roofed Forest
+Savanna
+Savanna Plateau
+Stone Beach
+Swampland
+Taiga
+Taiga Hills

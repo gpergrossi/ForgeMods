@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.features.AbstractFeature;
 import com.gpergrossi.aerogen.generator.decorate.placement.IPlacement;
 import com.gpergrossi.aerogen.generator.islands.Island;
@@ -50,15 +51,18 @@ public class IslandDecorator {
 		return this;
 	}
 	
-	public void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random) {
+	public void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random, GenerationPhase currentPhase) {
 		//System.out.println("Decorating with "+features.size()+" features");
 		Int2D.Mutable pos = new Int2D.Mutable();
+
+		double chunkMass = island.getVolume(chunkRange);
 		
 		for (AbstractFeature feature : features) {
 			IPlacement placement = feature.getPlacement();
 			if (placement == null) continue;
+			if (placement.getPhase() != currentPhase) continue;
 
-			int maxPlacements = placement.getMaxPlacementsPerChunk(random); 
+			int maxPlacements = placement.getMaxPlacementsPerChunk(chunkMass, random); 
 			for (int n = 0; n < maxPlacements; n++) {
 				pos.x(chunkRange.randomX(random));
 				pos.y(chunkRange.randomY(random));

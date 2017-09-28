@@ -1,13 +1,11 @@
 package com.gpergrossi.util.data.ranges;
 
-import java.security.InvalidParameterException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.gpergrossi.util.data.ranges.Int2DRange.Integers;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.geom.vectors.Int2D.StoredBit;
@@ -476,6 +474,8 @@ public class Int2DRange {
 		}
 		
 		public byte get(int x, int y) {
+			if (x < minX || x > maxX) throw new IndexOutOfBoundsException("x = "+x+" is out of bounds ["+minX+", "+maxX+"]");
+			if (y < minY || y > maxY) throw new IndexOutOfBoundsException("y = "+y+" is out of bounds ["+minY+", "+maxY+"]");
 			return data[(y-minY)*width+(x-minX)];
 		}
 		
@@ -533,7 +533,7 @@ public class Int2DRange {
 		
 		public Integers(int minX, int minY, int maxX, int maxY, int[] intArray) {
 			super(minX, minY, maxX, maxY);
-			if (intArray.length < size()) throw new InvalidParameterException("Provided int array is not big enough");
+			if (intArray.length < size()) throw new IllegalArgumentException("Provided int array is not big enough");
 			this.data = intArray;
 		}
 		

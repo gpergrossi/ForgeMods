@@ -1,6 +1,6 @@
 package com.gpergrossi.voronoi;
 
-import com.gpergrossi.util.data.Pair;
+import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.data.storage.Storage;
 import com.gpergrossi.util.data.storage.StorageItem;
 import com.gpergrossi.util.geom.shapes.LineSeg;
@@ -11,15 +11,17 @@ public class Edge implements StorageItem, Comparable<Edge> {
 	private Integer storageIndex;
 	private Storage<?> storage;
 	
-	protected Pair<Site> sites;
-	protected Pair<Vertex> vertices;
+	protected OrderedPair<Site> sites;
+	protected OrderedPair<Vertex> vertices;
 	
 	protected Double2D center;
 	protected LineSeg lineSeg;
 	
+	public Object data;
+	
 	protected Edge(Vertex start, Vertex end, Site left, Site right) {
-		this.vertices = new Pair<>(start, end);
-		this.sites = new Pair<>(left, right);
+		this.vertices = new OrderedPair<>(start, end);
+		this.sites = new OrderedPair<>(left, right);
 	}
 	
 	Edge(ShoreBreakpoint bp, Vertex start) {
@@ -28,7 +30,7 @@ public class Edge implements StorageItem, Comparable<Edge> {
 	
 	void redefine(Vertex start, Vertex end) {
 		if (getStart() == start && getEnd() == end) return;
-		this.vertices = new Pair<>(start, end);
+		this.vertices = new OrderedPair<>(start, end);
 		this.center = null;
 		this.lineSeg = null;
 	}
@@ -64,11 +66,11 @@ public class Edge implements StorageItem, Comparable<Edge> {
 		return vertices.size() == 2;
 	}
 
-	public Pair<Vertex> getVertices() { return vertices; }
+	public OrderedPair<Vertex> getVertices() { return vertices; }
 	public Vertex getStart() { return vertices.first; }
 	public Vertex getEnd() { return vertices.second; }
 	
-	public Pair<Site> getSites() { return sites; }
+	public OrderedPair<Site> getSites() { return sites; }
 	public Site getSiteLeft() { return sites.first; }
 	public Site getSiteRight() { return sites.second; }
 

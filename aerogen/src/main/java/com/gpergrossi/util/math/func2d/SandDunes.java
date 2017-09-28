@@ -14,7 +14,7 @@ public class SandDunes extends InfiniteFeatureGrid {
 	Function2D flatPatchLayer;
 	Function2D baseLayer;
 	
-	double scale;
+	float scale;
 	
 	List<List<FiniteFeature>> featuresBySize;
 	
@@ -36,11 +36,11 @@ public class SandDunes extends InfiniteFeatureGrid {
 			featuresBySize.add(features);
 		}
 		
-		FractalNoise2D baseLayer0 = new FractalNoise2D(1/128.0, 2);
-		baseLayer = new RemapOperation(baseLayer0, a -> (a*0.5+0.5)*0.25);
+		FractalNoise2D baseLayer0 = new FractalNoise2D(1.0f/128.0f, 2);
+		baseLayer = new RemapOperation(baseLayer0, a -> (a*0.5f+0.5f)*0.25f);
 		
-		FractalNoise2D flatPatchLayer = new FractalNoise2D(1.0/1024.0, 3);
-		RemapOperation flatPatchLayer2 = new RemapOperation(flatPatchLayer, a -> (a*0.5+0.5)*1.3 - 0.3);
+		FractalNoise2D flatPatchLayer = new FractalNoise2D(1.0f/1024.0f, 3);
+		RemapOperation flatPatchLayer2 = new RemapOperation(flatPatchLayer, a -> (a*0.5f+0.5f)*1.3f - 0.3f);
 		
 		this.flatPatchLayer = flatPatchLayer2;
 	}
@@ -75,7 +75,7 @@ public class SandDunes extends InfiniteFeatureGrid {
 			float val = i / period;
 			val = cosInterp(val, lastX, currentX);
 			
-			float attenuate = (float) Math.max(0, 1.0 - ((double) Math.abs(y)) / sizeY);
+			float attenuate = (float) Math.max(0, 1.0 - ((float) Math.abs(y)) / sizeY);
 			attenuate = (float) Math.pow(attenuate, 0.33);
 			
 			duneX[y+sizeY] = val;
@@ -142,7 +142,7 @@ public class SandDunes extends InfiniteFeatureGrid {
 	}
 
 	@Override
-	public double getValue(double x, double y) {
+	public double getValue(double x, double y) {		
 		double flatness = flatPatchLayer.getValue(x, y);
 		if (flatness < 0) return 0;
 		

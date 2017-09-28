@@ -98,6 +98,10 @@ public class RegionManager extends InfiniteVoronoi {
 		promoteRegionToHeadOfLoadedList(r);
 		return r;
 	}
+	
+	public Region getSpawnRegion() {
+		return getRegion(0, 0);
+	}
 
 	public synchronized Region getRegion(int x, int y) {
 		return getRegionForCell(getCell(x, y));

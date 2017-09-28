@@ -1,6 +1,6 @@
 package com.gpergrossi.voronoi;
 
-import com.gpergrossi.util.data.Pair;
+import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.math.func.Function;
@@ -66,12 +66,12 @@ public class ShoreArc extends ShoreTreeNode {
 		return (ShoreBreakpoint) super.getSuccessor();
 	}
 	
-	public Pair<ShoreBreakpoint> getBreakpoints() {
-		return new Pair<ShoreBreakpoint>(getPredecessor(), getSuccessor());
+	public OrderedPair<ShoreBreakpoint> getBreakpoints() {
+		return new OrderedPair<ShoreBreakpoint>(getPredecessor(), getSuccessor());
 	}
 	
-	public Pair<ShoreArc> getNeighborArcs() {
-		return new Pair<ShoreArc>(getLeftNeighborArc(), getRightNeighborArc());
+	public OrderedPair<ShoreArc> getNeighborArcs() {
+		return new OrderedPair<ShoreArc>(getLeftNeighborArc(), getRightNeighborArc());
 	}
 	
 	public ShoreArc getLeftNeighborArc() {

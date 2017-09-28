@@ -119,7 +119,7 @@ public class VoronoiTest {
 		}
 		
 		VoronoiBuilder builder = new VoronoiBuilder(numSites);
-		builder.setBounds(new Rect(0, 0, canvasSize, canvasSize));
+		builder.setBounds(new Rect(0, 0, canvasSize, canvasSize).toPolygon(4));
 
 		if (verbosity >= 1) System.out.println("Generating "+numSites+" points "+(useGrid ? "(grid constrained)" : "")+"...");
 		if (!useGrid) generateSitePoints(builder, numSites, canvasSize);

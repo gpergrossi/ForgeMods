@@ -1,4 +1,4 @@
-package com.gpergrossi.aerogen.generator.regions.features;
+package com.gpergrossi.aerogen.generator.regions.features.river;
 
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.util.geom.shapes.Line;
@@ -34,9 +34,7 @@ public class RiverWaterfall {
 					if (seg.intersect(intersection, edgeLine)) { edgeSeg = seg; break; }
 				}
 			}
-			Ray ray = edgeSeg.toRay();
-			ray.reposition(intersection);
-			location = ray;
+			location = edgeSeg.toRay().reposition(intersection);
 		}
 		return location;
 	}

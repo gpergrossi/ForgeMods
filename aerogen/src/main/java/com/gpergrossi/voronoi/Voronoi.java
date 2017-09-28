@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.gpergrossi.util.data.storage.GrowingStorage;
-import com.gpergrossi.util.geom.shapes.Rect;
+import com.gpergrossi.util.geom.shapes.Convex;
 
 public class Voronoi {
 
@@ -16,7 +16,7 @@ public class Voronoi {
 	public static boolean DEBUG = false;
 	public static boolean DEBUG_FINISH = false;
 	
-	protected Rect bounds;
+	protected Convex bounds;
 	
 	protected List<Site> sites;
 	protected List<Edge> edges;
@@ -24,11 +24,11 @@ public class Voronoi {
 	
 	protected Voronoi() {}
 	
-	Voronoi(Rect bounds) {
+	Voronoi(Convex bounds) {
 		this.bounds = bounds;
 	}
 	
-	public Rect getBounds() {
+	public Convex getBounds() {
 		return bounds;
 	}
 

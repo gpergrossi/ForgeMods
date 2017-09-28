@@ -13,12 +13,12 @@ public class NoiseViewerChunk extends View2DChunk<NoiseViewerChunk> {
 		return new NoiseViewerChunk(manager, chunkX, chunkY);
 	}
 
-	double chunkSize;
+	float chunkSize;
 	int chunkSizeI;
 			
 	public NoiseViewerChunk(ChunkManager<NoiseViewerChunk> manager, int chunkX, int chunkY) {
 		super(manager, chunkX, chunkY);
-		chunkSize = loader.getChunkSize();
+		chunkSize = (float) loader.getChunkSize();
 		chunkSizeI = (int) chunkSize;
 	}
 

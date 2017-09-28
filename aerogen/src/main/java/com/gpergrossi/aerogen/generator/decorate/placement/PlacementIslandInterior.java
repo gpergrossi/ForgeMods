@@ -1,5 +1,7 @@
 package com.gpergrossi.aerogen.generator.decorate.placement;
 
+import java.util.Random;
+
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
@@ -9,6 +11,9 @@ public class PlacementIslandInterior extends AbstractPlacement {
 	
 	int minDepth = 0;
 	int maxDepth = 256;
+	
+	boolean scaleWithChunkMass = false;
+	double averageChunkMass = 16*16*32;
 	
 	public PlacementIslandInterior withDesiredCount(int num) {
 		super.withDesiredCount(num);
@@ -29,6 +34,16 @@ public class PlacementIslandInterior extends AbstractPlacement {
 		this.maxDepth = depth;
 		return this;
 	}
+	
+	public PlacementIslandInterior scaleWithChunkMass(boolean shouldScale) {
+		this.scaleWithChunkMass = shouldScale;
+		return this;
+	}
+	
+	public PlacementIslandInterior expectedChunkMass(double expectedChunkMass) {
+		this.averageChunkMass = expectedChunkMass;
+		return this;
+	}
 
 	@Override
 	public int getMinY(World world, Island island, Int2D position) {
@@ -41,6 +56,18 @@ public class PlacementIslandInterior extends AbstractPlacement {
 	public int getMaxY(World world, Island island, Int2D position) {
 		int top = island.getHeightmap().getTop(position);
 		return top - minDepth;
+	}
+	
+	@Override
+	public int getMaxPlacementsPerChunk(double chunkMass, Random random) {
+		double normalPlacements = this.desiredPlacementsPerChunk + this.chanceForExtraPlacement;
+		double scaledPlacements = normalPlacements * chunkMass / averageChunkMass;
+				
+		double chanceForOneMore = scaledPlacements - Math.floor(scaledPlacements);
+		scaledPlacements = Math.floor(scaledPlacements);
+		
+		if (chanceForOneMore > 0 && random.nextFloat() < chanceForOneMore) scaledPlacements++;
+		return (int) scaledPlacements;
 	}
 	
 }

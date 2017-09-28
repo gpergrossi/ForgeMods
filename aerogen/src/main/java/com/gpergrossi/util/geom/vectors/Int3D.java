@@ -1,7 +1,6 @@
 package com.gpergrossi.util.geom.vectors;
 
 import com.gpergrossi.util.data.ranges.Int3DRange;
-import com.gpergrossi.util.geom.vectors.Int3D.Mutable;
 
 public class Int3D implements IVector3D<Int3D> {
 

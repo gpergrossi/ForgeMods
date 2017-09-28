@@ -70,12 +70,12 @@ public abstract class SimplexNoise {
 	}
 
 	// Skewing and unskewing factors for 2, 3, and 4 dimensions
-	private static final double scewFactor2D = 0.5 * (Math.sqrt(3.0) - 1.0);
-	private static final double unscewFactor2D = (3.0 - Math.sqrt(3.0)) / 6.0;
-	private static final double scewFactor3D = 1.0 / 3.0;
-	private static final double unscewFactor3D = 1.0 / 6.0;
-	private static final double scewFactor4D = (Math.sqrt(5.0) - 1.0) / 4.0;
-	private static final double unscewFactor4D = (5.0 - Math.sqrt(5.0)) / 20.0;
+	private static final double scewFactor2D = (double) (0.5 * (Math.sqrt(3.0) - 1.0));
+	private static final double unscewFactor2D = (double) ((3.0 - Math.sqrt(3.0)) / 6.0);
+	private static final double scewFactor3D = (double) (1.0 / 3.0);
+	private static final double unscewFactor3D = (double) (1.0 / 6.0);
+	private static final double scewFactor4D = (double) ((Math.sqrt(5.0) - 1.0) / 4.0);
+	private static final double unscewFactor4D = (double) ((5.0 - Math.sqrt(5.0)) / 20.0);
 
 	private static int floor(double x) {
 		int xi = (int) x;

@@ -3,7 +3,7 @@ package com.gpergrossi.aerogen.generator.islands.contour;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.regions.features.RiverCell;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverCell;
 import com.gpergrossi.util.math.func2d.FractalNoise2D;
 import com.gpergrossi.util.math.func2d.Function2D;
 

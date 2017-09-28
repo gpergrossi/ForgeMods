@@ -1,16 +1,12 @@
 package com.gpergrossi.aerogen.definitions.biomes;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.passive.EntityChicken;
-import net.minecraft.entity.passive.EntityOcelot;
-import net.minecraft.entity.passive.EntityParrot;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.Biome;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSingle;
@@ -23,23 +19,12 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
 
 public class IslandBiomeJungle extends IslandBiome {
-	
-	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Jungle");
-		properties.setWaterColor(0x0077FF);
-		properties.setTemperature(0.95F).setRainfall(0.9F);
-		return properties;
-	}
 
-	protected IslandDecorator decorator;
+	public IslandBiomeJungle() {}
 	
-	public IslandBiomeJungle(BiomeProperties properties) {
-		super(properties);
-	}
-	
-	public IslandBiomeJungle() {
-		this(getBiomeProperties());
-		this.setRegistryName(AeroGenMod.MODID, "biome/sky_jungle");
+	@Override
+	public Biome getMinecraftBiome() {
+		return Biomes.JUNGLE;
 	}
 	
 	@Override
@@ -74,6 +59,7 @@ public class IslandBiomeJungle extends IslandBiome {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(50)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 		
@@ -85,7 +71,7 @@ public class IslandBiomeJungle extends IslandBiome {
 //			)
 //		);
 
-		addDefaultWaterFeatures(decorator);
+		addDefaultWaterFeatures(decorator, true, true);
 		
 		decorator.addFeature(
 			new FeatureSingle(Placeables.TALL_GRASS)
@@ -160,21 +146,6 @@ public class IslandBiomeJungle extends IslandBiome {
 		);
 		
 		return decorator;
-	}
-
-	@Override
-	protected List<SpawnListEntry> getWaterCreatureList() {
-		List<SpawnListEntry> waterCreatureList = new ArrayList<>();
-		return waterCreatureList;
-	}
-	
-	@Override
-	protected List<SpawnListEntry> getCreatureList() {
-		List<SpawnListEntry> creatureList = new ArrayList<>();
-		creatureList.add(new Biome.SpawnListEntry(EntityParrot.class, 40, 1, 2));
-		creatureList.add(new Biome.SpawnListEntry(EntityChicken.class, 10, 4, 4));
-		creatureList.add(new Biome.SpawnListEntry(EntityOcelot.class, 2, 1, 1));
-		return creatureList;
 	}
 	
 }

@@ -9,7 +9,6 @@ import com.gpergrossi.util.data.Octree;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.data.ranges.Int3DRange;
 import com.gpergrossi.util.geom.vectors.Double3D;
-import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.geom.vectors.Int3D;
 import com.gpergrossi.util.math.func2d.FractalNoise2D;
 
@@ -160,7 +159,7 @@ public class IslandCaves {
 			
 			// The t value for the intersect. Line represented as: v(t) = v0 + t*dv, for t on [0, 1]
 			scratch = scratch.copy(point).subtract(start);
-			double t = scratch.dot(delta) / deltaLength2;			
+			double t = scratch.dot(delta) / deltaLength2;   // this is divided by length squared because projection = a.b/|b| and then 1/|b| brings it to the 0 to 1 range
 			t = Math.max(0, Math.min(1, t));
 			
 			// Closest point on line is v(t)
@@ -191,9 +190,9 @@ public class IslandCaves {
 		}
 	}
 	
-	public static FractalNoise2D turbulenceX = new FractalNoise2D(87483211L, 1.0/32.0, 5);
-	public static FractalNoise2D turbulenceY = new FractalNoise2D(-589043136L, 1.0/32.0, 5);
-	public static FractalNoise2D turbulenceZ = new FractalNoise2D(1998491627635L, 1.0/32.0, 5);
+	public static FractalNoise2D turbulenceX = new FractalNoise2D(87483211L, 1.0f/32.0f, 4);
+	public static FractalNoise2D turbulenceY = new FractalNoise2D(-589043136L, 1.0f/32.0f, 4);
+	public static FractalNoise2D turbulenceZ = new FractalNoise2D(1998491627635L, 1.0f/32.0f, 4);
 	
 	Island island;
 	
@@ -312,8 +311,22 @@ public class IslandCaves {
 	}
 
 	public boolean carve(int x, int y, int z) {
-		Double3D block = new Double3D(x + turbulenceX.getValue(x, z)*4, y + turbulenceY.getValue(x, z)*4, z + turbulenceZ.getValue(x, z)*4);
+		Double3D block = new Double3D(x, y, z).add(getTurbulence(x, z));
 		return caves.getIntersects(block, null);
+	}
+	
+	private boolean turbulenceCached;
+	private int turbulenceCacheX, turbulenceCacheZ;
+	private Double3D turbulenceCacheResult;
+	
+	private Double3D getTurbulence(int x, int z) {
+		if (!turbulenceCached || x != turbulenceCacheX || z != turbulenceCacheZ) {
+			turbulenceCached = true;
+			turbulenceCacheX = x;
+			turbulenceCacheZ = z;
+			turbulenceCacheResult = new Double3D(turbulenceX.getValue(x, z)*4, turbulenceY.getValue(x, z)*4, turbulenceZ.getValue(x, z)*4);
+		}
+		return turbulenceCacheResult;		
 	}
 	
 }

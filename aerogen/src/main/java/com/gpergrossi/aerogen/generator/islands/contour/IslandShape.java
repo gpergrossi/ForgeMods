@@ -5,10 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.data.IslandCell;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.regions.features.RiverCell;
-import com.gpergrossi.aerogen.generator.regions.features.RiverWaterfall;
+import com.gpergrossi.aerogen.generator.islands.IslandCell;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverCell;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
@@ -35,7 +35,7 @@ public class IslandShape {
 		for (IslandCell cell : cells) {
 			Rect r = cell.getPolygon().getBounds();
 			if (boundsXZ == null) boundsXZ = r;
-			else boundsXZ.union(r);
+			else boundsXZ = boundsXZ.union(r);
 		}
 		range = Int2DRange.fromRect(boundsXZ);
 	}
@@ -274,7 +274,7 @@ public class IslandShape {
 	
 	public float getEdgeDistance(int x, int z) {
 		if (edgeDistance == null) {
-			System.out.println("Island coord: "+this.island.getRegion().getCoord() +":"+this.island.id);
+			System.out.println("Island coord: "+this.island.getRegion().getCoord() +":"+this.island.regionIndex);
 			System.out.println("Island biome: "+this.island.getBiome());
 			System.out.println("Island range: "+this.range);
 		}

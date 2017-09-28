@@ -5,8 +5,9 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.regions.features.RiverWaterfall;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.vectors.Double2D;
@@ -35,7 +36,7 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 		this.vecXZ = this.waterfall.getLocation();
 		this.perpXZ = this.vecXZ.createPerpendicular();
 		this.posY = this.island.getAltitude();
-		this.width = this.island.getHeightmap().getRiverWidth(this.vecXZ.getStartX(), this.vecXZ.getStartY());
+		this.width = this.island.getHeightmap().getRiverWidth((float) this.vecXZ.getStartX(), (float) this.vecXZ.getStartY());
 
 		int centerX = (int) Math.floor(this.vecXZ.getStartX());
 		int centerZ = (int) Math.floor(this.vecXZ.getStartY());
@@ -175,7 +176,9 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random) {
+	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
+		if (currentPhase != GenerationPhase.POST_POPULATE) return false;
+
 		Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
 		if (overlap.isEmpty()) return false;
 
@@ -208,7 +211,7 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 		}
 		
 		for (ITerrainFeature feature : this.subFeatures) {
-			feature.populateChunk(world, chunkRange, random);
+			feature.populateChunk(world, chunkRange, random, currentPhase);
 		}
 		
 		return true;	

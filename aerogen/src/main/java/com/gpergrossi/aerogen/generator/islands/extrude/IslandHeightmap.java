@@ -75,7 +75,7 @@ public class IslandHeightmap {
 	}
 
 	protected Function2D createUndersideNoise(Random random) {
-		Function2D func = new FractalNoise2D(random.nextLong(), 1.0/64.0, 5, 0.6);
+		Function2D func = new FractalNoise2D(random.nextLong(), 1.0/128.0, 4, 0.6);
 		return new RemapOperation(func, v -> (v*0.5+0.5) / 0.45);
 	}
 	
@@ -97,15 +97,15 @@ public class IslandHeightmap {
 		// Cliffs
 		double cliff = 0;
 		if (maxCliffTier > 0) {
-			double cliffValue = noiseCliff*Math.pow(edgeWeight, 0.5)*maxCliffTier;
+			double cliffValue = noiseCliff*Math.pow(edgeWeight, 0.5)*(maxCliffTier+1);
 			if (cliffValue >= 1.0) {
 				int cliffTier = (int) Math.min(Math.floor(cliffValue), maxCliffTier);
 				double cliffBlend = cliffValue - cliffTier;
 				
 				int height = (int) cliffHeight * cliffTier;
-				if (cliffBlend > 0.95 && cliffBlend < 1.0) {
-					int blendHeight = (int) (cliffHeight * (0.95 - cliffBlend)/0.05);
-					height -= blendHeight;
+				if (cliffBlend < 0.05) {
+					int blendHeight = (int) (cliffHeight * (cliffBlend/0.05));
+					height += blendHeight - cliffHeight;
 				}
 				if (surface < height) cliff = height - surface;
 			}
@@ -169,7 +169,7 @@ public class IslandHeightmap {
 	}
 	
 	public double getRiverWidth(double x, double z) {
-		return (1.0-getSurfaceNoise(x, z))*6.0+1.0;
+		return (1.0 - getSurfaceNoise(x, z))*6.0 + 1.0;
 	}
 
 	public int getTop(Int2D xz) {
@@ -179,7 +179,9 @@ public class IslandHeightmap {
 	public int getTop(int x, int z) {
 		if (!shape.contains(x, z)) return island.getAltitude();
 		if (!defined.get(x, z)) generateHeights(x, z);
-		return island.getAltitude() + top.get(x, z);
+		int topValue = top.get(x, z);
+		if (topValue < -64) topValue += 256;
+		return island.getAltitude() + topValue;
 	}
 	
 	public int getBottom(Int2D xz) {
@@ -189,7 +191,9 @@ public class IslandHeightmap {
 	public int getBottom(int x, int z) {
 		if (!shape.contains(x, z)) return island.getAltitude();
 		if (!defined.get(x, z)) generateHeights(x, z);
-		return island.getAltitude() + bottom.get(x, z);
+		int bottomValue = bottom.get(x, z);
+		if (bottomValue > 64) bottomValue -= 256;
+		return island.getAltitude() + bottomValue;
 	}
 	
 	public int getEstimateDeepestY(int x, int z) {

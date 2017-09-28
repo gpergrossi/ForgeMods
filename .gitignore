@@ -18,4 +18,5 @@ aerogen/logs
 aerogen/run
 aerogen/RemoteSystemsTempFiles
 aerogen/*.class
+reapmod/
 

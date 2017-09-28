@@ -1,12 +1,13 @@
 package com.gpergrossi.aerogen.definitions.biomes;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
-import java.util.ArrayList;
-import java.util.List;
+import net.minecraft.world.biome.Biome;
+
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -18,22 +19,11 @@ import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
 
 public class IslandBiomeForestBirch extends IslandBiomeForest {
 
-	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Birch Forest");
-		properties.setWaterColor(0x0077FF);
-		properties.setTemperature(0.7F).setRainfall(0.8F);
-		return properties;
-	}
-
-	protected IslandDecorator decorator;
+	public IslandBiomeForestBirch() {}
 	
-	public IslandBiomeForestBirch(BiomeProperties properties) {
-		super(properties);
-	}
-	
-	public IslandBiomeForestBirch() {
-		this(getBiomeProperties());
-		this.setRegistryName(AeroGenMod.MODID, "biome/sky_forest_birch");
+	@Override
+	public Biome getMinecraftBiome() {
+		return Biomes.BIRCH_FOREST;
 	}
 	
 	@Override
@@ -65,10 +55,11 @@ public class IslandBiomeForestBirch extends IslandBiomeForest {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(6)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 
-		addDefaultWaterFeatures(decorator);
+		addDefaultWaterFeatures(decorator, true, true);
 		
 		decorator.addFeature(
 			new FeatureSurfaceCluster()
@@ -129,12 +120,6 @@ public class IslandBiomeForestBirch extends IslandBiomeForest {
 		);
 		
 		return decorator;
-	}
-
-	@Override
-	protected List<SpawnListEntry> getWaterCreatureList() {
-		List<SpawnListEntry> waterCreatureList = new ArrayList<>();
-		return waterCreatureList;
 	}
 	
 }

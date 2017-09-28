@@ -14,13 +14,13 @@ import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.function.Predicate;
 
-import com.gpergrossi.util.data.Pair;
+import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.data.queue.FixedSizeArrayQueue;
 import com.gpergrossi.util.data.queue.MultiQueue;
 import com.gpergrossi.util.data.storage.GrowingStorage;
+import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 import com.gpergrossi.util.geom.shapes.Ray;
-import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.voronoi.Event.Type;
 
@@ -48,16 +48,17 @@ public final class BuildState {
 	private boolean debugSweeplineOn;
 	private double debugSweeplineY;
 
-	private Rect bounds;
+	private Convex bounds;
 	private ShoreTree shoreTree;
 	private GrowingStorage<Edge> edges;
 	private GrowingStorage<Vertex> vertices;
 	private Site[] sites;
 	
 	private boolean initialized;
+	private boolean finishing;
 	private boolean finished;
 	
-	public BuildState (Rect bounds, Double2D[] siteLocations) {
+	public BuildState (Convex bounds, Double2D[] siteLocations) {
 		this.bounds = bounds;
 		this.shoreTree = new ShoreTree();
 
@@ -74,6 +75,7 @@ public final class BuildState {
 		this.vertices = new GrowingStorage<>(t -> new Vertex[t], sites.length*5); // Initial capacity based on experiments
 		
 		this.finished = false;
+		this.finishing = false;
 	}
 	
 	
@@ -107,11 +109,12 @@ public final class BuildState {
 		}
 		
 		Event e = eventMultiQueue.poll();
-
+		
 		if (e == null) {
 			finish();
 			return;
 		} else if (!e.valid) {
+			if (Voronoi.DEBUG) System.out.println("Discarded invalid circle event");
 			invalidCircleEvents++;
 			return;
 		}
@@ -158,7 +161,7 @@ public final class BuildState {
 		return sweeplineY;
 	}
 	
-	public Rect getBounds() {
+	public Convex getBounds() {
 		return bounds;
 	}
 
@@ -283,7 +286,7 @@ public final class BuildState {
 			// Draw edges
 			for (Edge edge : edges) {
 				g.setColor(Color.WHITE);
-				Line2D line = new Line2D.Double(edge.getStart().toPoint2D(), edge.getEnd().toPoint2D());
+				Line2D line = edge.toLineSeg().asAWTShape();
 				g.draw(line);
 				
 				Double2D center = edge.getCenter();
@@ -295,31 +298,56 @@ public final class BuildState {
 				g.setTransform(identity);
 				Point2D pt = new Point2D.Double(center.x(), center.y());
 				transform.transform(pt, pt);
-				g.setColor(new Color(0,255,0));
+				g.setColor(new Color(0,128,0));
 				g.drawString(firstID+" : "+secondID, (int) pt.getX(), (int) pt.getY());
 				g.setTransform(transform);
 			}
 			
-			// Draw shore tree (edges, circle events, parabolas)
-			this.shoreTree.draw(this, g);
+			// Draw vertices
+			for (Vertex vert : vertices) {
+				
+				if (vert.sites != null) {
+					g.setColor(new Color(0, 0, 64));
+					for (Site site : vert.sites) {
+						if (site == null) continue;
+						Line2D line = new Line2D.Double(site.getX(), site.getY(), vert.x, vert.y);
+						g.draw(line);
+					}
+				}
+
+				g.setColor(Color.DARK_GRAY);
+				Ellipse2D ellipse = new Ellipse2D.Double(vert.x-3, vert.y-3, 6, 6);
+				g.fill(ellipse);
+				
+				if (vert.isBoundary) {
+					g.setColor(Color.GRAY);
+					g.draw(ellipse);
+				}
+			}
+			
+			if (!finishing) {
+				// Draw shore tree (edges, circle events, parabolas)
+				this.shoreTree.draw(this, g);
 		
-			// Draw sweep line
-			g.setColor(Color.YELLOW);
-			Line2D line = new Line2D.Double(bounds.minX(), sweeplineY, bounds.maxX(), sweeplineY);
-			g.draw(line);
+				// Draw sweep line
+				g.setColor(Color.YELLOW);
+				Line2D line = new Line2D.Double(bounds.getBounds().minX(), sweeplineY, bounds.getBounds().maxX(), sweeplineY);
+				g.draw(line);
+			}
 			
 			// Draw sites and site labels			
 			for (Site s : sites) {
 				Ellipse2D sitedot = new Ellipse2D.Double(s.point.x()-1, s.point.y()-1, 2, 2);
-				g.setColor(new Color(0,128,0));
+				g.setColor(new Color(0,128,128));
 				if (isCircleEventPassed(s)) g.setColor(Color.RED);				
 				g.draw(sitedot);
 				
 				g.setTransform(identity);
 				Point2D pt = new Point2D.Double(s.point.x(), s.point.y());
 				transform.transform(pt, pt);
-				g.setColor(new Color(0,255,0));
+				g.setColor(new Color(0,255,255));
 				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
+				g.drawString("("+s.numVertices+")", (int) pt.getX(), (int) pt.getY()+10);
 				g.setTransform(transform);
 			}
 		}
@@ -408,7 +436,7 @@ public final class BuildState {
 		}
 		
 		/* Form new edges around the newly created arc */
-		Pair<ShoreBreakpoint> bps = newArc.getBreakpoints().filter(NEW_BREAKPOINTS);
+		OrderedPair<ShoreBreakpoint> bps = newArc.getBreakpoints().filter(NEW_BREAKPOINTS);
 		if (bps.size() == 0) throw new RuntimeException("Site event did not create any breakpoints!");
 		switch (bps.size()) {
 		case 1:
@@ -422,7 +450,7 @@ public final class BuildState {
 			// Otherwise two breakpoints will form, moving exactly opposite each other as the
 			// sweep line progresses. We form "twin" edges following these breakpoints and merge them later
 			Vertex sharedVertex = new Vertex(bps.first.getPosition(this));
-			Pair<HalfEdge> twins = HalfEdge.createTwinPair(bps, sharedVertex);
+			OrderedPair<HalfEdge> twins = HalfEdge.createTwinPair(bps, sharedVertex);
 			bps.get(0).edge = twins.get(0);
 			bps.get(1).edge = twins.get(1);
 			break;
@@ -435,7 +463,7 @@ public final class BuildState {
 
 	private void processCircleEvent(ShoreArc arc) {
 		// Save these, they will change and we need original values
-		Pair<ShoreArc> neighbors = arc.getNeighborArcs(); 
+		OrderedPair<ShoreArc> neighbors = arc.getNeighborArcs(); 
 		ShoreBreakpoint predecessor = arc.getPredecessor();
 		ShoreBreakpoint successor = arc.getSuccessor();
 		
@@ -501,7 +529,7 @@ public final class BuildState {
 		BEGIN					("", self -> {return true;}),
 		EXTENDING_EDGES 		("Extending unfinished edges", self -> self.extendUnfinishedEdges()),
 		JOINING_HALF_EDGES		("Joining half edges", self -> self.joinHalfEdges()),
-		CLIPPING_EDGES			("Clipping edges against bounding box", self -> self.clipEdges()),
+		CLIPPING_EDGES			("Clipping edges against bounding shape", self -> self.clipEdges()),
 		CREATING_LINKS			("Creating links between diagram elements", self -> self.createLinks()),
 		SORTING_LISTS			("Sorting vertex and edge lists to counterclockwise order", self -> self.sortSiteLists()),
 		CREATING_BOUNDARY		("Creating boundary edges", self -> self.createBoundaryEdges()),
@@ -537,9 +565,10 @@ public final class BuildState {
 	
 	private void finish() {
 		if (finished) return;
+		finishing = true;
 		
 		if (currentFinishStep == null) {
-			if (sweeplineY < bounds.maxY()) sweeplineY = bounds.maxY();
+			if (sweeplineY < bounds.getBounds().maxY()) sweeplineY = bounds.getBounds().maxY();
 			currentFinishStep = FinishingStep.BEGIN;
 		}
 		
@@ -547,6 +576,8 @@ public final class BuildState {
 		
 		while (!finished) {
 			iterationStartTime = System.currentTimeMillis();
+
+			if (Voronoi.DEBUG_FINISH) System.out.println(currentFinishStep.message+"...");
 			
 			// Do some work on the current step
 			boolean stepComplete = currentFinishStep.doWork(this);
@@ -566,6 +597,7 @@ public final class BuildState {
 						System.out.println();
 						System.out.println(currentFinishStep.message+"...");
 					}
+					return;
 				}
 				
 				// Reset step timer
@@ -581,7 +613,7 @@ public final class BuildState {
 	/**
 	 * Projects all unfinished edges out to the bounding box and gives them a closing vertex
 	 */
-	private boolean extendUnfinishedEdges() {
+	private boolean extendUnfinishedEdges() {		
 		Double2D.Mutable temp = new Double2D.Mutable();
 		for (ShoreTreeNode node : shoreTree) {
 			if (!(node instanceof ShoreBreakpoint)) continue;
@@ -600,7 +632,7 @@ public final class BuildState {
 			
 			Double2D endPoint = null;
 			if (intersect == null) {
-				endPoint = bp.getPosition(this); 
+				endPoint = bp.getPosition(this).add(direction); 
 			} else {
 				intersect.getEnd(temp);
 				endPoint = temp;
@@ -646,16 +678,19 @@ public final class BuildState {
 	private Iterator<Edge> clipEdgesIterator;
 	
 	/**
-	 * Clip edges to bounding rectangle
+	 * Clip edges to bounding polygon
 	 */
 	private boolean clipEdges() {
 		if (clipEdgesIterator == null) {
 			clipEdgesIterator = edges.iterator();
 		}
 		
+		boolean atLeastOne = false;
+		
 		while(clipEdgesIterator.hasNext()) {
 			// Return to working thread and indicate that we are not yet finished
-			if (System.currentTimeMillis() - iterationStartTime > 200) return false;
+			if (atLeastOne && System.currentTimeMillis() - iterationStartTime > 0) return false;
+			atLeastOne = true;
 			
 			Edge edge = clipEdgesIterator.next();
 			if (!edge.isFinished()) throw new RuntimeException("unfinished edge");
@@ -664,19 +699,30 @@ public final class BuildState {
 			Vertex end = edge.getEnd();
 			
 			LineSeg seg = edge.toLineSeg();
-			seg = bounds.clip(seg);
-			
-			if (seg == null) {
+			if (!bounds.intersects(seg)) {
 				// Edge is outside of bounds, both vertices and the edge should be removed from the diagram
 				removeVertex(start);
 				removeVertex(end);
 				clipEdgesIterator.remove();
+				if (Voronoi.DEBUG_FINISH) {
+					System.out.println("edge discarded because it is outside the clipping bounds");
+					return false;
+				}
 				continue;
 			}
+
+			// Clip the bounds
+			seg = bounds.clip(seg);
 			
 			boolean sameStart = Double2D.equals(seg.getStartX(), seg.getStartY(), start.x, start.y);
 			boolean sameEnd = Double2D.equals(seg.getEndX(), seg.getEndY(), end.x, end.y);
-			if (sameStart && sameEnd) continue;
+			if (sameStart && sameEnd) {
+				continue;
+			}
+
+			if (Voronoi.DEBUG_FINISH) {
+				System.out.println("Edge clipped from ("+start.x+","+start.y+")-("+end.x+","+end.y+")   to   ("+seg.getStartX()+","+seg.getStartY()+")-("+seg.getEndX()+","+seg.getEndY()+")");
+			}
 			
 			if (!sameStart) {
 				removeVertex(start);
@@ -691,6 +737,7 @@ public final class BuildState {
 			}
 			
 			edge.redefine(start, end);
+			return false;
 		}
 		
 		return true; // Step completed
@@ -722,7 +769,6 @@ public final class BuildState {
 	 */
 	private boolean sortSiteLists() {	
 		for (Site s : sites) sortSiteLists(s);
-		
 		return true; // Step completed
 	}
 	
@@ -748,11 +794,10 @@ public final class BuildState {
 	 */
 	private boolean createBoundaryEdges() {
 		// Create corner vertices
-		Vertex[] corners = new Vertex[4];
-		corners[0] = new Vertex(bounds.minX(), bounds.minY(), true);
-		corners[1] = new Vertex(bounds.maxX(), bounds.minY(), true);
-		corners[2] = new Vertex(bounds.maxX(), bounds.maxY(), true);
-		corners[3] = new Vertex(bounds.minX(), bounds.maxY(), true);
+		Vertex[] corners = new Vertex[bounds.getNumVertices()];
+		for (int i = 0; i < corners.length; i++) {
+			corners[i] = new Vertex(bounds.getVertex(i).x(), bounds.getVertex(i).y(), true);
+		}
 		
 		// Assign corner vertices to appropriate sites
 		for (Vertex corner : corners) {
@@ -774,7 +819,7 @@ public final class BuildState {
 		}
 
 		// Add new edges
-		for (Site s : sites) {			
+		for (Site s : sites) {
 			Vertex prev = null;
 			Vertex last = s.getLastVertex();
 			if (last == null) continue;

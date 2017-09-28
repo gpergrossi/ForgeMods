@@ -11,6 +11,8 @@ public class Vertex implements Comparable<Vertex>, StorageItem {
 
 	public final boolean isBoundary;
 	public final double x, y;
+
+	public Object data;
 	
 	protected int numSites;
 	protected Site[] sites;
@@ -38,7 +40,7 @@ public class Vertex implements Comparable<Vertex>, StorageItem {
 		this(pos.x(), pos.y(), false);
 	}
 
-	public Double2D toVec2() {
+	public Double2D getPosition() {
 		return new Double2D(x, y);
 	}
 	

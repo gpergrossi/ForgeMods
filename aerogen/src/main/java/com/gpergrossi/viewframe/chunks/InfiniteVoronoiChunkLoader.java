@@ -15,7 +15,7 @@ public class InfiniteVoronoiChunkLoader extends View2DChunkLoader<InfiniteVorono
 	
 	public InfiniteVoronoiChunkLoader(long seed) {
 		super(chunkSize, InfiniteVoronoiChunk::constructor);
-		this.voronoi = new InfiniteVoronoi(chunkSize, seed, 1024);
+		this.voronoi = new InfiniteVoronoi(chunkSize, seed);
 	}
 
 }

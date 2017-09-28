@@ -7,70 +7,248 @@ import java.util.NoSuchElementException;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
 public abstract class Polygon implements IShape {
-
+	
 	/**
-	 * Removes duplicates and converts mutables to immutables, modifying
-	 * the given vertex array and potentially overwriting some elements
+	 * Removes consecutive duplicate vertices, reorganizing the array so that
+	 * the valid vertices are in the first N slots. Any vertices that are invalid
+	 * will be swapped to the end of the array. Returns the number of valid vertices, N.
 	 * @param vertices - array of vertices
-	 * @return number of vertices remaining
+	 * @return number of valid vertices
 	 */
-	public static int sanitize(Double2D[] vertices) {	
+	public static int removeDuplicates(Double2D[] vertices) {	
 		int numValid = 0;
+		Double2D prevVertex = vertices[vertices.length-1];
+		
 		for (int i = 0; i < vertices.length; i++) {
-			if (vertices[i] == null) continue;
+			Double2D currVertex = vertices[i];
 			
-			boolean valid = true;
-			for (int j = 0; j < i; j++) {
-				if (vertices[j] == null) continue;
-				if (vertices[j].equals(vertices[i])) valid = false;
+			// Distance > EPSILON?
+			if (!currVertex.equals(prevVertex)) {
+				Double2D swap = vertices[numValid];
+				vertices[numValid] = vertices[i];
+				vertices[i] = swap;
+				numValid++;
+				
+				// Previous valid vertex
+				prevVertex = currVertex;
 			}
-			if (!valid) continue;
-			
-			if (vertices[i] instanceof Double2D.Mutable) {
-				vertices[i] = ((Double2D.Mutable) vertices[i]).immutable();
-			}
-			vertices[numValid++] = vertices[i];
-		}		
+		}
 		return numValid;
 	}
 	
 	/**
-	 * Checks if the given vertex array is convex and ensures that it is in counter-clockwise order.
-	 * The input vertex array may be flipped as a result.
-	 * @param verts
-	 * @return
+	 * Makes each vertex in the array of vertices immutable.
+	 * @param vertices
 	 */
-	public static boolean checkConvex(Double2D[] vertices, int count) {
-		if (vertices.length < count) throw new IllegalArgumentException("The array must have at least as many elements as count describes");
-		if (count < 3) throw new NoSuchElementException("Vertex array must have at least 3 vertices");
-		
-		Double2D prevVert = vertices[count-1];
-		Double2D prevEdge = prevVert.subtract(vertices[count-2]);
-		
-		for (int i = 0; i < count; i++) {
-			Double2D currVert = vertices[i];
-			Double2D currEdge = currVert.subtract(prevVert);
-			
-			// A negative cross product indicates the next edge bent clockwise, I.E. concave
-			if (prevEdge.cross(currEdge) < 0) return false;
-			
-			prevVert = currVert;
-			prevEdge = currEdge;			
+	public static void makeImmutable(Double2D[] vertices) {
+		for (int i = 0; i < vertices.length; i++) {
+			vertices[i] = vertices[i].immutable();
 		}
+	}
+	
+	public static Double2D[] copyArray(Double2D[] vertices) {
+		return copyArray(vertices, vertices.length);
+	}
+	
+	public static Double2D[] copyArray(Double2D[] vertices, int length) {
+		Double2D[] verts = new Double2D[length];
+		System.arraycopy(vertices, 0, verts, 0, length);
+		return verts;
+	}
 		
-		return true;
+	/**
+	 * Calculates the area of the polygon described by the vertices of the array.
+	 * Area will be positive for counter-clockwise winding order and negative for clockwise winding order.
+	 * If the polygon is 'twisted' (has edges crossing each other) then its area will be the areas of the
+	 * negative (clockwise) and positive (counterclockwise) sections.
+	 * @param vertices - array of vertices
+	 */
+	public static double calculateArea(Double2D[] vertices) {
+		return calculateArea(vertices, vertices.length);
 	}
 	
 	/**
-	 * This method is UNSAFE, because it uses the given vertex array directly.
-	 * The vertices will not be sanitized and a duplicate array will not be created.
-	 * Therefore, after this array has been given to the Polygon, it should not be
-	 * read or written anywhere else.
-	 * @param rawVerts - an array to use as the internal vertex array of this polygon
-	 * @return a polygon
+	 * Calculates the area of the polygon described by the first {@code count} vertices of the array.
+	 * Area will be positive for counter-clockwise winding order and negative for clockwise winding order.
+	 * If the polygon is 'twisted' (has edges crossing each other) then its area will be the areas of the
+	 * negative (clockwise) and positive (counterclockwise) sections.
+	 * @param vertices - array of vertices
+	 * @param count - effective length of the array
 	 */
-	public static Convex createPolygonDirect(Double2D[] rawVerts) {
-		return new Convex(rawVerts);
+	public static double calculateArea(Double2D[] vertices, int count) {
+		if (vertices.length < count) throw new IllegalArgumentException("The array must have at least as many elements as count describes");
+		if (count < 3) throw new NoSuchElementException("Vertex array must have at least 3 vertices");
+		
+		double area = 0;
+		Double2D prev = vertices[count-1];
+		
+		for (int i = 0; i < count; i++) {
+			Double2D curr = vertices[i];
+			area += prev.cross(curr);
+			prev = curr;
+		}
+		
+		area /= 2;
+		return area;
+	}
+
+	public static boolean checkTotalTurningAngle(Double2D[] vertices) {
+		return checkIsConvexCCW(vertices, vertices.length);
+	}
+	
+	public static boolean checkIsConvexCCW(Double2D[] vertices, int count) {
+		return turningAngleSum(vertices, count) < 2.0*Math.PI+0.00001; 
+	}
+
+	public static double turningAngleSum(Double2D[] vertices) {
+		return turningAngleSum(vertices, vertices.length);
+	}
+	
+	/**
+	 * Counts the total "turn angle" for each corner of the polygon. This is the positive (counter clockwise) angle
+	 * from each edge to the next. Any proper convex polygon should 
+	 * @param vertices
+	 * @param count
+	 * @return
+	 */
+	public static double turningAngleSum(Double2D[] vertices, int count) {
+		if (vertices.length < count) throw new IllegalArgumentException("The array must have at least as many elements as count describes");
+		if (count < 3) throw new NoSuchElementException("Vertex array must have at least 3 vertices");
+		
+		double turningSum = 0;
+		
+		Double2D prevVert = vertices[count-1];
+		double prevEdgeAngle = prevVert.subtract(vertices[count-2]).angle();
+		
+		for (int i = 0; i < count; i++) {
+			double currEdgeAngle = vertices[i].subtract(prevVert).angle();
+			
+			double turn = currEdgeAngle - prevEdgeAngle;
+			if (turn < 0.0) turn += 2.0*Math.PI;
+			turningSum += turn;
+			
+			prevVert = vertices[i];
+			prevEdgeAngle = currEdgeAngle;
+		}
+		
+		return turningSum;
+	}
+	
+	public static boolean checkSelfIntersect(Double2D[] vertices) {
+		return checkSelfIntersect(vertices, vertices.length);
+	}
+	
+	public static boolean checkSelfIntersect(Double2D[] vertices, int count) {
+		if (vertices.length < count) throw new IllegalArgumentException("The array must have at least as many elements as count describes");
+		if (count < 3) throw new NoSuchElementException("Vertex array must have at least 3 vertices");
+		
+		LineSeg[] sides = new LineSeg[count];
+		Double2D prevVertex = vertices[count-1];
+		for (int i = 0; i < count; i++) {
+			sides[i] = new LineSeg(prevVertex, vertices[i]);
+			
+			// Check intersection with previous sides
+			for (int j = 0; j < i-1; j++) {
+				if (i == count-1 && j == 0) continue;
+				if (sides[i].intersects(sides[j])) return true;
+			}
+			
+			prevVertex = vertices[i];
+		}
+		
+		return false;
+	}
+	
+	public static int fixSelfIntersection(Double2D[] output, Double2D[] vertices, int count, int start) {
+		if (vertices.length < count) throw new IllegalArgumentException("The array must have at least as many elements as count describes");
+		if (count < 3) throw new NoSuchElementException("Vertex array must have at least 3 vertices");
+		
+		LineSeg[] sides = new LineSeg[count];		
+		Double2D prevVertex = vertices[count-1];
+		for (int i = 0; i < count; i++) {
+			sides[i] = new LineSeg(prevVertex, vertices[i]);
+			prevVertex = vertices[i];
+		}
+
+		boolean[] visited = new boolean[count];
+		Double2D.Mutable result = new Double2D.Mutable();
+		int outputCount = 0;
+		int visitIndex = start;
+		
+		// Visit sides ass necessary, never visit the same side twice
+		while (!visited[visitIndex]) {
+			// Mark current index as visited
+			visited[visitIndex] = true;
+
+//			System.out.println("Visiting edge: ["+visitIndex+"]="+sides[visitIndex]);
+			
+			// Look for the intersection that occurs latest after the current edge
+			int prevIndex = (visitIndex == 0 ? (count-1) : (visitIndex-1));
+			int nextIndex = (visitIndex >= (count-1) ? 0 : (visitIndex+1));
+			
+			int nextVisitIndex = -1;
+			Double2D intersect = null;
+			for (int explore = nextIndex; explore != prevIndex; explore = (explore >= count-1 ? 0 : explore+1) ) {
+				
+				// Do not consider edges that point the wrong way, these edges would form a concave corner
+				if (sides[visitIndex].getDirection().cross(sides[explore].getDirection()) < 0) continue;
+				
+				// Make note of the most recent future edge that intersects this edge
+				if (sides[visitIndex].intersect(result, sides[explore])) {
+					nextVisitIndex = explore;
+					intersect = result.immutable();
+				}
+				
+			}
+			
+			// If there were no intersecting future edges with the correct orientation,
+			// Move on to the very next side of the polygon
+			// Do not link to previous, do not add vertex
+			if (nextVisitIndex == -1) {
+				visitIndex = (visitIndex >= count-1 ? 0 : visitIndex+1);
+				continue;				
+			}
+			
+			// Add intersect to output list
+			output[outputCount++] = intersect;
+
+//			System.out.println("Intersected with edge: ["+nextVisitIndex+"]="+sides[nextVisitIndex]+" at "+intersect);
+			
+			// Move to the side that was intersected
+			visitIndex = nextVisitIndex;
+		}
+
+		return outputCount;
+	}
+	
+	/**
+	 * Reverses the order of the vertices in the array
+	 * @param vertices - array of vertices
+	 */
+	public static void invert(Double2D[] vertices) {
+		invert(vertices, vertices.length);
+	}
+	
+	/**
+	 * Reverses the order of the vertices in the first {@code count} indices of the array
+	 * @param vertices - array of vertices
+	 * @param count - effective length of the array
+	 */
+	public static void invert(Double2D[] vertices, int count) {
+		if (vertices.length < count) throw new IllegalArgumentException("The array must have at least as many elements as count describes");
+		if (count < 3) throw new NoSuchElementException("Vertex array must have at least 3 vertices");
+		
+		int i = 0;
+		int j = count-1;
+		Double2D swap;
+		
+		while (i < j) {
+			swap = vertices[i];
+			vertices[i] = vertices[j];
+			vertices[j] = swap;			
+			i++;
+			j--;
+		}
 	}
 	
 	/**
@@ -80,13 +258,11 @@ public abstract class Polygon implements IShape {
 	 * @param vertices - input vertices or vertex array (which will be modified)
 	 * @return a polygon
 	 */
-	public static Convex createPolygon(Double2D... vertices) {
-		int count = sanitize(vertices);
-		Double2D[] verts = new Double2D[count];
-		System.arraycopy(vertices, 0, verts, 0, count);
-		return new Convex(verts);
+	public static Polygon create(Double2D... vertices) {
+		vertices = copyArray(vertices);
+		return createInternal(vertices, true);
 	}
-	
+
 	/**
 	 * Creates a polygon from this list of vertices. This method is safe but wasteful. 
 	 * It creates a copy of the given list before sanitizing the input and finally producing
@@ -94,12 +270,53 @@ public abstract class Polygon implements IShape {
 	 * @param vertices - list of vertices (will not be modified)
 	 * @return a polygon
 	 */
-	public static Convex createPolygon(List<Double2D> vertices) {
+	public static Polygon create(List<Double2D> vertices) {
 		Double2D[] array = new Double2D[vertices.size()];
 		vertices.toArray(array);
-		return createPolygon(array);
+		return createInternal(array, true);
 	}
 	
+	private static Polygon createInternal(Double2D[] vertices, boolean fixDirection) {
+		makeImmutable(vertices);
+		int count = removeDuplicates(vertices);
+		double area = calculateArea(vertices, count);
+		
+		if (area < 0) {
+			if (!fixDirection) {
+				throw new IllegalArgumentException("Vertices not in counter-clockwise order");
+			} else {
+				invert(vertices, count);
+			}
+		}
+		
+		// Check if original array was Convex
+		if (checkIsConvexCCW(vertices, count)) {
+			return Convex.createDirect(copyArray(vertices, count));
+		}
+		
+		// Check if self-intersecting
+		if (checkSelfIntersect(vertices, count)) {
+			throw new IllegalArgumentException("Vertices describe a self-intersecting polygon! (Edges cross each other)");
+		}
+		
+		// Otherwise, Concave
+		return Concave.createDirect(copyArray(vertices, count));
+	}
+	
+	@Override
+	public Polygon inset(double amount) {
+		if (this instanceof Convex) return ((Convex) this).inset(amount);
+		if (this instanceof Concave) return ((Concave) this).inset(amount);
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Polygon outset(double amount) {
+		if (this instanceof Convex) return ((Convex) this).outset(amount);
+		if (this instanceof Concave) return ((Concave) this).outset(amount);
+		throw new UnsupportedOperationException();
+	}
+
 	public abstract int getNumSides();
 	public abstract LineSeg getSide(int i);
 	

@@ -1,15 +1,17 @@
-package com.gpergrossi.aerogen.generator.regions.features;
+package com.gpergrossi.aerogen.generator.regions.features.river;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.gpergrossi.aerogen.generator.data.IslandCell;
 import com.gpergrossi.aerogen.generator.islands.Island;
+import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 
 public class River {
-
-	Island island;
+	
+	Island riverHeadIsland;
+	IslandCell riverHeadCell;
+	
 	List<RiverCell> cells;
 	List<RiverWaterfall> waterfalls;
 	

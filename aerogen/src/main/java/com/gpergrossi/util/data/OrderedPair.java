@@ -3,10 +3,14 @@ package com.gpergrossi.util.data;
 import java.util.Iterator;
 import java.util.function.Predicate;
 
-public class Pair<T> extends Tuple2<T,T> implements Iterable<T> {
+public class OrderedPair<T> extends Tuple2<T,T> implements Iterable<T> {
 
-	public Pair(T first, T second) {
+	public OrderedPair(T first, T second) {
 		super(first, second);
+	}
+
+	public OrderedPair<T> reverse() {
+		return new OrderedPair<>(second, first);
 	}
 	
 	public T get(int index) {
@@ -62,7 +66,7 @@ public class Pair<T> extends Tuple2<T,T> implements Iterable<T> {
 		return sb.toString();
 	}
 
-	public Pair<T> filter(Predicate<T> predicate) {
+	public OrderedPair<T> filter(Predicate<T> predicate) {
 		T first = null, second = null;
 		if (predicate.test(this.first)) {
 			first = this.first;
@@ -70,7 +74,7 @@ public class Pair<T> extends Tuple2<T,T> implements Iterable<T> {
 		} else {
 			if (predicate.test(this.second)) first = this.second;
 		}
-		return new Pair<T>(first, second);
+		return new OrderedPair<T>(first, second);
 	}
 	
 	public boolean contains(T elem) {
@@ -84,15 +88,26 @@ public class Pair<T> extends Tuple2<T,T> implements Iterable<T> {
 		return false;
 	}
 	
-	public Pair<T> intersect(Pair<T> other) {
+	public OrderedPair<T> intersect(OrderedPair<T> other) {
 		return this.filter(elem -> other.contains(elem));
 	}
 	
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof Pair)) return false;
-		Pair<?> other = (Pair<?>) obj;
+		if (!(obj instanceof OrderedPair)) return false;
+		OrderedPair<?> other = (OrderedPair<?>) obj;
 		return first.equals(other.first) && second.equals(other.second);
+	}
+	
+	@Override
+	public int hashCode() {
+		if (first == null || second == null) {
+			if (first == null && second == null) throw new NullPointerException();
+			if (first == null) return second.hashCode();
+			if (second == null) return first.hashCode();
+		}
+			
+		return Integer.rotateLeft(first.hashCode(), 8) ^ Integer.rotateRight(second.hashCode(), 8);
 	}
 	
 }

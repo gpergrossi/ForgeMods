@@ -16,9 +16,7 @@ public class RemapOperation implements Function2D {
 	
 	@Override
 	public double getValue(double x, double y) {
-		double a = 0;
-		if (noiseA != null) a = noiseA.getValue(x, y);
-		return operation.remap(a);
+		return operation.remap(noiseA.getValue(x, y));
 	}
 	
 }

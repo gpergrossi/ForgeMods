@@ -425,17 +425,17 @@ public abstract class LinkedBinaryNode {
 		return null;
 	}
 	
-	public Pair<Integer> getBreadthAndDepth() {
-		Pair<Integer> left, right;
+	public OrderedPair<Integer> getBreadthAndDepth() {
+		OrderedPair<Integer> left, right;
 		if (this.hasLeftChild()) left = this.getLeftChild().getBreadthAndDepth();
-		else left = new Pair<>(0, 0);
+		else left = new OrderedPair<>(0, 0);
 		if (this.hasRightChild()) right = this.getRightChild().getBreadthAndDepth();
-		else right = new Pair<>(0, 0);
+		else right = new OrderedPair<>(0, 0);
 		
 		int depth = Math.max(left.second, right.second)+1;
 		int breadth = left.first + right.first + 1;
 		
-		return new Pair<>(breadth, depth);
+		return new OrderedPair<>(breadth, depth);
 	}
 	
 	/**

@@ -18,8 +18,8 @@ public class VoronoiBuilder {
 	private StableArrayList<Double2D> sites;
 	private double padding = 5.0;
 	
-	private Rect bounds = null;
-	private Convex boundsPoly = null;
+	private Convex bounds = null;
+	private Rect defaultBounds = null;
 	private boolean userBounds = false;
 	
 	public VoronoiBuilder() {
@@ -32,6 +32,7 @@ public class VoronoiBuilder {
 
 	public int addSite(Double2D point) {
 		if (userBounds && !bounds.contains(point.x(), point.y())) {
+			System.err.println("site rejected by bounds: "+point+", "+bounds);
 			return -1;
 		}
 		int index = sites.put(point);
@@ -63,6 +64,7 @@ public class VoronoiBuilder {
 		sites.clear();
 		if (!keepBounds) {
 			bounds = null;
+			defaultBounds = null;
 			userBounds = false;
 		} else {
 			userBounds = true;
@@ -93,7 +95,7 @@ public class VoronoiBuilder {
 	 * All current and future points outside these bounds will be removed.
 	 * @param bounds
 	 */
-	public void setBounds(Rect bounds) {
+	public void setBounds(Convex bounds) {
 		this.bounds = bounds;
 		this.userBounds = true;
 		for (Double2D v : sites) {
@@ -103,33 +105,18 @@ public class VoronoiBuilder {
 		}
 	}
 	
-	/**
-	 * Sets the bounds of this diagram
-	 * All current and future points outside these bounds will be removed.
-	 * @param bounds
-	 */
-	public void setBounds(Convex bounds) {
-		this.boundsPoly = bounds;
-		this.bounds = boundsPoly.getBounds();
-		this.userBounds = true;
-		for (Double2D v : sites) {
-			if (!bounds.contains(v.x(), v.y())) {
-				removeSite(v);
-			}
-		}
-	}
-	
-	public Rect getBounds() {
-		return bounds;
+	public Convex getBounds() {
+		if (userBounds) return bounds;
+		else return defaultBounds.toPolygon(4);
 	}
 	
 	private void boundsAddPoint(Double2D point) {
 		Rect pointRect = new Rect(point.x(), point.y(), 0, 0);
-		if (!userBounds) pointRect.expand(padding);
-		if (bounds == null) {
-			bounds = pointRect;
+		if (!userBounds) pointRect.outset(padding);
+		if (defaultBounds == null) {
+			defaultBounds = pointRect;
 		} else {
-			bounds.union(pointRect);
+			defaultBounds.union(pointRect);
 		}
 	}
 

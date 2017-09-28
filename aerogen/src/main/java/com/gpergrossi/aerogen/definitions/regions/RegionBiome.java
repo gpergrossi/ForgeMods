@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
-import com.gpergrossi.aerogen.definitions.biomes.IslandBiomes;
+import com.gpergrossi.aerogen.generator.regions.Region;
+import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
 
 public abstract class RegionBiome {
 
@@ -49,8 +50,8 @@ public abstract class RegionBiome {
 		return 1;
 	}
 	
-	public IslandBiome getVoidBiome() {
-		return IslandBiomes.VOID;
+	public List<IRegionFeature> getFeatures(Region region, Random random) {
+		return null;
 	}
 	
 }

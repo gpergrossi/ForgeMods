@@ -227,6 +227,7 @@ public class Octree<T extends IEntry> {
 			if (hasGreaterChild()) added |= getGreaterChild().getIntersects(point, output);
 		}
 		
+		// No output list requested. Since something was intersected, return true
 		if (output == null && added == true) return true;
 		
 		for (T item : items) {
@@ -237,6 +238,7 @@ public class Octree<T extends IEntry> {
 				added = true;
 				output.add(new Tuple2<T, Double>(item, dist));
 			} else {
+				// No output list requested. Since something was intersected, return true
 				return true;
 			}
 		}

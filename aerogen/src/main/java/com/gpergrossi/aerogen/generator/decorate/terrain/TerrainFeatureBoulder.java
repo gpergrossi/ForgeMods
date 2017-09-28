@@ -2,6 +2,7 @@ package com.gpergrossi.aerogen.generator.decorate.terrain;
 
 import java.util.Random;
 
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
@@ -47,7 +48,7 @@ public class TerrainFeatureBoulder implements ITerrainFeature {
 		
 		sizeSquared = size * size;
 	}
-
+	
 	@Override
 	public Int2DRange getRangeXZ() {
 		return this.rangeXZ;
@@ -87,7 +88,7 @@ public class TerrainFeatureBoulder implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random) {
+	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
 		return false;
 	}
 	

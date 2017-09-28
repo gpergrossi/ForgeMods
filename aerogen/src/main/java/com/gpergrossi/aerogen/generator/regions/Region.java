@@ -1,22 +1,17 @@
 package com.gpergrossi.aerogen.generator.regions;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
 import com.gpergrossi.aerogen.definitions.regions.RegionBiome;
 import com.gpergrossi.aerogen.definitions.regions.RegionBiomes;
-import com.gpergrossi.aerogen.generator.data.IslandCell;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.regions.features.River;
-import com.gpergrossi.aerogen.generator.regions.features.RiverCell;
+import com.gpergrossi.aerogen.generator.islands.IslandCell;
+import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
 import com.gpergrossi.util.geom.shapes.Convex;
-import com.gpergrossi.util.geom.shapes.Rect;
-import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.voronoi.Edge;
 import com.gpergrossi.voronoi.InfiniteCell;
@@ -36,11 +31,13 @@ public class Region {
 	Region loadedRegionsNext;
 	
 	List<Island> islands;
+	List<IslandCell> islandCells;
 	
+	int maxHeightLayers = 4;
 	int numHeightLayers;
-	Island riverHeadIsland;
-	IslandCell riverHeadCell;
-	List<River> rivers;
+	double averageCellRadius;
+	
+	List<IRegionFeature> features;
 	
 	public Region(RegionManager manager, InfiniteCell boundaryCell) {
 		this.manager = manager;
@@ -62,33 +59,38 @@ public class Region {
 	}
 	
 	public void init() {
-		if (regionCell.cellX == 0 && regionCell.cellY == 0) biome = RegionBiomes.START_AREA;
-		else biome = RegionBiomes.randomBiome(random);
+		if (regionCell.cellX == 0 && regionCell.cellY == 0) {
+			// Region (0, 0) is the spawn region and is always of type START_AREA
+			biome = RegionBiomes.START_AREA;
+		} else {
+			biome = RegionBiomes.randomBiome(random);
+		}
 		
 		List<Site> subCells = createSubCells(manager.getCellSize() * biome.getCellSizeMultiplier(), 4);
 		
-		double avgRadius = Math.sqrt(manager.getCellSize())/2.0;
-		Map<Site, IslandCell> siteToCell = createIslands(subCells);
+		this.averageCellRadius = Math.sqrt(manager.getCellSize())/2.0;
+		this.islandCells = createIslands(subCells);
 		
-		createRivers(subCells, siteToCell, avgRadius);
+		createFeatures();
 		
-		System.out.println("Initializing "+this+" "+islands.size()+" islands");
+		resolveIslandAltitudes();
 	}
 
 	private List<Site> createSubCells(double avgCellSize, int relax) {
 		double avgCellArea = avgCellSize*avgCellSize;
-		Convex regionPolygon = regionCell.getPolygon();
-		Rect bounds = regionPolygon.getBounds();
-		bounds.expand(avgCellSize*2);
+		
+		Convex bounds = regionCell.getPolygon();
+		bounds = (Convex) bounds.inset(8);
 		double area = bounds.getArea();
+		
 		int num = (int) Math.ceil(area / avgCellArea);
 		
 		// Build a voronoi diagram with desire average cell area, relaxed
 		VoronoiBuilder builder = new VoronoiBuilder();
-		builder.setBounds(bounds);
+		builder.setBounds(bounds.toPolygon(4));
 		for (int i = 0; i < num; i++) {
 			int success = -1;
-			while (success == -1) success = builder.addSiteSafe(bounds.getRandomPoint(random));
+			while (success == -1) success = builder.addSiteSafe(bounds.getBounds().getRandomPoint(random));
 		}
 		Voronoi voronoi = builder.build();
 		for (int i = 0; i < relax; i++) voronoi = voronoi.relax(builder);
@@ -96,14 +98,14 @@ public class Region {
 		// Create a list of cells that are completely inside the region polygon
 		List<Site> subCellList = new ArrayList<>();
 		for (Site s : voronoi.getSites()) {
-			if (regionPolygon.contains(s.getPolygon())) subCellList.add(s);
+			subCellList.add(s);
 		}
 		
 		return subCellList;
 	}
 	
-	private Map<Site, IslandCell> createIslands(List<Site> cellList) {
-		Map<Site, IslandCell> siteToCell = new HashMap<>();
+	private List<IslandCell> createIslands(List<Site> cellList) {
+		List<IslandCell> islandCells = new ArrayList<>();
 		islands = new ArrayList<>();
 		
 		List<Site> unallocated = new ArrayList<>(cellList);
@@ -180,9 +182,13 @@ public class Region {
 				
 				// - Make it an island
 				Island island = new Island(this, islands.size(), random.nextLong());
-				IslandCell cell = new IslandCell(island, site.getPolygon());
-				siteToCell.put(site, cell);
+				
+				IslandCell cell = new IslandCell(island, site);
+				site.data = cell;
+				
+				islandCells.add(cell);
 				island.grantCell(cell);
+				
 				island.finishGrant();
 				islands.add(island);
 				
@@ -194,13 +200,15 @@ public class Region {
 			// Island is round enough
 			Island island = new Island(this, islands.size(), random.nextLong());
 			for (Site site : islandSites) {
-				IslandCell cell = new IslandCell(island, site.getPolygon());
-				siteToCell.put(site, cell);
+				IslandCell cell = new IslandCell(island, site);
+				site.data = cell;
+				islandCells.add(cell);
 				island.grantCell(cell);
 			}
 			island.finishGrant();
 			islands.add(island);
 
+			islands = Collections.unmodifiableList(islands);
 		}
 		
 //		Iterator<Island> iter = islands.iterator();
@@ -213,134 +221,32 @@ public class Region {
 //			if (random.nextDouble() < oddsToRemove) iter.remove();
 //		}
 
-		return siteToCell;
+		return islandCells;
 	}
 
-	private void createRivers(List<Site> subCells, Map<Site, IslandCell> siteToCell, double avgCellRadius) {
-		rivers = new ArrayList<>();
-		int numRivers = biome.getRandomNumberOfRivers(random);
+	private void createFeatures() {
+		this.features = new ArrayList<>();
 		
-		List<Edge> nextEdges = new ArrayList<>();
-		List<Double> nextWeights = new ArrayList<>();
-		List<Site> consumed = new ArrayList<>();
-				
-		Site riverHeadSite = subCells.get(random.nextInt(subCells.size()));
-		riverHeadCell = siteToCell.get(riverHeadSite);
-		riverHeadIsland = riverHeadCell.getIsland();
-			
-		int maxLayersUsable = 4;
-		int minLayerUsed = Integer.MAX_VALUE;
-		int maxLayerUsed = Integer.MIN_VALUE;
+		List<IRegionFeature> features = biome.getFeatures(this, random);
+		if (features == null) return;
 		
-		for (int i = 0; i < numRivers; i++) {
-			River currentRiver = new River();
-			
-			double a = random.nextDouble()*Math.PI*2.0;
-			Double2D previousMove = new Double2D(Math.cos(a), Math.sin(a));
-			Site currentSite = riverHeadSite;
-			RiverCell previousRiverCell = null;
-			Edge previouseEdge = null;
-			
-			int riverHeight = maxLayersUsable-1;
-			
-			while (true) {
-				consumed.add(currentSite);
-
-				boolean endOfRiver = false;
-				boolean newIsland = false;
-				boolean createWaterfall = false;
-				Island currentIsland = null;
-				RiverCell currentRiverCell = null;
-				
-				IslandCell currentCell = siteToCell.get(currentSite);
-				
-				if (currentCell == null) endOfRiver = true;
-				else {
-					currentIsland = currentCell.getIsland();
-					if (previousRiverCell == null) newIsland = true;
-					else if (currentIsland != previousRiverCell.getIsland()) {
-						int islandHeight = currentIsland.getAltitudeLayer(); 
-						if (riverHeight <= 0) endOfRiver = true;
-						else if (islandHeight == Island.LAYER_UNASSIGNED) riverHeight = riverHeight - 1;
-						else if (islandHeight < riverHeight) riverHeight = islandHeight;
-						else endOfRiver = true;
-						newIsland = true;
-					}
-				}
-
-				if (endOfRiver) {
-					currentRiver.addWaterfall(previouseEdge.toLineSeg(), new IslandCell(null, currentSite.getPolygon()));
-					break;
-				}
-				
-				if (newIsland) {
-					currentIsland.setAltitudeLayer(riverHeight);
-					minLayerUsed = Math.min(minLayerUsed, riverHeight);
-					maxLayerUsed = Math.max(maxLayerUsed, riverHeight);
-					if (previousRiverCell != null) createWaterfall = true;
-				}
-				
-				if (createWaterfall) {
-					currentRiverCell = currentRiver.addWaterfall(previouseEdge.toLineSeg(), currentCell);
-				} else {
-					currentRiverCell = currentRiver.addCell(currentCell);
-				}
-				
-				nextWeights.clear();
-				nextEdges.clear();
-				double totalWeight = 0;
-				for (Edge e : currentSite.getEdges()) {
-					Site n = e.getNeighbor(currentSite);
-					if (consumed.contains(n)) continue;
-					Double2D nCenter = n.getPolygon().getCentroid();
-					Double2D nVector = nCenter.copy();
-					nVector.subtract(currentSite.getPolygon().getCentroid());
-					nVector.normalize();
-					double weight = Math.pow(e.toLineSeg().length(), 4) + nVector.dot(previousMove)*avgCellRadius*10;
-					nextEdges.add(e);
-					nextWeights.add(weight);
-					totalWeight += weight;
-				}
-				if (nextEdges.size() == 0) break;
-				
-				Edge nextEdge = null;
-				double target = random.nextDouble();
-				Iterator<Double> weightIter = nextWeights.iterator();
-				for (Edge e : nextEdges) {
-					double range = weightIter.next() / totalWeight;
-					target -= range;
-					if (target < 0) { nextEdge = e;	break; }
-				}
-				
-				Site nextSite = nextEdge.getNeighbor(currentSite);
-				
-				previousMove = nextSite.getPolygon().getCentroid().copy();
-				previousMove.subtract(currentSite.getPolygon().getCentroid());
-				previousMove.normalize();
-				previousRiverCell = currentRiverCell;
-				previouseEdge = nextEdge;
-				currentSite = nextSite;
-			}
-			
-			if (currentRiver.numCells() == 0) break;
-			rivers.add(currentRiver);
-		}
-		
-		// Adjust island layers to a contiguous range from 0 to numHeightLayers
-		this.numHeightLayers = 2*maxLayerUsed-2*minLayerUsed+1;
-		for (Island island : islands) {			
-			int layer = island.getAltitudeLayer(); 
-			if (layer != Island.LAYER_UNASSIGNED) {
-				island.setAltitudeLayer(2*(layer-minLayerUsed));
-			}
+		for (IRegionFeature feature : features) {
+			feature.create(this, random);	
 		}
 	}
+	
+	/**
+	 * Gives each island an altitude integer from 0 to numHeightLayers-1
+	 */
+	private void resolveIslandAltitudes() {
+		
+	}
 
-	private double calculateSharedPerimeterLength(Site elem, List<Site> list) {
+	private double calculateSharedPerimeterLength(Site siteInQuestion, List<Site> otherSites) {
 		double sharedPerimeter = 0;
-		for (Edge e : elem.getEdges()) {
-			Site neighbor = e.getNeighbor(elem);
-			if (!list.contains(neighbor)) continue;
+		for (Edge e : siteInQuestion.getEdges()) {
+			Site neighbor = e.getNeighbor(siteInQuestion);
+			if (!otherSites.contains(neighbor)) continue;
 			sharedPerimeter += e.toLineSeg().length();
 		}
 		return sharedPerimeter;
@@ -348,6 +254,22 @@ public class Region {
 	
 	public RegionBiome getBiome() {
 		return biome;
+	}
+
+	public List<IslandCell> getCells() {
+		return this.islandCells;
+	}
+	
+	public double getAverageCellRadius() {
+		return this.averageCellRadius;
+	}
+	
+	public int getIslandCount() {
+		return islands.size();
+	}
+	
+	public Island getIsland(int index) {
+		return islands.get(index);
 	}
 	
 	public List<Island> getIslands() {
@@ -371,8 +293,8 @@ public class Region {
 		return regionCell.getCoord();
 	}
 
-	public List<River> getRivers() {
-		return rivers;
+	public List<IRegionFeature> getRegionFeatures() {
+		return features;
 	}
 
 	public int numHeightLayers() {

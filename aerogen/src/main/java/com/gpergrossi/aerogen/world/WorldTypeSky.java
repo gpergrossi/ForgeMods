@@ -12,17 +12,17 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class WorldTypeSky extends WorldType {
 	
 	public WorldTypeSky() {
-		super("aerogen_sky");
+		super("AEROGEN_SKY");
 	}
 	
     @SideOnly(Side.CLIENT)
     public String getTranslateName() {
-        return "AeroGen-Sky";
+        return "AeroGen Sky World";
     }
 
     @SideOnly(Side.CLIENT)
     public String getTranslatedInfo() {
-        return "generator.aerogen_sky.info";
+        return "AeroGen Sky World";
     }
 
     @Override
@@ -62,15 +62,5 @@ public class WorldTypeSky extends WorldType {
     	// Seems to return true when a slime should not be spawned or maybe when they should despawn
         return false; //random.nextInt(4) != 1 : 
     }
- 
-//    @SubscribeEvent
-//    public static void createSpawnPosition(CreateSpawnPosition event) {
-//    	World world = event.getWorld();
-//    	WorldSettings settings = event.getSettings();
-//    	
-//    	System.out.println("Create spawn for world "+world.getProviderName());
-//    	
-//    	//event.setCanceled(true);
-//    }
     
 }

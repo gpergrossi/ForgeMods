@@ -30,7 +30,8 @@ public class RegionBiomes {
 			double roll = random.nextDouble();
 			if (roll < 0.75) return 1;
 			return 2;
-		};
+		}
+		
 	};
 	
 	public static final RegionBiome START_AREA = REGION_FOREST;
@@ -49,7 +50,7 @@ public class RegionBiomes {
 		
 		public int getRandomNumberOfRivers(Random random) {
 			return 0;
-		};
+		}
 		
 		@Override
 		public double getIslandCellGatherPercentage() {
@@ -58,7 +59,7 @@ public class RegionBiomes {
 		
 		public double getCellSizeMultiplier() {
 			return 1.5;
-		};
+		}
 		
 		@Override
 		public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
@@ -66,7 +67,7 @@ public class RegionBiomes {
 			altitude = Math.min(altitude, random.nextInt(maxHeight-minHeight+1)+minHeight);
 			return altitude;
 		}
-		
+
 	};
 	
 	public static final RegionBiome REGION_JUNGLE = new RegionBiome() {
@@ -82,7 +83,7 @@ public class RegionBiomes {
 		
 		public int getRandomNumberOfRivers(Random random) {
 			return 2;
-		};
+		}
 		
 		@Override
 		public double getIslandCellGatherPercentage() {
@@ -91,17 +92,17 @@ public class RegionBiomes {
 		
 		public double getCellSizeMultiplier() {
 			return 1.5;
-		};
+		}
 		
 		@Override
 		public int getIslandMinAltitude() {
 			return 52;
-		};
+		}
 		
 		@Override
 		public int getIslandMaxAltitude() {
 			return 132;
-		};
+		}
 		
 		@Override
 		public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
@@ -133,7 +134,7 @@ public class RegionBiomes {
 		
 		public double getCellSizeMultiplier() {
 			return 1.5;
-		};
+		}
 		
 		@Override
 		public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
@@ -141,7 +142,7 @@ public class RegionBiomes {
 			altitude = Math.min(altitude, random.nextInt(maxHeight-minHeight+1)+minHeight);
 			return altitude;
 		}
-		
+
 	};
 	
 	public static final RegionBiome REGION_SNOWY = new RegionBiome() {
@@ -151,7 +152,7 @@ public class RegionBiomes {
 		
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
-			biomes.add(IslandBiomes.TUNDRA);
+			biomes.add(IslandBiomes.COLD_TAIGA);
 			return biomes;
 		}
 		
@@ -159,7 +160,8 @@ public class RegionBiomes {
 			double roll = random.nextDouble();
 			if (roll < 0.75) return 1;
 			return 2;
-		};
+		}
+		
 	};
 	
 	public static final RegionBiome REGION_DEEP_FOREST = new RegionBiome() {
@@ -177,7 +179,8 @@ public class RegionBiomes {
 			double roll = random.nextDouble();
 			if (roll < 0.75) return 1;
 			return 2;
-		};
+		}
+		
 	};
 	
 //	public static final RegionBiome SWAMP = new RegionBiome() {

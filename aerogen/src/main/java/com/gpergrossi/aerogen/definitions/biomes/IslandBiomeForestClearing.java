@@ -2,7 +2,7 @@ package com.gpergrossi.aerogen.definitions.biomes;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -11,26 +11,19 @@ import com.gpergrossi.aerogen.generator.decorate.placeables.Placeables;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementHighestBlock;
 import com.gpergrossi.aerogen.generator.islands.Island;
 
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 
 public class IslandBiomeForestClearing extends IslandBiomeForest {
 
-	private static BiomeProperties getBiomeProperties() {
-		BiomeProperties properties = new BiomeProperties("Forest Clearing");
-		properties.setWaterColor(0x0077FF);
-		properties.setTemperature(0.7F).setRainfall(0.8F);
-		return properties;
-	}
-
-	public IslandBiomeForestClearing(BiomeProperties properties) {
-		super(properties);
-	}
+	public IslandBiomeForestClearing() {}
 	
-	public IslandBiomeForestClearing() {
-		this(getBiomeProperties());
-		this.setRegistryName(AeroGenMod.MODID, "biome/sky_forest_clearing");
+	@Override
+	public Biome getMinecraftBiome() {
+		return Biomes.PLAINS;
 	}
 	
 	@Override
@@ -53,10 +46,11 @@ public class IslandBiomeForestClearing extends IslandBiomeForest {
 					}
 				}
 				.withDesiredCount(6)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 		
-		addDefaultWaterFeatures(decorator);
+		addDefaultWaterFeatures(decorator, true, true);
 		
 		decorator.addFeature(
 			new FeatureSurfaceCluster()
