@@ -7,7 +7,6 @@ import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -17,13 +16,14 @@ import java.util.Random;
 import com.gpergrossi.util.data.LinkedBinaryNode;
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.shapes.LineSeg;
+import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.viewframe.View;
 import com.gpergrossi.viewframe.ViewerFrame;
 import com.gpergrossi.viewframe.chunks.ChunkLoader;
-import com.gpergrossi.viewframe.chunks.MinecraftViewChunk;
-import com.gpergrossi.viewframe.chunks.MinecraftViewChunkLoader;
+import com.gpergrossi.viewframe.chunks.InfiniteVoronoiChunk;
+import com.gpergrossi.viewframe.chunks.InfiniteVoronoiChunkLoader;
 import com.gpergrossi.viewframe.chunks.View2DChunkManager;
 import com.gpergrossi.voronoi.Site;
 import com.gpergrossi.voronoi.Voronoi;
@@ -67,25 +67,26 @@ public class GUITestView extends View {
 	VoronoiBuilder voronoiBuilder;
 	VoronoiWorker voronoiWorker;
 
-//	ChunkLoader<InfiniteVoronoiChunk> chunkLoader;
-//	View2DChunkManager<InfiniteVoronoiChunk> chunkManager;
-	ChunkLoader<MinecraftViewChunk> chunkLoader;
-	View2DChunkManager<MinecraftViewChunk> chunkManager;
+	ChunkLoader<InfiniteVoronoiChunk> chunkLoader;
+	View2DChunkManager<InfiniteVoronoiChunk> chunkManager;
+//	ChunkLoader<MinecraftViewChunk> chunkLoader;
+//	View2DChunkManager<MinecraftViewChunk> chunkManager;
 	
 	double seconds;
 	double printTime;
 	double radiansPerDegree = (Math.PI/180.0);
 	
-	Convex poly = new Circle(200, 200, 100).toPolygon(5);
+	Convex poly = new Circle(0, 200, 100).toPolygon(5);
 
 	public GUITestView (double x, double y, double width, double height) {
 		super (x, y, width, height);
 		
 		voronoiBuilder = new VoronoiBuilder();
+		voronoiBuilder.setBounds(new Circle(300, 0, 100).toPolygon(5));
 		
 		if (useChunkLoader) {
-//			chunkLoader = new InfiniteVoronoiChunkLoader(8964591453215L);
-//			chunkManager = new View2DChunkManager<InfiniteVoronoiChunk>(chunkLoader, 1);
+			chunkLoader = new InfiniteVoronoiChunkLoader(8964591453215L);
+			chunkManager = new View2DChunkManager<InfiniteVoronoiChunk>(chunkLoader, 1);
 //			chunkLoader = new MinecraftViewChunkLoader(8964591453215L);
 //			chunkManager = new View2DChunkManager<MinecraftViewChunk>(chunkLoader, 3);
 		}
@@ -156,6 +157,12 @@ public class GUITestView extends View {
 			else g2d.setColor(Color.WHITE);
 			g2d.fill(poly.asAWTShape());
 			
+			g2d.setColor(Color.BLUE);
+			double a = seconds*(Math.PI / 30.0);
+			Ray ray = new Ray(0, 0, Math.cos(a), Math.sin(a));
+			LineSeg seg = poly.clip(ray);
+			if (seg != null) g2d.draw(seg.asAWTShape());
+			
 			g2d.setColor(Color.WHITE);
 		}
 		
@@ -198,6 +205,7 @@ public class GUITestView extends View {
 				Ellipse2D ellipse = new Ellipse2D.Double(site.x()-1, site.y()-1, 2, 2);
 				g2d.fill(ellipse);
 			}
+			g2d.draw(voronoiBuilder.getBounds().asAWTShape());
 		}
 		
 //		Rect r = new Rect(-60, -40, 120, 80);
@@ -344,6 +352,7 @@ public class GUITestView extends View {
 			System.out.println("Clearing");
 			LinkedBinaryNode.IDCounter = 0;
 			voronoiBuilder.clearSites();
+			voronoiBuilder.setBounds(new Circle(300, 0, 100).toPolygon(5));
 			voronoiWorker = null;
 		} else if (e.getKeyCode() == KeyEvent.VK_PAGE_UP) {
 			this.setSlowZoom(9.0/14.0);

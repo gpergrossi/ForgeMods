@@ -1,6 +1,5 @@
 package com.gpergrossi.voronoi;
 
-import java.util.Iterator;
 import java.util.List;
 import com.gpergrossi.util.data.Large2DArray;
 import com.gpergrossi.util.data.ranges.Int2DRange;

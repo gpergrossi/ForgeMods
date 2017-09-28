@@ -94,7 +94,8 @@ public final class Circle implements IShape {
 		return (pt.distanceSquaredTo(getCentroid()) <= radius2);
 	}
 
-	private boolean contains(double x, double y) {
+	@Override
+	public boolean contains(double x, double y) {
 		double distX = x - this.x;
 		double distY = y - this.y;
 		return (distX*distX + distY*distY <= radius2);
@@ -103,7 +104,40 @@ public final class Circle implements IShape {
 	
 	@Override
 	public boolean contains(IShape other) {
+		if (other instanceof Circle) this.contains((Circle) other);
+		if (other instanceof Line) this.contains((Line) other);
+		if (other instanceof Rect) this.contains((Rect) other);
+		if (other instanceof Polygon) this.contains((Polygon) other);
+		throw new UnsupportedOperationException();
+	}
+	
+	public boolean contains(Circle circ) {
+		if (circ.radius > this.radius) return false;
+		return (this.getCentroid().subtract(circ.getCentroid()).length() <= (this.radius - circ.radius));
+	}
+	
+	public boolean contains(Line line) {
+		if (line.length() < Double.POSITIVE_INFINITY) {
+			if (!this.contains(line.getStartX(), line.getStartY())) return false;
+			if (!this.contains(line.getEndX(), line.getEndY())) return false;
+			return true;
+		}
 		return false;
+	}
+
+	public boolean contains(Rect rect) {
+		if (!this.contains(rect.minX(), rect.minY())) return false;
+		if (!this.contains(rect.maxX(), rect.minY())) return false;
+		if (!this.contains(rect.minX(), rect.maxY())) return false;
+		if (!this.contains(rect.maxX(), rect.maxY())) return false;
+		return true;
+	}
+	
+	public boolean contains(Polygon poly) {
+		for (Double2D vert : poly.getVertices()) {
+			if (!this.contains(vert)) return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -111,7 +145,7 @@ public final class Circle implements IShape {
 		if (other instanceof Circle) this.intersects((Circle) other);
 		if (other instanceof Line) this.intersects((Line) other);
 		if (other instanceof Rect) this.intersects((Rect) other);
-		if (other instanceof Convex) this.intersects((Convex) other);
+		if (other instanceof Polygon) this.intersects((Polygon) other);
 		throw new UnsupportedOperationException();
 	}
 	
@@ -147,12 +181,12 @@ public final class Circle implements IShape {
 		return false;
 	}
 	
-	public boolean intersects(Convex poly) {
+	public boolean intersects(Polygon poly) {
 		return poly.intersects(this);
 	}
 	
 	@Override
-	public Line clip(Line line) {
+	public LineSeg clip(Line line) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -169,7 +203,7 @@ public final class Circle implements IShape {
 			vertices[i] = new Double2D(x, y);
 		}
 		
-		return Convex.createPolygonDirect(vertices);
+		return Convex.createDirect(vertices);
 	}
 
 	@Override

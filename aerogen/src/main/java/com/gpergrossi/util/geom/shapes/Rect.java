@@ -10,8 +10,8 @@ import com.gpergrossi.util.geom.vectors.Double2D;
 
 public final class Rect implements IShape {
 
-	protected double x, y;
-	protected double width, height;
+	protected final double x, y;
+	protected final double width, height;
 	
 	public Rect(Rectangle2D rect2d) {
 		this(rect2d.getX(), rect2d.getY(), rect2d.getWidth(), rect2d.getHeight());
@@ -36,15 +36,12 @@ public final class Rect implements IShape {
 		this.height = height;
 	}
 	
-	public void union(Rect r) {
+	public Rect union(Rect r) {
 		double minX = Math.min(minX(), r.minX());
 		double minY = Math.min(minY(), r.minY());
 		double maxX = Math.max(maxX(), r.maxX());
 		double maxY = Math.max(maxY(), r.maxY());
-		this.x = minX;
-		this.y = minY;
-		this.width = maxX - minX;
-		this.height = maxY - minY;
+		return new Rect(minX, minY, maxX-minX, maxY-minY);
 	}
 
 	// Using the Liang-Barsky approach
@@ -134,15 +131,12 @@ public final class Rect implements IShape {
 		this.roundToGrid(1, 1);
 	}
 
-	public void roundToGrid(int gridWidth, int gridHeight) {
+	public Rect roundToGrid(int gridWidth, int gridHeight) {
 		double minX = Math.floor(minX()/gridWidth)*gridWidth;
 		double minY = Math.floor(minY()/gridHeight)*gridHeight;
 		double maxX = Math.ceil(maxX()/gridWidth)*gridWidth;
 		double maxY = Math.ceil(maxY()/gridHeight)*gridHeight;
-		this.x = minX;
-		this.y = minY;
-		this.width = maxX-minX;
-		this.height = maxY-minY;
+		return new Rect(minX, minY, maxX-minX, maxY-minY);
 	}
 
 	public Double2D getRandomPoint(Random random) {
@@ -179,21 +173,12 @@ public final class Rect implements IShape {
 
 	@Override
 	public Rect outset(double amount) {
-		Rect copy = this.copy();
-		copy.expand(amount);
-		return copy; 
-	}
-	
-	public void expand(double padding) {
-		this.x -= padding;
-		this.y -= padding;
-		this.width += padding*2;
-		this.height += padding*2;
+		return new Rect(x-amount, y-amount, width + amount*2, height+amount*2);
 	}
 	
 	@Override
 	public Rect inset(double amount) {
-		return outset(-1);
+		return outset(-amount);
 	}
 
 	@Override
@@ -209,8 +194,43 @@ public final class Rect implements IShape {
 
 	@Override
 	public boolean contains(IShape other) {
-		// TODO Auto-generated method stub
+		if (other instanceof Circle) this.contains((Circle) other);
+		if (other instanceof Line) this.contains((Line) other);
+		if (other instanceof Rect) this.contains((Rect) other);
+		if (other instanceof Polygon) this.contains((Polygon) other);
+		throw new UnsupportedOperationException();
+	}
+	
+	public boolean contains(Circle circ) {
+		if (circ.x < this.minX() + circ.radius) return false;
+		if (circ.x > this.maxX() - circ.radius) return false;
+		if (circ.y < this.minY() + circ.radius) return false;
+		if (circ.y > this.maxY() - circ.radius) return false;
+		return true;
+	}
+	
+	public boolean contains(Line line) {
+		if (line.length() < Double.POSITIVE_INFINITY) {
+			if (!this.contains(line.getStartX(), line.getStartY())) return false;
+			if (!this.contains(line.getEndX(), line.getEndY())) return false;
+			return true;
+		}
 		return false;
+	}
+	
+	public boolean contains(Rect rect) {
+		if (rect.minX() < this.minX()) return false;
+		if (rect.maxX() > this.maxX()) return false;
+		if (rect.minY() < this.minY()) return false;
+		if (rect.maxY() > this.maxY()) return false;
+		return true;
+	}
+	
+	public boolean contains(Polygon poly) {
+		for (Double2D vert : poly.getVertices()) {
+			if (!this.contains(vert)) return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -218,7 +238,7 @@ public final class Rect implements IShape {
 		if (other instanceof Circle) this.intersects((Circle) other);
 		if (other instanceof Line) this.intersects((Line) other);
 		if (other instanceof Rect) this.intersects((Rect) other);
-		if (other instanceof Convex) this.intersects((Convex) other);
+		if (other instanceof Polygon) this.intersects((Polygon) other);
 		throw new UnsupportedOperationException();
 	}
 	
@@ -253,7 +273,7 @@ public final class Rect implements IShape {
 		return true;
 	}
 	
-	public boolean intersects(Convex poly) {
+	public boolean intersects(Polygon poly) {
 		return poly.intersects(this);
 	}
 	
@@ -270,10 +290,10 @@ public final class Rect implements IShape {
 	public Convex toPolygon(int numSides) {
 		Double2D[] verts = new Double2D[4];
 		verts[0] = new Double2D(minX(), minY());
-		verts[1] = new Double2D(minX(), maxY());
+		verts[1] = new Double2D(maxX(), minY());
 		verts[2] = new Double2D(maxX(), maxY());
-		verts[3] = new Double2D(maxX(), minY());
-		return Convex.createPolygonDirect(verts);
+		verts[3] = new Double2D(minX(), maxY());
+		return Convex.createDirect(verts);
 	}
 
 	@Override

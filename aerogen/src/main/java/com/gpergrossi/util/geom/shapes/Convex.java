@@ -1,7 +1,6 @@
 package com.gpergrossi.util.geom.shapes;
 
 import java.awt.geom.Path2D;
-import java.util.List;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
 public class Convex extends Polygon {
@@ -12,7 +11,19 @@ public class Convex extends Polygon {
 	private Path2D awtShape;
 	private Rect bounds;
 	
-	protected Convex(Double2D[] verts) {
+	/**
+	 * Creates a polygon using the given array as its BACKING array.
+	 * No testing is done to check if this is a valid convex polygon.
+	 * The original array should not be modified after being given to
+	 * the polygon, otherwise unpredictable behavior could be caused.
+	 * @param verts
+	 * @return
+	 */
+	public static Convex createDirect(Double2D[] verts) {
+		return new Convex(verts);
+	}
+	
+	private Convex(Double2D[] verts) {
 		this.vertices = verts;
 	}
 
@@ -71,7 +82,7 @@ public class Convex extends Polygon {
 	public Convex getConvexPart(int i) {
 		if (i != 0) throw new IndexOutOfBoundsException();
 		return this;
-	}	
+	}
 	
 	
 	
@@ -80,7 +91,7 @@ public class Convex extends Polygon {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("Rect[count=").append(vertices.length).append(", verts={");
+		sb.append("Convex[count=").append(vertices.length).append(", verts={");
 		
 		for (int i = 0; i < vertices.length; i++) {
 			sb.append('(').append(vertices[i].x()).append(',').append(vertices[i].y()).append(')');
@@ -151,16 +162,18 @@ public class Convex extends Polygon {
 	}
 	
 	@Override
-	public Convex outset(double amount) {
+	public Polygon outset(double amount) {
 		return inset(-amount);
 	}
 
 	@Override
-	public Convex inset(double amount) {
+	public Polygon inset(double amount) {
+		if (amount == 0) return this;
+		
 		Double2D[] verts = new Double2D[vertices.length];
 		int i = 0;
 		
-		Line prevEdge = new LineSeg(vertices[vertices.length-1], vertices[0]).toLine().inset(amount);		
+		Line prevEdge = new LineSeg(vertices[vertices.length-1], vertices[0]).toLine().inset(amount);
 		for (LineSeg edge : getSides()) {
 			Line currEdge = edge.toLine().inset(amount);
 			
@@ -179,16 +192,20 @@ public class Convex extends Polygon {
 			
 			prevEdge = currEdge;
 		}
-		return Convex.createPolygonDirect(verts);
+		
+		// Fix inset edge elimination
+		if (amount > 0) {
+			int count = Polygon.fixSelfIntersection(verts, verts, i, 0);
+			verts = Polygon.copyArray(verts, count);
+		}
+		
+		return Convex.createDirect(verts);
 	}
 
 	@Override
 	public boolean contains(Double2D pt) {
-		Double2D.Mutable work = new Double2D.Mutable();
-		for (LineSeg edge : getSides()) {
-			edge.getStart(work);
-			work.subtract(pt).multiply(-1);
-			double cross = edge.getDirection().cross(work);
+		for (LineSeg edge : getSides()) {			
+			double cross = edge.cross(pt);
 			if (cross < 0) return false;
 		}
 		return true;
@@ -200,8 +217,37 @@ public class Convex extends Polygon {
 	
 	@Override
 	public boolean contains(IShape other) {
-		// TODO
+		if (other instanceof Circle) this.contains((Circle) other);
+		if (other instanceof Line) this.contains((Line) other);
+		if (other instanceof Rect) this.contains((Rect) other);
+		if (other instanceof Convex) this.contains((Convex) other);
+		throw new UnsupportedOperationException();
+	}
+
+	public boolean contains(Circle circ) {
+		Double2D center = circ.getCentroid();
+		for (LineSeg seg : this.getSides()) {
+			Double2D norm = seg.getDirection().normalize();
+			if (norm.cross(center) < circ.radius) return false;
+		}
+		return true;
+	}
+	
+	public boolean contains(Line line) {
+		if (line.length() < Double.POSITIVE_INFINITY) {
+			if (!this.contains(line.getStartX(), line.getStartY())) return false;
+			if (!this.contains(line.getEndX(), line.getEndY())) return false;
+			return true;
+		}
 		return false;
+	}
+	
+	public boolean contains(Rect rect) {
+		if (!this.contains(rect.minX(), rect.minY())) return false;
+		if (!this.contains(rect.minX(), rect.maxY())) return false;
+		if (!this.contains(rect.maxX(), rect.minY())) return false;
+		if (!this.contains(rect.maxX(), rect.maxY())) return false;
+		return true;
 	}
 	
 	public boolean contains(Convex polygon) {
@@ -278,8 +324,15 @@ public class Convex extends Polygon {
 	}
 
 	@Override
-	public Line clip(Line line) {
-		// TODO Auto-generated method stub
+	public LineSeg clip(Line line) {
+		for (LineSeg side : getSides()) {
+			line = side.clip(line);						
+		}
+		
+		if (line instanceof LineSeg) {
+			return (LineSeg) line;
+		}
+		
 		return null;
 	}
 

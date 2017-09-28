@@ -6,19 +6,15 @@ import com.gpergrossi.util.geom.vectors.Double2D;
 
 public class LineSeg extends Line {
 	
+	private double length;
+	
 	public LineSeg(Double2D pt0, Double2D pt1) {
 		this(pt0.x(), pt0.y(), pt1.x(), pt1.y());
 	}
 	
 	public LineSeg(double x0, double y0, double x1, double y1) {
-		this.x = x0;
-		this.y = y0;
-		this.dx = (x1-x0);
-		this.dy = (y1-y0);
-	}
-
-	public LineSeg copy() {
-		return new LineSeg(x, y, dx, dy);
+		super(x0, y0, x1-x0, y1-y0);
+		this.length = Double2D.distance(x0, y0, x1, y1);
 	}
 	
 	public LineSeg toSegment(double maxExtent) {
@@ -30,11 +26,11 @@ public class LineSeg extends Line {
 	}
 	
 	public double tmax() {
-		return 1;
+		return length;
 	}
 
 	public double length() {
-		return Double2D.distance(0, 0, dx, dy);
+		return length;
 	}
 	
 	public Line toLine() {
@@ -43,6 +39,11 @@ public class LineSeg extends Line {
 
 	public Ray toRay() {
 		return new Ray(x, y, dx, dy);
+	}
+	
+	@Override
+	public LineSeg copy() {
+		return new LineSeg(x, y, x+dx, y+dy);
 	}
 	
 	@Override

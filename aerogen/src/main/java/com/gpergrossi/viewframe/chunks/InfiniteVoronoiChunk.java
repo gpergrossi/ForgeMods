@@ -2,7 +2,6 @@ package com.gpergrossi.viewframe.chunks;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.Shape;
 import java.util.Random;
 
@@ -38,10 +37,10 @@ public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 		int chunkSize = (int) loader.getChunkSize();
 		bounds = new Rect(chunkX * chunkSize, chunkY * chunkSize, chunkSize, chunkSize);
 
-		cell = loader.voronoi.getCell(new Point(chunkX, chunkY));
+		cell = loader.voronoi.getCell(chunkX, chunkY);
 		
 		Convex poly = cell.getPolygon();
-		shape = poly.getShape2D();
+		shape = poly.asAWTShape();
 		Random r = new Random(cell.getSeed());
 		color = new Color(Color.HSBtoRGB(r.nextFloat(), 1, r.nextFloat()*0.5f + 0.5f));
 	}

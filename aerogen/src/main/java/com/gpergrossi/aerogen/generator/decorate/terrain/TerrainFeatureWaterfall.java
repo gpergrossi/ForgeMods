@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.regions.features.RiverWaterfall;
 import com.gpergrossi.util.data.ranges.Int2DRange;
@@ -175,40 +176,42 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random) {
-		Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
-		if (overlap.isEmpty()) return false;
-
-		IslandBiome biome = this.island.getBiome();
-		
-		int centerX = (int) Math.floor(this.vecXZ.getStartX());
-		int centerZ = (int) Math.floor(this.vecXZ.getStartY());
-		
-		for (Int2D xz : overlap.getAllMutable()) {
-			Double2D search = new Double2D(xz.x() + 0.5, xz.y() + 0.5);
+	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
+		if (currentPhase == GenerationPhase.POST_POPULATE) {
+			Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
+			if (overlap.isEmpty()) return false;
+	
+			IslandBiome biome = this.island.getBiome();
 			
-			double j = this.vecXZ.dot(search);
-			if (j < -1.5 || j > 0.5) continue;
+			int centerX = (int) Math.floor(this.vecXZ.getStartX());
+			int centerZ = (int) Math.floor(this.vecXZ.getStartY());
 			
-			double width = this.width;
-			if (j >= 1) width = this.width+1;
-			else if (j >= 2) width = this.width+2;
-
-			double i = this.perpXZ.dot(search);
-			if (i < -width || i > width) continue;
-			
-			int x = (int) Math.floor(centerX + 0.5 + this.perpXZ.getDX()*i + this.vecXZ.getDX()*j);
-			int z = (int) Math.floor(centerZ + 0.5 + this.perpXZ.getDY()*i + this.vecXZ.getDY()*j);
-			int y = this.posY;
-			BlockPos pos = new BlockPos(x, y, z);
-			
-			if (j >= -0.5) pos = pos.down(1);
-			
-			world.setBlockState(pos, biome.getFlowingWater());
+			for (Int2D xz : overlap.getAllMutable()) {
+				Double2D search = new Double2D(xz.x() + 0.5, xz.y() + 0.5);
+				
+				double j = this.vecXZ.dot(search);
+				if (j < -1.5 || j > 0.5) continue;
+				
+				double width = this.width;
+				if (j >= 1) width = this.width+1;
+				else if (j >= 2) width = this.width+2;
+	
+				double i = this.perpXZ.dot(search);
+				if (i < -width || i > width) continue;
+				
+				int x = (int) Math.floor(centerX + 0.5 + this.perpXZ.getDX()*i + this.vecXZ.getDX()*j);
+				int z = (int) Math.floor(centerZ + 0.5 + this.perpXZ.getDY()*i + this.vecXZ.getDY()*j);
+				int y = this.posY;
+				BlockPos pos = new BlockPos(x, y, z);
+				
+				if (j >= -0.5) pos = pos.down(1);
+				
+				world.setBlockState(pos, biome.getFlowingWater());
+			}
 		}
 		
 		for (ITerrainFeature feature : this.subFeatures) {
-			feature.populateChunk(world, chunkRange, random);
+			feature.populateChunk(world, chunkRange, random, currentPhase);
 		}
 		
 		return true;	

@@ -35,7 +35,7 @@ public class IslandShape {
 		for (IslandCell cell : cells) {
 			Rect r = cell.getPolygon().getBounds();
 			if (boundsXZ == null) boundsXZ = r;
-			else boundsXZ.union(r);
+			else boundsXZ = boundsXZ.union(r);
 		}
 		range = Int2DRange.fromRect(boundsXZ);
 	}

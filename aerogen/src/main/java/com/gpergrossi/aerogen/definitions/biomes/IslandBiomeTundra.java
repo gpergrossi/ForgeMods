@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSingle;
-import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureTrees;
 import com.gpergrossi.aerogen.generator.decorate.placeables.Placeables;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementHighestBlock;
@@ -69,6 +69,7 @@ public class IslandBiomeTundra extends IslandBiome {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(6)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 		

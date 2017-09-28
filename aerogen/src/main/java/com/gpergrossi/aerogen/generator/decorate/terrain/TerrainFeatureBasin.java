@@ -3,6 +3,7 @@ package com.gpergrossi.aerogen.generator.decorate.terrain;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.regions.features.RiverWaterfall;
 import com.gpergrossi.util.data.ranges.Int2DRange;
@@ -69,7 +70,7 @@ public class TerrainFeatureBasin implements ITerrainFeature {
 	protected double centerX, centerY, centerZ;
 	protected double edge, depth, radius;
 	protected double scaleX, scaleZ;
-	
+
 	@Override
 	public Int2DRange getRangeXZ() {
 		return rangeXZ;
@@ -121,7 +122,7 @@ public class TerrainFeatureBasin implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random) {
+	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
 		return false;
 	}	
 	

@@ -2,6 +2,7 @@ package com.gpergrossi.aerogen.generator.decorate.placement;
 
 import java.util.Random;
 
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
@@ -9,6 +10,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 public interface IPlacement {
+	
+	public GenerationPhase getPhase();
 	
 	public int getMaxPlacementsPerChunk(Random random);
 	

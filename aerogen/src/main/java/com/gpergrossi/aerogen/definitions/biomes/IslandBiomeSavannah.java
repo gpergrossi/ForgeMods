@@ -4,17 +4,14 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.passive.EntityDonkey;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.passive.EntityLlama;
-import net.minecraft.entity.passive.EntityRabbit;
-import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.Biome.SpawnListEntry;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureTrees;
@@ -81,6 +78,7 @@ public class IslandBiomeSavannah extends IslandBiome {
 				new PlacementHighestBlock()
 				.withDesiredCount(0)
 				.withChanceForExtra(0.125f)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 

@@ -115,7 +115,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			
 			Function par = Quadratic.fromPointAndLine(arc.getSite().point.x(), arc.getSite().point.y(), state.getSweeplineY());
 			
-			Rect bounds = state.getBounds();
+			Rect bounds = state.getBounds().getBounds();
 			double minX = bounds.minX();
 			double maxX = bounds.maxX();
 			double minY = bounds.minY();
@@ -203,7 +203,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		if (edge != null) {
 			Vertex start = edge.getStart();
 			Double2D end = null;
-			if (edge.isFinished()) end = edge.getEnd().toVec2();
+			if (edge.isFinished()) end = edge.getEnd().getPosition();
 			else end = bp.getPosition(state);
 			Line2D line = new Line2D.Double(start.toPoint2D(), end.toPoint2D());
 			g.draw(line);
@@ -216,11 +216,11 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		
 		Pair<Integer> breadthAndDepth = this.getRoot().getBreadthAndDepth();
 		double dy = 50.0;
-		double minY = state.getBounds().maxY()+dy;
-		double minX = state.getBounds().minX();
+		double minY = state.getBounds().getBounds().maxY()+dy;
+		double minX = state.getBounds().getBounds().minX();
 		
 		g.setColor(Color.BLACK);
-		Rectangle2D rect = new Rectangle2D.Double(minX, minY, state.getBounds().width(), dy*(breadthAndDepth.second+1));
+		Rectangle2D rect = new Rectangle2D.Double(minX, minY, state.getBounds().getBounds().width(), dy*(breadthAndDepth.second+1));
 		g.fill(rect);
 		
 		List<LinkedBinaryNode> layer = new ArrayList<>();
@@ -238,8 +238,8 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 			for (LinkedBinaryNode n : layer) {
 				double x;
 				if (n.getParent() == null) {
-					x = state.getBounds().centerX();
-					double width = state.getBounds().width();
+					x = state.getBounds().getBounds().centerX();
+					double width = state.getBounds().getBounds().width();
 					splitWidth.put(n, width);
 				} else {
 					double parX = positions.get(n.getParent()).x();

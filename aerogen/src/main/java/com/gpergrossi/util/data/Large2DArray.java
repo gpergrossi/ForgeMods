@@ -1,10 +1,12 @@
 package com.gpergrossi.util.data;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 
-public class Large2DArray<T> {
+public class Large2DArray<T> implements Iterable<T> {
 
 	/** Number of bits per coordinate that fall into a single block */
 	private static final int BLOCK_BITS = 3;
@@ -20,7 +22,7 @@ public class Large2DArray<T> {
 	 * It also creates a two tiered Mapping system that reduces the total size of
 	 * the Maps used to store the entries at the expense of more lookup time.
 	 */
-	private static class StorageBlock {
+	private static class StorageBlock implements Iterable<Object> {
 		
 		private static int subHash(int i, int j) {
 			return j*BLOCK_SIZE+i;
@@ -44,12 +46,17 @@ public class Large2DArray<T> {
 		private int size() {
 			return items.size();
 		}
+
+		@Override
+		public Iterator<Object> iterator() {
+			return items.values().iterator();
+		}
 	}
 	
 	/**
 	 * Stores the StorageBlocks in a map according to their Hash and Tag
 	 */
-	private static class BlockCache {		
+	private static class BlockCache implements Iterable<StorageBlock> {		
 		
 		Map<StorageHash, StorageBlock> blocks;
 		
@@ -72,6 +79,11 @@ public class Large2DArray<T> {
 		
 		public void removeBlock(StorageHash hash) {
 			blocks.remove(hash);
+		}
+
+		@Override
+		public Iterator<StorageBlock> iterator() {
+			return blocks.values().iterator();
 		}
 		
 	}
@@ -157,6 +169,31 @@ public class Large2DArray<T> {
 	public long size() {
 		return size;
 	}
-	
+
+	@Override
+	public Iterator<T> iterator() {
+		return new Iterator<T>() {
+			Iterator<StorageBlock> blocks = blockCache.iterator();
+			Iterator<Object> items = null;
+			
+			@Override
+			public boolean hasNext() {
+				if (items != null && items.hasNext()) return true;
+				
+				while (blocks.hasNext()) {
+					items = blocks.next().iterator();
+					if (items.hasNext()) return true;
+				}
+				return false;
+			}
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public T next() {
+				if (!hasNext()) throw new NoSuchElementException();
+				return (T) items.next();
+			}
+		};
+	}
 	
 }

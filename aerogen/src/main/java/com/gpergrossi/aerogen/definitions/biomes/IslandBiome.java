@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.common.collect.Lists;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureMinable;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -38,6 +39,7 @@ import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.passive.EntitySquid;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 
@@ -80,13 +82,18 @@ public abstract class IslandBiome extends Biome {
 		return decorator;
 	}
 	
-	public final void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random) {
+	@Override
+	public void decorate(World worldIn, Random rand, BlockPos pos) {
+		throw new UnsupportedOperationException("IslandBiomes need to provide a generation phase to decorate()");
+	}
+	
+	public final void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random, GenerationPhase currentPhase) {
 		IslandDecorator decorator = this.getDecorator();
 		if (decorator == null) {
 			System.out.println("Null decorator");
 			return;
 		}
-        decorator.decorate(world, island, chunkRange, overlapRange, random);
+        decorator.decorate(world, island, chunkRange, overlapRange, random, currentPhase);
 	}
 	
 	public final int getBiomeID() {

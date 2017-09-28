@@ -159,6 +159,7 @@ public class Double2D implements IVector2D<Double2D> {
 
 	@Override
 	public boolean equals(Double2D other) {
+		if (other == null) return false;
 		return Double2D.equals(this.x, this.y, other.x, other.y);
 	}
 

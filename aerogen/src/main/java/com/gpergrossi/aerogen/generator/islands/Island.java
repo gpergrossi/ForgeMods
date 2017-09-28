@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.data.IslandCell;
 import com.gpergrossi.aerogen.generator.decorate.terrain.ITerrainFeature;
 import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureBasin;
@@ -19,6 +20,7 @@ import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.RiverWaterfall;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
+import com.gpergrossi.viewframe.IslandDebugRender;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -32,14 +34,16 @@ public class Island {
 
 	Region region;
 	public final int id;
+	public IslandDebugRender debugRender;
 	
 	long seed;
 	Random random;
 	
 	protected Map<String, Object> extensions;
 	
-	boolean constructed = false;
-	boolean initialized = false;
+	boolean constructed = false;	// finishGrant() has been called
+	boolean initialized = false;	// Island shape creation
+	boolean generated = false;		// Island heightmap and feature placement
 
 	IslandBiome biome;
 	IslandShape shape;
@@ -90,15 +94,21 @@ public class Island {
 		this.altitudeLayer = altitudeLayer;
 	}
 	
-	public void initialize() {
+	public synchronized void initialize() {
 		if (!constructed) throw new IllegalStateException("Island needs to finishGrant() before being initialized");
 		if (this.initialized) return;
-		this.initialized = true;
 		
 		this.biome = region.getIslandBiome(this, random);
 		this.biome.prepare(this);
 		this.biome.generateShape(shape, random);
-
+		
+		this.initialized = true;
+	}
+	
+	public synchronized void generate() {
+		if (!initialized) throw new IllegalStateException("Island needs to initialize() before being generated");
+		if (this.generated) return;
+		
 		this.altitude = region.getAltitude(this, random);
 		this.heightmap = biome.getHeightMap(this);
 		this.heightmap.initialize(random);
@@ -111,36 +121,41 @@ public class Island {
 		
 		this.caves = new IslandCaves(this, shape.range.size() / 128, 5);
 		while (this.caves.generate(random));
+		
+		this.generated = true;
 	}
 	
 	public boolean hasWaterfall() {
 		return !shape.getWaterfalls().isEmpty();
 	}
 	
-	public void provideBiomes(Int2DRange range, int[] biomeIDs) {
-		Int2DRange overlap = range.intersect(this.shape.range);
+	public void provideBiomes(Biome[] outputBiomes, Int2DRange chunkBounds) {
+		Int2DRange overlap = chunkBounds.intersect(this.shape.range);
+		
 		if (overlap.isEmpty()) return;
-		this.initialize();
+		if (!initialized) this.initialize();
 		
 		for (Int2D tile : overlap.getAllMutable()) {
 			if (!shape.contains(tile)) continue;
-			int index = range.indexFor(tile);
-			biomeIDs[index] = Biome.getIdForBiome(this.biome);
+			int index = chunkBounds.indexFor(tile);
+			outputBiomes[index] = this.biome;
 		}
-	}
+	}	
 	
-	public boolean provideChunk(ChunkPrimer primer, Biome[] biomes, Int2DRange chunkBounds) {
+	public boolean provideChunk(ChunkPrimer primer, Int2DRange chunkBounds) {
 		Int2DRange overlap = chunkBounds.intersect(this.shape.range);
 		
 		if (overlap.isEmpty() && !this.hasWaterfall()) return false;
-		this.initialize();
-
+		if (!initialized) this.initialize();
+		if (!generated) this.generate();
+		
 		for (Int2D tile : overlap.getAllMutable()) {
 			if (!shape.contains(tile)) continue;
 			
 			int startY = heightmap.getBottom(tile.x(), tile.y());
 			int stopY = heightmap.getTop(tile.x(), tile.y());
 			
+			// Fill blocks from island bottom to island top
 			for (int y = startY; y <= stopY; y++) {
 				IBlockState block = biome.getBlockByDepth(this, tile.x(), y, tile.y());
 				
@@ -148,18 +163,11 @@ public class Island {
 				
 				primer.setBlockState(tile.x()-chunkBounds.minX, y, tile.y()-chunkBounds.minY, block);
 			}
+			
+			// Place water from island surface to island sea level
 			for (int y = stopY+1; y <= altitude; y++) {
 				primer.setBlockState(tile.x()-chunkBounds.minX, y, tile.y()-chunkBounds.minY, biome.getWater());
 			}
-			
-//			for (int y = heightmap.getEstimateDeepestY(); y < heightmap.getEstimateHighestY(); y++) {
-//				if (y >= startY && y <= stopY) continue;
-//				if ((y < stopY-2 || stopY >= altitude) && caves.carve(tile.x(), y, tile.y())) {
-//					primer.setBlockState(tile.x()-chunkRange.minX, y, tile.y()-chunkRange.minY, Blocks.IRON_BLOCK.getDefaultState());
-//				}
-//			}
-			
-			biomes[chunkBounds.indexFor(tile)] = biome;
 		}
 		
 		for (ITerrainFeature feature : terrainFeatures) {
@@ -169,16 +177,18 @@ public class Island {
 		return true;
 	}
 	
-	public void populateChunk(World world, Int2DRange chunkBounds, Random random) {
+	public void populateChunk(World world, Int2DRange chunkBounds, Random random, GenerationPhase currentPhase) {
 		Int2DRange overlap = chunkBounds.intersect(this.shape.range);
+		
 		if (overlap.isEmpty() && !this.hasWaterfall()) return;
-		this.initialize();
+		if (!initialized) this.initialize();
+		if (!generated) this.generate();
 	
 		for (ITerrainFeature feature : terrainFeatures) {
-			feature.populateChunk(world, chunkBounds, random);
+			feature.populateChunk(world, chunkBounds, random, currentPhase);
 		}
 		
-		biome.decorate(world, this, chunkBounds, overlap, random);
+		biome.decorate(world, this, chunkBounds, overlap, random, currentPhase);
 	}
 
 	@Override
@@ -202,7 +212,7 @@ public class Island {
 		return shape;
 	}
 
-	public boolean isInitialized() {
+	public synchronized boolean isInitialized() {
 		return initialized;
 	}
 

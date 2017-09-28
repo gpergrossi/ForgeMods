@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
 import com.gpergrossi.util.geom.shapes.Convex;
+import com.gpergrossi.util.geom.shapes.Polygon;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
 public class Site implements Comparable<Site> {
@@ -22,7 +23,7 @@ public class Site implements Comparable<Site> {
 	protected Convex polygon;
 	
 	protected boolean isFinished;
-	protected boolean isClosed;
+	protected boolean isBoundary;
 
 	protected Site(Voronoi voronoi, int id, Double2D sitePoint) {
 		this.voronoi = voronoi;
@@ -82,8 +83,11 @@ public class Site implements Comparable<Site> {
 	
 	public Convex getPolygon() {
 		if (polygon == null) {
-			Double2D[] verts = Arrays.stream(vertices, 0, numVertices).map(vert -> vert.toVec2()).toArray(Vec2ArrayAllocator);
-			polygon = Convex.createPolygon(verts);
+			Double2D[] verts = Arrays.stream(vertices, 0, numVertices).map(vert -> vert.getPosition()).toArray(Vec2ArrayAllocator);
+			int count = Polygon.removeDuplicates(verts);
+			Double2D[] copy = Polygon.copyArray(verts, count);
+			Polygon.makeImmutable(copy);
+			polygon = Convex.createDirect(copy);
 		}
 		return polygon;
 	}
@@ -96,13 +100,18 @@ public class Site implements Comparable<Site> {
 		return point.y();
 	}
 	
-	public boolean isClosed() {
-		if (isFinished) return isClosed;
-		if (vertices == null) return false;
+	public boolean isBoundary() {
+		if (isFinished) return isBoundary;
+		if (vertices == null) return true;
 		for (Vertex v : vertices) {
-			if (v.isBoundary) return false;
+			if (v.isBoundary) return true;
 		}
-		return true;
+		return false;
+	}
+	
+	protected void finish(boolean isBoundary) {
+		this.isBoundary = isBoundary();
+		this.isFinished = true;
 	}
 	
 	boolean hasVertex(Vertex vertex) {

@@ -1,13 +1,11 @@
 package com.gpergrossi.util.data.ranges;
 
-import java.security.InvalidParameterException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.gpergrossi.util.data.ranges.Int2DRange.Integers;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.geom.vectors.Int2D.StoredBit;
@@ -533,7 +531,7 @@ public class Int2DRange {
 		
 		public Integers(int minX, int minY, int maxX, int maxY, int[] intArray) {
 			super(minX, minY, maxX, maxY);
-			if (intArray.length < size()) throw new InvalidParameterException("Provided int array is not big enough");
+			if (intArray.length < size()) throw new IllegalArgumentException("Provided int array is not big enough");
 			this.data = intArray;
 		}
 		

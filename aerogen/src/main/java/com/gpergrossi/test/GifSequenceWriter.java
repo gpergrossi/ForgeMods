@@ -17,6 +17,7 @@ import java.io.*;
 import java.util.Iterator;
 
 public class GifSequenceWriter {
+		
 	protected ImageWriter gifWriter;
 	protected ImageWriteParam imageWriteParam;
 	protected IIOMetadata imageMetaData;
@@ -134,18 +135,28 @@ public class GifSequenceWriter {
 
 	public static void main(String[] args) throws Exception {
 
-			ImageOutputStream output = new FileImageOutputStream(new File("output.gif"));
-			GifSequenceWriter writer = new GifSequenceWriter(output, BufferedImage.TYPE_INT_ARGB, 100, false);
+		File file = new File("recording/animation.gif");
+		if (file.exists()) file.delete();
+		ImageOutputStream gifOutput = new FileImageOutputStream(file);
+		GifSequenceWriter gifWriter = new GifSequenceWriter(gifOutput, BufferedImage.TYPE_INT_ARGB, 1000, false);
+		
+		// write out the first image to our sequence...
+		for (int i = 56; i <= 85; i++) {
+			String num = "0000" + Integer.toString(i);
+			num = num.substring(num.length()-4);
+			
+			String filename = "recording/frame."+num+".png";
+			System.out.println("writing '"+filename+"' to gif");
+			
+			File check = new File(filename);
+			if (!check.exists()) continue;
+			
+			BufferedImage image = ImageIO.read(new File(filename));
+			gifWriter.writeToSequence(image);
+		}
 
-			// write out the first image to our sequence...
-			for (int i = 1; i <= 200; i++) {
-				String filename = "relax-"+i+".png";
-				BufferedImage image = ImageIO.read(new File(filename));
-				writer.writeToSequence(image);
-			}
-
-			writer.close();
-			output.close();
+		gifWriter.close();
+		gifOutput.close();
 
 	}
 }

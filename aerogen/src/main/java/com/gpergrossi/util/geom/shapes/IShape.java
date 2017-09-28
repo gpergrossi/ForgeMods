@@ -50,6 +50,14 @@ public interface IShape {
 	 * @return
 	 */
 	public boolean contains(Double2D pt);
+
+	/**
+	 * Returns true if the given point is 'inside' this shape
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public boolean contains(double x, double y);
 	
 	/**
 	 * Returns true if the given shape is completely inside of this shape
@@ -81,7 +89,7 @@ public interface IShape {
 	 * @param numSides - the maximum number of sides of the output polygon, some shapes may ignore this restriction
 	 * @return a polygon or polygon approximation of this shape
 	 */
-	public Convex toPolygon(int numSides);
+	public Polygon toPolygon(int numSides);
 	
 	/**
 	 * Gets the axis-aligned bounding box of this shape

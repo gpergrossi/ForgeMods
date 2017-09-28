@@ -3,13 +3,18 @@ package com.gpergrossi.viewframe;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import com.gpergrossi.aerogen.generator.AeroGenerator;
 import com.gpergrossi.aerogen.generator.data.IslandCell;
+import com.gpergrossi.aerogen.generator.data.WorldPrimerChunk;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.regions.Region;
+import com.gpergrossi.util.geom.shapes.Convex;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.Vec3d;
@@ -26,7 +31,7 @@ public class AeroGeneratorView extends View {
 	@Override
 	public void init() {
 		regions = new ArrayList<>();
-		this.setFPS(30);
+		this.setFPS(24);
 	}
 	
 	@Override
@@ -36,7 +41,7 @@ public class AeroGeneratorView extends View {
 
 	@Override
 	public void stop() {
-		AeroGenerator.setGUIEnabled(false);
+		AeroGenerator.guiClosed();
 	}
 
 	@Override
@@ -56,34 +61,67 @@ public class AeroGeneratorView extends View {
 			break;
 		}
 		if (dim == null) return;
-
-		g2d.setColor(Color.DARK_GRAY);
-		for (int chunkX = -20; chunkX <= 20; chunkX++) {
-			for (int chunkZ = -20; chunkZ <= 20; chunkZ++) {
-				if (dim.getWorld().isChunkGeneratedAt(chunkX, chunkZ)) {
-					g2d.fillRect(chunkX*16, chunkZ*16, 16, 16);
-				}
-			}	
-		}
 		
 		regions.clear();
 		dim.getRegionManager().getLoadedRegions(regions);
 		for (Region region : regions) {
-			g2d.setColor(Color.GRAY);
 			for (Island island : region.getIslands()) {
+				
+				Random random = new Random(island.getSeed());
+				float hue = random.nextFloat();
+				float bri = random.nextFloat()*0.25f + 0.25f;
+				float sat = 0.5f;
+				g2d.setColor(new Color(Color.HSBtoRGB(hue, sat, bri)));
+				
 				for (IslandCell cell : island.getShape().cells) {
-					g2d.draw(cell.getPolygon().asAWTShape());
+					Convex insetPoly = cell.getInsetPolygon();
+					if (insetPoly == null) System.err.println("A cell from island "+cell.getIsland().toString()+" was too small");
+					else g2d.draw(insetPoly.asAWTShape());
 				}
+				
+				if (!island.isInitialized()) {
+					g2d.draw(island.getShape().getBoundingBox().asAWTShape());
+					continue;
+				}
+				
+				IslandDebugRender idr = island.debugRender;
+				if (idr == null) idr = new IslandDebugRender(island);
+				
+				g2d.drawImage(idr.getImage(), idr.getX(), idr.getY(), null);
 			}
-			g2d.setColor(Color.WHITE);
+			g2d.setColor(Color.GRAY);
 			g2d.draw(region.getRegionPolygon().asAWTShape());
 		}
 		
+		Iterator<WorldPrimerChunk> chunkIter = dim.getWorldPrimer().chunks.iterator();
+		
+		try {
+			while (chunkIter.hasNext()) {
+				WorldPrimerChunk chunk = chunkIter.next();
+				int chunkMinX = chunk.chunkX << 4;
+				int chunkMinZ = chunk.chunkZ << 4;
+				
+				int red = 64, green = 64, blue = 64;
+				if (!chunk.isCompleted()) {
+					if (chunk.hasBiomes()) red = 255;
+					if (chunk.isGenerated()) green = 255;
+					if (chunk.isPopulated()) blue = 255;
+				} else { red = green = blue = 0; }
+				g2d.setColor(new Color(red, green, blue));
+				
+				if (!chunk.isNeighborSameStatus(-1, 0)) g2d.drawLine(chunkMinX, chunkMinZ, chunkMinX, chunkMinZ+15);
+				if (!chunk.isNeighborSameStatus(1, 0))  g2d.drawLine(chunkMinX+15, chunkMinZ, chunkMinX+15, chunkMinZ+15);
+				if (!chunk.isNeighborSameStatus(0, -1)) g2d.drawLine(chunkMinX, chunkMinZ, chunkMinX+15, chunkMinZ);
+				if (!chunk.isNeighborSameStatus(0, 1))  g2d.drawLine(chunkMinX, chunkMinZ+15, chunkMinX+15, chunkMinZ+15);
+			}
+		} catch (ConcurrentModificationException e) {}
+
+		g2d.setColor(Color.WHITE);
 		for (EntityPlayerMP player : dim.getWorld().getPlayers(EntityPlayerMP.class, p -> true)) {
 			Vec3d pos = player.getPositionVector();
 			Vec3d dir = player.getLookVec();
-			g2d.drawOval((int) pos.x-1, (int) pos.z-1, 2, 2);
-			g2d.drawLine((int) pos.x, (int) pos.z, (int) (pos.x+dir.x*5), (int) (pos.z+dir.z*5));
+			g2d.drawOval((int) pos.x-2, (int) pos.z-2, 4, 4);
+			g2d.drawLine((int) pos.x, (int) pos.z, (int) (pos.x+dir.x*8), (int) (pos.z+dir.z*8));
 		}
 	}
 

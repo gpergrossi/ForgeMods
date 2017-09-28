@@ -1,16 +1,11 @@
 package com.gpergrossi.aerogen.world;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiomes;
 import com.gpergrossi.aerogen.generator.AeroGenerator;
-import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.util.data.ranges.Int2DRange;
-import com.gpergrossi.util.geom.vectors.Int2D;
-
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.Biome;

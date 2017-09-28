@@ -1,0 +1,97 @@
+package com.gpergrossi.viewframe;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.util.Random;
+
+import com.gpergrossi.aerogen.generator.islands.Island;
+import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
+import com.gpergrossi.util.geom.shapes.Rect;
+import com.gpergrossi.util.geom.vectors.Int2D;
+
+public class IslandDebugRender {
+
+	private Island island;
+	private BufferedImage image;
+	private int imageX, imageY;
+	
+	private boolean renderBegan;
+	private boolean renderStopped;
+	
+	public IslandDebugRender(Island island) {
+		if (!island.isInitialized()) throw new RuntimeException("Island not yet initialized");
+		
+		this.island = island;
+		island.debugRender = this;
+		renderBegan = false;
+		renderStopped = false;
+	}
+	
+	public int getX() {
+		return imageX;
+	}
+	
+	public int getY() {
+		return imageY;
+	}
+	
+	public synchronized BufferedImage getImage() {
+		if (!renderBegan) {
+			renderBegan = true;
+			Thread thread = new Thread(new Runnable() {
+				public void run() {
+					IslandDebugRender.this.render();
+				}
+			});
+			thread.start();
+		}
+		return image;
+	}
+	
+	private void render() {
+		
+		IslandShape shape = island.getShape();
+		Rect boundingBox = shape.getBoundingBox();
+		
+		this.imageX = (int) boundingBox.minX();
+		this.imageY = (int) boundingBox.minY();
+		int width = (int) boundingBox.width();
+		int height = (int) boundingBox.height();
+		this.image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		
+		Graphics2D g = image.createGraphics();
+		g.translate(-boundingBox.minX(), -boundingBox.minY());
+			
+		Random rand = new Random(island.getSeed());
+		float hue = rand.nextFloat();
+		float sat = 0.5f;
+		float bri = 0.5f;
+		
+		g.setColor(new Color(Color.HSBtoRGB(hue, 1, 1)));
+		String label = ""+island.getAltitudeLayer();
+		if (island.getAltitudeLayer() == Island.LAYER_UNASSIGNED) label = "U";
+		g.drawString(label, (shape.minX()+shape.maxX())/2, (shape.minZ()+shape.maxZ())/2);
+			
+		float maxEdge = shape.getMaxEdgeDistance();
+		for (Int2D.WithIndex tile : shape.range.getAllMutable()) {
+			if (renderStopped) break;
+			if (tile.index % 100 == 0) Thread.yield();
+			if (!shape.contains(tile.x(), tile.y())) continue;
+				
+			float edge = shape.getEdgeDistance(tile.x(), tile.y());
+				
+			// Outlines guaranteed, interior speckled
+			if (edge > 1 && Math.random() < 0.9) continue;
+			
+			g.setColor(new Color(Color.HSBtoRGB(hue, sat, bri * (1.0f - edge/maxEdge))));
+			g.drawLine(tile.x(), tile.y(), tile.x(), tile.y());
+		}
+		
+		if (!renderStopped) {
+		}
+		g.dispose();
+	}
+
+	
+}

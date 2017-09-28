@@ -4,7 +4,7 @@ import com.gpergrossi.util.geom.vectors.Double2D;
 
 public final class Ray extends Line {
 
-	protected boolean reversed;
+	protected final boolean reversed;
 	
 	public Ray(double x, double y, double dx, double dy) {
 		super(x, y, dx, dy);
@@ -26,14 +26,9 @@ public final class Ray extends Line {
 		return seg;
 	}
 	
-	public Ray copy() {
-		return new Ray(x, y, dx, dy, reversed);
-	}
-	
-	public void extend(double d) {
+	public Ray extend(double d) {
 		d = (reversed ? -d : d);
-		x += dx*d;
-		y += dy*d;
+		return new Ray(x + dx*d, y + dy*d, dx, dy);
 	}
 	
 	public double tmin() {
@@ -44,8 +39,8 @@ public final class Ray extends Line {
 		return (reversed ? 0 : Double.POSITIVE_INFINITY);
 	}
 
-	public void reverse() {
-		this.reversed = true;
+	public Ray reverse() {
+		return new Ray(x, y, dx, dy, !reversed);
 	}
 
 	public double getStartX() {
@@ -64,22 +59,17 @@ public final class Ray extends Line {
 		return dy;
 	}
 
-	public void reposition(Double2D pos) {
-		this.x = pos.x();
-		this.y = pos.y();
+	public Ray reposition(Double2D pos) {
+		return new Ray(pos.x(), pos.y(), dx, dy);
 	}
 
 	public Ray createPerpendicular() {
 		return new Ray(x, y, -dy, dx);
 	}
-
-	/**
-	 * Return the distance along this ray to which the given point would be projected
-	 */
-	public double dot(Double2D pt) {
-		double dx = pt.x() - x;
-		double dy = pt.y() - y;
-		return Double2D.dot(dx, dy, this.dx, this.dy);
+	
+	@Override
+	public Ray copy() {
+		return new Ray(x, y, dx, dy, reversed);
 	}
 	
 	@Override
@@ -92,6 +82,10 @@ public final class Ray extends Line {
 		Double2D.Mutable work = this.getDirection().mutable();
 		work.perpendicular().normalize().multiply(amount);
 		return new Ray(x + work.x(), y + work.y(), dx, dy);
+	}
+
+	public Line toLine() {
+		return this.redefine(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
 	}
 	
 }

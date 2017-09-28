@@ -138,7 +138,7 @@ public class InfiniteCell {
 		double boundsY = (minCellY-padding)*container.gridSize;
 		double boundsWidth = workWidth*container.gridSize;
 		double boundsHeight = workHeight*container.gridSize;
-		builder.setBounds(new Rect(boundsX, boundsY, boundsWidth, boundsHeight));
+		builder.setBounds(new Rect(boundsX, boundsY, boundsWidth, boundsHeight).toPolygon(4));
 		
 		int alreadyInitialized = 0;
 		for (int j = 0; j < workHeight; j++) {

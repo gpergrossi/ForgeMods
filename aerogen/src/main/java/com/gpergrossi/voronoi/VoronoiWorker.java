@@ -2,19 +2,17 @@ package com.gpergrossi.voronoi;
 
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Rectangle2D;
-
-import com.gpergrossi.util.geom.shapes.Rect;
+import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
 public class VoronoiWorker {
 
 	BuildState state;
 
-	Rect bounds;
+	Convex bounds;
 	Double2D[] siteArray;
 	
-	public VoronoiWorker(Rect bounds, Double2D[] siteArray) {
+	public VoronoiWorker(Convex bounds, Double2D[] siteArray) {
 		this.bounds = bounds;
 		this.siteArray = siteArray;
 	}
@@ -81,8 +79,7 @@ public class VoronoiWorker {
 	
 	public void debugDraw(Graphics2D g) {
 		if (state == null || !state.isFinished()) {
-			Rectangle2D rect2d = bounds.asAWTShape();
-			g.draw(rect2d);
+			g.draw(bounds.asAWTShape());
 		}
 		if (state == null) {
 			for (Double2D site : siteArray) {

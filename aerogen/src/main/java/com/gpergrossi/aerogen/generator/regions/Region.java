@@ -15,7 +15,6 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.regions.features.River;
 import com.gpergrossi.aerogen.generator.regions.features.RiverCell;
 import com.gpergrossi.util.geom.shapes.Convex;
-import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.voronoi.Edge;
@@ -77,18 +76,19 @@ public class Region {
 
 	private List<Site> createSubCells(double avgCellSize, int relax) {
 		double avgCellArea = avgCellSize*avgCellSize;
-		Convex regionPolygon = regionCell.getPolygon();
-		Rect bounds = regionPolygon.getBounds();
-		bounds.expand(avgCellSize*2);
+		
+		Convex bounds = regionCell.getPolygon();
+		bounds = (Convex) bounds.inset(8);
 		double area = bounds.getArea();
+		
 		int num = (int) Math.ceil(area / avgCellArea);
 		
 		// Build a voronoi diagram with desire average cell area, relaxed
 		VoronoiBuilder builder = new VoronoiBuilder();
-		builder.setBounds(bounds);
+		builder.setBounds(bounds.toPolygon(4));
 		for (int i = 0; i < num; i++) {
 			int success = -1;
-			while (success == -1) success = builder.addSiteSafe(bounds.getRandomPoint(random));
+			while (success == -1) success = builder.addSiteSafe(bounds.getBounds().getRandomPoint(random));
 		}
 		Voronoi voronoi = builder.build();
 		for (int i = 0; i < relax; i++) voronoi = voronoi.relax(builder);
@@ -96,7 +96,7 @@ public class Region {
 		// Create a list of cells that are completely inside the region polygon
 		List<Site> subCellList = new ArrayList<>();
 		for (Site s : voronoi.getSites()) {
-			if (regionPolygon.contains(s.getPolygon())) subCellList.add(s);
+			subCellList.add(s);
 		}
 		
 		return subCellList;
@@ -291,7 +291,7 @@ public class Region {
 				double totalWeight = 0;
 				for (Edge e : currentSite.getEdges()) {
 					Site n = e.getNeighbor(currentSite);
-					if (consumed.contains(n)) continue;
+					if (n == null || consumed.contains(n)) continue;
 					Double2D nCenter = n.getPolygon().getCentroid();
 					Double2D nVector = nCenter.copy();
 					nVector.subtract(currentSite.getPolygon().getCentroid());

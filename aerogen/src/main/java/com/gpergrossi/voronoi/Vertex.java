@@ -38,7 +38,7 @@ public class Vertex implements Comparable<Vertex>, StorageItem {
 		this(pos.x(), pos.y(), false);
 	}
 
-	public Double2D toVec2() {
+	public Double2D getPosition() {
 		return new Double2D(x, y);
 	}
 	

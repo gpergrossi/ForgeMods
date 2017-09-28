@@ -22,11 +22,13 @@ public class PlacementHighestBlock extends AbstractPlacement {
 	
 	@Override
 	public int getMinY(World world, Island island, Int2D position) {
+		if (!island.getShape().contains(position)) return 0;
 		return world.getHeight(position.x(), position.y());
 	}
 
 	@Override
 	public int getMaxY(World world, Island island, Int2D position) {
+		if (!island.getShape().contains(position)) return 0;
 		return world.getHeight(position.x(), position.y());
 	}
 

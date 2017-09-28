@@ -3,6 +3,7 @@ package com.gpergrossi.aerogen.definitions.biomes;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -53,6 +54,7 @@ public class IslandBiomeForestClearing extends IslandBiomeForest {
 					}
 				}
 				.withDesiredCount(6)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 		

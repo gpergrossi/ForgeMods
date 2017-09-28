@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.AeroGenMod;
+import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -81,6 +82,7 @@ public class IslandBiomeForestBirch extends IslandBiomeForest {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(2)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 		
