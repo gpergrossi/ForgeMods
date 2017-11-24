@@ -9,9 +9,13 @@ import java.util.Map;
 
 import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.data.interop.annotations.InteropCast;
+import com.gpergrossi.util.data.interop.annotations.InteropClass;
 import com.gpergrossi.util.data.interop.exception.InteropCastException;
 import com.gpergrossi.util.data.interop.exception.InteropTagException;
 import com.gpergrossi.util.data.interop.interfaces.InteropAdapter;
+
+import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
+import io.github.lukehutch.fastclasspathscanner.matchprocessor.ClassAnnotationMatchProcessor;
 
 public class InteropManager<T> {
 
@@ -29,7 +33,16 @@ public class InteropManager<T> {
 	}
 	
 	private void scanForSubclasses() {
-		
+		FastClasspathScanner classScan = new FastClasspathScanner("-io.github.lukehutch", "-net.minecraft");
+		classScan.addClassLoader(classLoader);
+		classScan.matchClassesWithAnnotation(
+			InteropClass.class,
+			new ClassAnnotationMatchProcessor() {
+				public void processMatch(Class<?> arg0) {
+					
+				}
+			}
+		);
 	}
 
 	@SuppressWarnings("unchecked")
