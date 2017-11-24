@@ -1,4 +1,4 @@
-                    package com.gpergrossi.aerogen.definitions.biomes;
+package com.gpergrossi.aerogen.definitions.biomes;
 
 import java.util.Random;
 

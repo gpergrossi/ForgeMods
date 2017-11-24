@@ -85,8 +85,6 @@ public class Island {
 		this.biome = region.getIslandBiome(this, random);
 		this.biome.prepare(this);
 		this.biome.generateShape(shape, random);
-
-		this.altitude = region.getAltitude(this, random);
 		
 		this.initialized = true;
 	}
@@ -94,7 +92,8 @@ public class Island {
 	public synchronized void generate() {
 		if (!initialized) throw new IllegalStateException("Island needs to initialize() before being generated");
 		if (this.generated) return;
-		
+
+		this.altitude = region.getAltitude(this, random);
 		this.heightmap = biome.getHeightMap(this);
 		this.heightmap.initialize(random);
 

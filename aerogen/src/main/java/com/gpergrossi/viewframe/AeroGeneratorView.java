@@ -15,6 +15,7 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.river.River;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverFeature;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
 import com.gpergrossi.util.geom.shapes.Convex;
 
@@ -70,8 +71,8 @@ public class AeroGeneratorView extends View {
 		regions.clear();
 		dim.getRegionManager().getLoadedRegions(regions);
 		for (Region region : regions) {
-			
 			for (Island island : region.getIslands()) {
+
 				Random random = new Random(island.getSeed());
 				float hue = random.nextFloat();
 				float bri = random.nextFloat()*0.25f + 0.25f;
@@ -94,16 +95,21 @@ public class AeroGeneratorView extends View {
 					if (insetPoly == null) System.err.println("A cell from island "+cell.getIsland().toString()+" was too small");
 					else g2d.draw(insetPoly.asAWTShape());
 				}
+
 			}
 			
 			g2d.setColor(Color.LIGHT_GRAY);
-			for (River river : region.getRivers()) {
-				for (RiverWaterfall waterfall : river.getWaterfalls()) {
-					g2d.draw(waterfall.getEdge().asAWTShape());
-					g2d.draw(waterfall.getLocation().toSegment(6).asAWTShape());
+			RiverFeature riverFeature = region.getFeature(RiverFeature.class);
+			if (riverFeature != null) {
+				for (River river : riverFeature.getRivers()) {					
+					for (RiverWaterfall waterfall : river.getWaterfalls()) {
+						g2d.draw(waterfall.getEdge().asAWTShape());
+						g2d.draw(waterfall.getLocation().toSegment(6).asAWTShape());
+					}
 				}
 			}
 
+			// Draw region polygon
 			g2d.setColor(Color.GRAY);
 			g2d.draw(region.getRegionPolygon().asAWTShape());
 		}

@@ -72,6 +72,7 @@ public class IslandBiomeForestBirch extends IslandBiomeForest {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(2)
+				.withPhase(GenerationPhase.PRE_POPULATE)
 			)
 		);
 		

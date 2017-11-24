@@ -5,7 +5,6 @@ import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.Biome;
 import java.util.Random;
-
 import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;

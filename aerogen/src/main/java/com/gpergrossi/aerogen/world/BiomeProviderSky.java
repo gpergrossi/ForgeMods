@@ -6,7 +6,6 @@ import com.google.common.collect.Lists;
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiomes;
 import com.gpergrossi.aerogen.generator.AeroGenerator;
 import com.gpergrossi.util.data.ranges.Int2DRange;
-
 import net.minecraft.init.Biomes;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;

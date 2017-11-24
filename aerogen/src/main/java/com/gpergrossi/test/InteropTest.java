@@ -87,7 +87,7 @@ public class InteropTest {
 		}
 	}
 
-	@InteropSubClass(parent = Shape.class)
+	@InteropClass(type = ClassType.SUBCLASS, parent = Shape.class)
 	public static class Polygon extends Shape {
 		Point2D[] verts;
 		public Polygon(Point2D... verts) {

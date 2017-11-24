@@ -30,6 +30,10 @@ public class RiverFeature implements IRegionFeature {
 	
 	public RiverFeature() {}
 	
+	public List<River> getRivers() {
+		return rivers;
+	}
+	
 	public void create(Region region, Random random) {
 		this.rivers = new ArrayList<>();
 		

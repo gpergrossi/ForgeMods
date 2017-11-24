@@ -76,14 +76,14 @@ public class IslandDebugRender {
 		g.drawString(label, (shape.minX()+shape.maxX())/2, (shape.minZ()+shape.maxZ())/2);
 			
 		float maxEdge = shape.getMaxEdgeDistance();
-		
+
 		for (Int2D.WithIndex tile : shape.range.getAllMutable()) {
 			if (renderStopped) break;
 			if (tile.index % 100 == 0) Thread.yield();
 			if (!shape.contains(tile.x(), tile.y())) continue;
 				
 			float edge = shape.getEdgeDistance(tile.x(), tile.y());
-				
+
 			// Outlines guaranteed, interior uses dot grid
 			if (edge > 1 && ((tile.x()*4 + tile.y()) % 8 != 0)) continue;
 			

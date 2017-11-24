@@ -239,7 +239,7 @@ public class Region {
 	 * Gives each island an altitude integer from 0 to numHeightLayers-1
 	 */
 	private void resolveIslandAltitudes() {
-		
+		// TODO
 	}
 
 	private double calculateSharedPerimeterLength(Site siteInQuestion, List<Site> otherSites) {
@@ -274,6 +274,18 @@ public class Region {
 	
 	public List<Island> getIslands() {
 		return islands;
+	}
+	
+	public List<IRegionFeature> getFeatures() {
+		return features;
+	}
+
+	public <T extends IRegionFeature> T getFeature(Class<T> featureClass) {
+		for (IRegionFeature feature : features) {
+			if (!featureClass.isAssignableFrom(feature.getClass())) continue;
+			return featureClass.cast(feature);
+		}
+		return null;
 	}
 	
 	@Override
