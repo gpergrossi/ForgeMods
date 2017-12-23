@@ -18,7 +18,7 @@ public class InteropTest {
 
 	@InteropClass
 	public static abstract class Shape {
-		InteropManager<Shape> shapeInterops = new InteropManager<>(Shape.class); // TODO auto-scan for classes
+		InteropManager<Shape> shapeInterops = new InteropManager<>(Shape.class);
 		
 		@Override
 		public String toString() {

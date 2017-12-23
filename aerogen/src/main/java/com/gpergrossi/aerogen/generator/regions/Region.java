@@ -259,6 +259,10 @@ public class Region {
 	public List<IslandCell> getCells() {
 		return this.islandCells;
 	}
+
+	public IslandCell getRandomCell(Random rand) {
+		return islandCells.get(rand.nextInt(islandCells.size()));
+	}
 	
 	public double getAverageCellRadius() {
 		return this.averageCellRadius;

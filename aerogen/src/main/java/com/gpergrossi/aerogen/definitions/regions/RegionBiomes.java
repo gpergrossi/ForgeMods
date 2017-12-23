@@ -48,10 +48,6 @@ public class RegionBiomes {
 			return biomes;
 		}
 		
-		public int getRandomNumberOfRivers(Random random) {
-			return 0;
-		}
-		
 		@Override
 		public double getIslandCellGatherPercentage() {
 			return 0.75;
@@ -125,7 +121,7 @@ public class RegionBiomes {
 		
 		public int getRandomNumberOfRivers(Random random) {
 			return 2;
-		};
+		}
 		
 		@Override
 		public double getIslandCellGatherPercentage() {

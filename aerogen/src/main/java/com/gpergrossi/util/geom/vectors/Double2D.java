@@ -8,6 +8,10 @@ public class Double2D implements IVector2D<Double2D> {
 	
 	public static long ALLOCATION_COUNT;
 	
+	public static Double2D unit(double angle) {
+		return new Double2D(Math.cos(angle), Math.sin(angle));
+	}
+	
 	public static double distance(double x0, double y0, double x1, double y1) {
 		double dx = x1-x0;
 		double dy = y1-y0;

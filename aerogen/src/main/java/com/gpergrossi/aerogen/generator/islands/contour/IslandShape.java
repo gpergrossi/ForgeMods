@@ -304,7 +304,7 @@ public class IslandShape {
 	public double riverHeadDist(int x, int z) {
 		double riverDist = Double.POSITIVE_INFINITY;
 		for (RiverCell irc : island.getShape().getRiverCells()) {
-			if (irc.getRiverPrevious() != null) continue;
+			if (irc.getRiverCellPrevious() != null) continue;
 			riverDist = Math.min(riverDist, irc.minDistToRiver(x, z));
 		}
 		return riverDist;

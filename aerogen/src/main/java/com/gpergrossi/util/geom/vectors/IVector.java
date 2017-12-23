@@ -5,7 +5,7 @@ package com.gpergrossi.util.geom.vectors;
  * It's extending interfaces, IVecotor2D and IVector3D
  * are meant to be implemented by all Vector classes.
  * 
- * This interface, IVecotor2D, and IVector3D are mostly
+ * This interface, IVector2D, and IVector3D are mostly
  * intended to ensure that vector classes have all of the
  * necessary methods to be used as a vector. Making
  * use of the interface to store multiple TYPES of vectors

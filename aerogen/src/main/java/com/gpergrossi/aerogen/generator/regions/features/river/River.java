@@ -3,15 +3,11 @@ package com.gpergrossi.aerogen.generator.regions.features.river;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 
 public class River {
-	
-	Island riverHeadIsland;
-	IslandCell riverHeadCell;
-	
+		
 	List<RiverCell> cells;
 	List<RiverWaterfall> waterfalls;
 	
@@ -44,6 +40,14 @@ public class River {
 		return cells;
 	}
 
+	public RiverCell getHead() {
+		return getCell(0);
+	}
+	
+	public RiverCell getTail() {
+		return getCell(cells.size()-1);
+	}
+	
 	public RiverCell getCell(int i) {
 		if (i < 0 || i >= cells.size()) return null;
 		return cells.get(i);

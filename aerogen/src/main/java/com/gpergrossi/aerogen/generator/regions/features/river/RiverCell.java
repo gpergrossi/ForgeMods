@@ -43,27 +43,27 @@ public class RiverCell {
 		return islandCell.getPolygon();
 	}
 	
-	public RiverCell getRiverPrevious() {
+	public RiverCell getRiverCellPrevious() {
 		return islandRiver.getCell(riverIndex-1);
 	}
 	
-	public RiverCell getRiverNext() {
+	public RiverCell getRiverCellNext() {
 		return islandRiver.getCell(riverIndex+1);
 	}
 	
 	private void genRiverCurve() {
 		Double2D pt0 = this.getPolygon().getCentroid();
 		Double2D pt1 = pt0, pt2 = pt0, pt3 = pt0, pt4 = pt0;
-		RiverCell prev = getRiverPrevious(); 
+		RiverCell prev = getRiverCellPrevious(); 
 		if (prev != null) {
 			pt0 = pt1 = prev.getPolygon().getCentroid();
-			prev = prev.getRiverPrevious();		
+			prev = prev.getRiverCellPrevious();		
 			if (prev != null) pt0 = prev.getPolygon().getCentroid();
 		}
-		RiverCell next = getRiverNext(); 
+		RiverCell next = getRiverCellNext(); 
 		if (next != null) {
 			pt4 = pt3 = next.getPolygon().getCentroid();
-			next = next.getRiverNext();		
+			next = next.getRiverCellNext();		
 			if (next != null) pt4 = next.getPolygon().getCentroid();
 		}
 

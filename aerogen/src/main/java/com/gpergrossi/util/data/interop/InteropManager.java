@@ -4,57 +4,38 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.data.interop.annotations.InteropCast;
-import com.gpergrossi.util.data.interop.annotations.InteropClass;
 import com.gpergrossi.util.data.interop.exception.InteropCastException;
 import com.gpergrossi.util.data.interop.exception.InteropTagException;
-import com.gpergrossi.util.data.interop.interfaces.InteropAdapter;
-
-import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
-import io.github.lukehutch.fastclasspathscanner.matchprocessor.ClassAnnotationMatchProcessor;
+import com.gpergrossi.util.data.interop.interfaces.IInteropAdapter;
 
 public class InteropManager<T> {
 
 	public static Map<Class<?>, InteropTypeClass<?>> subclasses;
 	
 	Class<T> typeClass;
-	Map<OrderedPair<Class<? extends T>>, InteropAdapter<T>> adapters;
+	Map<OrderedPair<Class<? extends T>>, IInteropAdapter<T>> adapters;
 	
 	boolean debug;
 	
 	public InteropManager(Class<T> typeClass) {
 		this.typeClass = typeClass;
 		this.adapters = new HashMap<>();
-		this.scanForSubclasses();
-	}
-	
-	private void scanForSubclasses() {
-		FastClasspathScanner classScan = new FastClasspathScanner("-io.github.lukehutch", "-net.minecraft");
-		classScan.addClassLoader(classLoader);
-		classScan.matchClassesWithAnnotation(
-			InteropClass.class,
-			new ClassAnnotationMatchProcessor() {
-				public void processMatch(Class<?> arg0) {
-					
-				}
-			}
-		);
 	}
 
 	@SuppressWarnings("unchecked")
 	public <K extends T> K adapt(T objectFrom, Class<K> classTo) {
 		Class<? extends T> classFrom = (Class<? extends T>) objectFrom.getClass();
 		OrderedPair<Class<? extends T>> classPair = new OrderedPair<>(classFrom, classTo);
-		InteropAdapter<T> adapter = adapters.get(classPair);
+		IInteropAdapter<T> adapter = adapters.get(classPair);
 		if (adapter == null) throw new InteropCastException(classFrom, classTo, objectFrom, "No adapter found");
 		return (K) adapter.adapt(objectFrom);
 	}
 	
-	public void registerAdapter(Class<? extends T> classFrom, Class<? extends T> classTo, InteropAdapter<T> adapter, boolean overwrite) {
+	public void registerAdapter(Class<? extends T> classFrom, Class<? extends T> classTo, IInteropAdapter<T> adapter, boolean overwrite) {
 		OrderedPair<Class<? extends T>> classPair = new OrderedPair<>(classFrom, classTo);
 		if (!adapters.containsKey(classPair)) {
 			if (debug) System.out.println("new adapter: "+classFrom.getName()+" --> "+classTo.getName());

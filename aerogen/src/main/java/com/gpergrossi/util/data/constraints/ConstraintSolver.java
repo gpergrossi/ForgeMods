@@ -1,45 +1,69 @@
-package com.gpergrossi.util.data.constraints.solver;
+package com.gpergrossi.util.data.constraints;
 
-import com.gpergrossi.util.data.constraints.IConstraint;
-import com.gpergrossi.util.data.constraints.generic.Constraints;
+import com.gpergrossi.util.data.constraints.generic.AbstractConstraint;
 
-public class ConstraintChecker<T> {
+public class ConstraintSolver<T> {
 
 	protected final int numItems;
-	protected final Constraints<T> constraintsType;
-	protected final IConstraint<?>[][] constraints;
-	protected final IConstraint<?>[][] saveState;
+	protected final AbstractConstraint.Category<T> constraintsCategory;
+	protected final AbstractConstraint<?>[][] constraints;
+	protected final AbstractConstraint<?>[][] saveState;
 	protected final boolean[][] hasChanged;
 	
-	public ConstraintChecker(int numItems, Constraints<T> constraintTypes) {
+	public ConstraintSolver(AbstractConstraint.Category<T> constraintsCategory, int numItems) {
+		this.constraintsCategory = constraintsCategory;
 		this.numItems = numItems;
-		this.constraintsType = constraintTypes;
-		this.saveState = new IConstraint<?>[numItems-1][];
-		this.constraints = new IConstraint<?>[numItems-1][];
+		
+		this.saveState = new AbstractConstraint<?>[numItems-1][];
+		this.constraints = new AbstractConstraint<?>[numItems-1][];
 		this.hasChanged = new boolean[numItems-1][];
+		init();
+	}
+	
+	/**
+	 * Sets the initial constraint matrix so that there are no constraints (ALWAYS constraint)
+	 * between any distinct variables and so that each variable is equal to itself (EQUAL constraint).
+	 */
+	private void init() {
 		for (int i = 1; i <= numItems-1; i++) {
-			this.saveState[i-1] = new IConstraint<?>[i];
-			this.constraints[i-1] = new IConstraint<?>[i];
+			this.saveState[i-1] = new AbstractConstraint<?>[i];
+			this.constraints[i-1] = new AbstractConstraint<?>[i];
 			this.hasChanged[i-1] = new boolean[i];
 			for (int j = 0; j < i; j++) {
-				this.saveState[i-1][j] = constraintTypes.getAlwaysTrueConstraint();
-				this.constraints[i-1][j] = constraintTypes.getAlwaysTrueConstraint();
+				this.saveState[i-1][j] = constraintsCategory.getAlwaysConstraint();
+				this.constraints[i-1][j] = constraintsCategory.getAlwaysConstraint();
 			}
 		}
 	}
-	
+
+	/**
+	 * Gets the constraint stored in the matrix for AB. Since the constraint matrix 
+	 * is a lower half matrix, this involves looking up the correct order of the given
+	 * indices, and potentially reversing the constraint to be returned. These internals
+	 * are, of course, hidden from users of the method.
+	 * @param indexA
+	 * @param indexB
+	 * @return the constrain from indexA to indexB that is stored in the constraints matrix
+	 */
 	@SuppressWarnings("unchecked")
-	private IConstraint<T> internalGetConstraint(int indexA, int indexB) {
+	private AbstractConstraint<T> internalGetConstraint(int indexA, int indexB) {
 		if (indexA < indexB) return internalGetConstraint(indexB, indexA).reverse();
-		if (indexA == indexB) return constraintsType.getEqualConstraint();
-		return (IConstraint<T>) constraints[indexA-1][indexB];
+		if (indexA == indexB) return constraintsCategory.getEqualConstraint();
+		return (AbstractConstraint<T>) constraints[indexA-1][indexB];
 	}
 	
-	private void internalSetConstraint(int indexA, int indexB, IConstraint<T> constraintAB, boolean hasChanged) {
+	/**
+	 * Sets the constraint stored in the matrix for AB. If the hasChanged parameter is true,
+	 * the has 
+	 * @param indexA
+	 * @param indexB
+	 * @return the constrain from indexA to indexB that is stored in the constraints matrix
+	 */
+	private void internalSetConstraint(int indexA, int indexB, AbstractConstraint<T> constraintAB, boolean hasChanged) {
 		if (indexA < indexB) internalSetConstraint(indexB, indexA, constraintAB.reverse(), hasChanged);
 		else if (indexA == indexB) {
-			if (constraintAB.equals(constraintsType.getEqualConstraint())) return;
-			else throw new RuntimeException("internalSetConstraint has just asserted that v"+indexA+" "+constraintAB.symbol()+" v"+indexB);
+			if (constraintAB.equals(constraintsCategory.getEqualConstraint())) return;
+			else throw new RuntimeException("internalSetConstraint has just asserted that v"+indexA+" "+constraintAB.inline()+" v"+indexB);
 		}
 		else {
 			this.constraints[indexA-1][indexB] = constraintAB;
@@ -53,9 +77,9 @@ public class ConstraintChecker<T> {
 	 * I.E. the value of the new revision bits is 0 (FAIL). Otherwise, returns true.
 	 * Regardless of the return value, the revision bits will be modified.
 	 */
-	private boolean internalAddSingleConstraint(int indexA, int indexB, IConstraint<T> constraintAB, boolean addUpdateFlag) {
-		IConstraint<T> original = internalGetConstraint(indexA, indexB);
-		IConstraint<T> modified = original.and(constraintAB);
+	private boolean internalAddSingleConstraint(int indexA, int indexB, AbstractConstraint<T> constraintAB, boolean addUpdateFlag) {
+		AbstractConstraint<T> original = internalGetConstraint(indexA, indexB);
+		AbstractConstraint<T> modified = original.and(constraintAB);
 		
 		boolean updated = (!modified.equals(original) && addUpdateFlag);
 		internalSetConstraint(indexA, indexB, modified, updated);
@@ -65,13 +89,13 @@ public class ConstraintChecker<T> {
 	
 	private boolean internalPropagateConstraint(int indexB, int indexC, boolean doReverse) {
 		boolean success = true;
-		IConstraint<T> constraintBC = internalGetConstraint(indexB, indexC);
+		AbstractConstraint<T> constraintBC = internalGetConstraint(indexB, indexC);
 		for (int indexA = 0; indexA < numItems; indexA++) {
 			if (indexA == indexB || indexB == indexC || indexA == indexC) continue;
-			IConstraint<T> constraintAB = internalGetConstraint(indexA, indexB);
-						
-			IConstraint<T> implicationAC = constraintsType.getImplication(constraintAB, constraintBC);
-			if (implicationAC.equals(constraintsType.getAlwaysTrueConstraint())) continue;
+			AbstractConstraint<T> constraintAB = internalGetConstraint(indexA, indexB);
+			
+			AbstractConstraint<T> implicationAC = constraintAB.chain(constraintBC);
+			if (implicationAC.isGuaranteed()) continue;
 
 //			System.out.println("v"+indexA+" "+constraintAB.symbol()+" v"+indexB+" AND "+
 //					"v"+indexB+" "+constraintBC.symbol()+" v"+indexC+" IMPLIES "+
@@ -84,7 +108,7 @@ public class ConstraintChecker<T> {
 		return success;
 	}
 	
-	private boolean internalAddConstraint(int indexA, int indexB, IConstraint<T> constraintAB) {
+	private boolean internalAddConstraint(int indexA, int indexB, AbstractConstraint<T> constraintAB) {
 		boolean success = true;
 		
 //		System.out.println("Adding constraint: v"+indexA+" "+constraintAB.symbol()+" v"+indexB);
@@ -111,7 +135,9 @@ public class ConstraintChecker<T> {
 		return success;
 	}
 	
-	public boolean addConstraint(int indexA, IConstraint<T> constraint, int indexB) {
+	public boolean addConstraint(int indexA, AbstractConstraint<T> constraint, int indexB) {
+		if (constraint.getCategory() != constraintsCategory) throw new IllegalArgumentException("Constraint object's category does not match this ConstraintSolver's category");
+		
 		if (indexA < 0 || indexA >= numItems) throw new IndexOutOfBoundsException("IndexA = "+indexA+" (numItems = "+numItems+")");
 		if (indexB < 0 || indexB >= numItems) throw new IndexOutOfBoundsException("IndexB = "+indexB+" (numItems = "+numItems+")");
 		
@@ -130,14 +156,12 @@ public class ConstraintChecker<T> {
 		for (int i = 1; i <= numItems-1; i++) System.arraycopy(saveState, 0, constraints, 0, i);
 	}
 
-	public IConstraint<T> getConstraint(int indexA, int indexB) {
+	public AbstractConstraint<T> getConstraint(int indexA, int indexB) {
 		return internalGetConstraint(indexA, indexB);
 	}
 	
 	public void print() {
-		int charsPerNum = 2;
-		if (numItems > 10) charsPerNum++;
-		if (numItems > 100) charsPerNum++;
+		int charsPerNum = (int) Math.ceil(Math.log10(numItems)) + 1;
 		
 		String pad = "";
 		for (int i = 0; i < charsPerNum; i++) {
@@ -158,7 +182,7 @@ public class ConstraintChecker<T> {
 			System.out.print(label);
 			
 			for (int j = 0; j < numItems; j++) {
-				String value = pad+getConstraint(i, j).symbol();
+				String value = pad+getConstraint(i, j).inline();
 				value = value.substring(value.length() - charsPerNum);
 				System.out.print(" "+value);
 			}

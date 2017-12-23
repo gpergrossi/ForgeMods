@@ -104,10 +104,6 @@ public class Int2DRange {
 		return resize(minX+offsetX, minY+offsetY, maxX+offsetX, maxY+offsetY);
 	}
 	
-	public Int2DRange scale(int scaleUp) {
-		return resize(minX*scaleUp, minY*scaleUp, maxX*scaleUp, maxY*scaleUp);
-	}
-	
 	public int indexFor(Int2D pt) {
 		return indexFor(pt.x(), pt.y());
 	}
@@ -117,15 +113,15 @@ public class Int2DRange {
 	}
 
 	public int randomX(Random random) {
-		return random.nextInt(maxX-minX+1)+minX;
+		return random.nextInt(width)+minX;
 	}
 	
 	public int randomY(Random random) {
-		return random.nextInt(maxY-minY+1)+minY;
+		return random.nextInt(height)+minY;
 	}
 	
 	public Int2D randomTile(Random random) {
-		return new Int2D(random.nextInt(width)+minX, random.nextInt(height)+minY);
+		return new Int2D(randomX(random), randomY(random));
 	}
 	
 	public String toString() {

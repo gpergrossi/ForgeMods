@@ -2,9 +2,10 @@ package com.gpergrossi.test;
 
 import org.junit.Test;
 
-import com.gpergrossi.util.data.constraints.IConstraint;
-import com.gpergrossi.util.data.constraints.scalar.SimpleScalarConstraints;
-import com.gpergrossi.util.data.constraints.solver.ConstraintChecker;
+import com.gpergrossi.util.data.constraints.ConstraintSolver;
+import com.gpergrossi.util.data.constraints.generic.AbstractConstraint;
+import com.gpergrossi.util.data.constraints.integer.SimpleScalarConstraints;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -14,7 +15,7 @@ public class ConstraintCheckerTest {
 	
 	@Test
 	public void testTrianglePossible() {
-		ConstraintChecker<Integer> constraints = new ConstraintChecker<>(3, ssci);
+		ConstraintSolver<Integer> constraints = new ConstraintSolver<>(3, ssci);
 
 		System.out.println("\nv0 <= v1:");
 		assertTrue(constraints.addConstraint(0, ssci.LESS_OR_EQUAL, 1));
@@ -28,7 +29,7 @@ public class ConstraintCheckerTest {
 		assertTrue(constraints.addConstraint(0, ssci.GREATER_OR_EQUAL, 2));
 		constraints.print();
 		
-		IConstraint<Integer> c = constraints.getConstraint(0, 1);
+		AbstractConstraint<Integer> c = constraints.getConstraint(0, 1);
 		assertTrue(c.equals(ssci.EQUAL));
 	}
 	
@@ -36,7 +37,7 @@ public class ConstraintCheckerTest {
 	public void testLongLoop() {
 		int count = 20;
 
-		ConstraintChecker<Integer> constraints = new ConstraintChecker<>(count, ssci);
+		ConstraintSolver<Integer> constraints = new ConstraintSolver<>(count, ssci);
 
 		for (int i = 0; i < count-1; i++) {
 			assertTrue(constraints.addConstraint(i, ssci.LESS_OR_EQUAL, i+1));
@@ -46,13 +47,13 @@ public class ConstraintCheckerTest {
 		constraints.print();
 		
 		int testIndex = count/2;
-		IConstraint<Integer> c = constraints.getConstraint(testIndex, testIndex+1);
+		AbstractConstraint<Integer> c = constraints.getConstraint(testIndex, testIndex+1);
 		assertTrue(c.equals(ssci.EQUAL));
 	}
 	
 	@Test
 	public void testTriangleImpossible() {
-		ConstraintChecker<Integer> constraints = new ConstraintChecker<>(3, ssci);
+		ConstraintSolver<Integer> constraints = new ConstraintSolver<>(3, ssci);
 
 		System.out.println("\nv0 < v1:");
 		assertTrue(constraints.addConstraint(0, ssci.LESS, 1));

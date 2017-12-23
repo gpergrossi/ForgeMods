@@ -1,11 +1,13 @@
 package com.gpergrossi.aerogen.definitions.regions;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverFeature;
 
 public abstract class RegionBiome {
 
@@ -32,10 +34,6 @@ public abstract class RegionBiome {
 		return altitude / 2;
 	}
 	
-	public int getRandomNumberOfRivers(Random random) {
-		return 1;
-	}
-	
 	/**
 	 * The percentage of remaining cells the island gatherer is allowed to claim per island.
 	 * Larger numbers make bigger islands. Smaller numbers make more numerous tiny islands.
@@ -51,7 +49,18 @@ public abstract class RegionBiome {
 	}
 	
 	public List<IRegionFeature> getFeatures(Region region, Random random) {
-		return null;
+		List<IRegionFeature> features = new ArrayList<>();
+		
+		int numRivers = getRandomNumberOfRivers(random);
+		if (numRivers > 0) {
+			features.add(new RiverFeature().setRiverCount(getRandomNumberOfRivers(random)));
+		}
+		
+		return features;
+	}
+	
+	public int getRandomNumberOfRivers(Random random) {
+		return 0;
 	}
 	
 }
