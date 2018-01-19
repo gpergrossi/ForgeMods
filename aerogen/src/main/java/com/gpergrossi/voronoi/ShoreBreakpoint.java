@@ -1,6 +1,5 @@
 package com.gpergrossi.voronoi;
 
-import com.gpergrossi.util.data.LinkedBinaryNode;
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.math.func.Function;
@@ -11,7 +10,7 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	public Edge edge;
 	protected ShoreArc arcLeft, arcRight;
 	
-	public ShoreBreakpoint(ShoreTreeNode left, ShoreTreeNode right) {
+	public ShoreBreakpoint(ShoreTreeNode left, ShoreTreeNode right) {		
 		if (left.equals(right)) throw new RuntimeException("Cannot construct breakpoint between identical arcs!");
 		
 		setLeftChild(left);
@@ -31,9 +30,8 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	}
 
 	@Override
-	protected void setLeftChild(LinkedBinaryNode leftBinaryNode) {
-		if (leftBinaryNode == null) throw new RuntimeException("Cannot set child of a breakpoint to null");	
-		ShoreTreeNode left = (ShoreTreeNode) leftBinaryNode;
+	public void setLeftChild(ShoreTreeNode left) {
+		if (left == null) throw new RuntimeException("Cannot set child of a breakpoint to null");
 		
 		super.setLeftChild(left);
 		
@@ -47,9 +45,8 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	}
 	
 	@Override
-	protected void setRightChild(LinkedBinaryNode rightBinaryNode) {
-		if (rightBinaryNode == null) throw new RuntimeException("Cannot set child of a breakpoint to null");
-		ShoreTreeNode right = (ShoreTreeNode) rightBinaryNode;
+	public void setRightChild(ShoreTreeNode right) {
+		if (right == null) throw new RuntimeException("Cannot set child of a breakpoint to null");
 		
 		super.setRightChild(right);
 		
@@ -182,9 +179,9 @@ public class ShoreBreakpoint extends ShoreTreeNode {
 	
 	@Override
 	public String toString() {
-		String leftID = (hasLeftChild() ? ""+getLeftChild().id : "null");
-		String rightID = (hasRightChild() ? ""+getRightChild().id : "null");
-		return "Breakpoint["+(debugName != null ? "DebugName='"+debugName+"', " : "")+"ID="+id+", "
+		String leftID = (hasLeftChild() ? ""+getLeftChild().ID : "null");
+		String rightID = (hasRightChild() ? ""+getRightChild().ID : "null");
+		return "Breakpoint["+(this.debugName != null ? "DebugName='"+this.debugName+"', " : "")+"ID="+this.ID+", "
 				+ "LeftArc="+arcLeft+", RightArc="+arcRight+", "
 				+ "Children:[Left="+leftID+", Right="+rightID+"]]";
 	}

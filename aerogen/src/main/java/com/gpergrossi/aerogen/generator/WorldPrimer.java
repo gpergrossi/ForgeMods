@@ -1,8 +1,8 @@
 package com.gpergrossi.aerogen.generator;
 
-import com.gpergrossi.util.data.Large2DArray;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
+import com.gpergrossi.util.spacial.Large2DArray;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;

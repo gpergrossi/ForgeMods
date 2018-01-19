@@ -23,4 +23,11 @@ public class Tuple2<T,S> {
 		}
 	}
 	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Tuple2)) return false;
+		Tuple2<?, ?> tuple = (Tuple2<?, ?>) obj;
+		return this.first.equals(tuple.first) && this.second.equals(tuple.second);
+	}
+	
 }

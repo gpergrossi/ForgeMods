@@ -8,9 +8,12 @@ import com.gpergrossi.util.geom.vectors.Int1D;
 
 public class Int1DRange {
 
-	protected final int min;
-	protected final int max;
-	protected final int size;
+	public static final Int1DRange EMPTY = new Int1DRange(0, -1);
+	public static final Int1DRange ALL = new Int1DRange(Integer.MIN_VALUE, Integer.MAX_VALUE);
+	
+	public final int min;
+	public final int max;
+	public final long size;
 
 	public Int1DRange(Int1DRange range) {
 		this(range.min, range.max);
@@ -19,14 +22,14 @@ public class Int1DRange {
 	public Int1DRange(int min, int max) {
 		this.min = min;
 		this.max = max;
-		this.size = Math.max(0, max-min+1);
+		this.size = Math.max(0L, ((long) max) - ((long) min) + 1L);
 	}
 
 	protected Int1DRange resize(int min, int max) {
 		return new Int1DRange(min, max);
 	}
 	
-	public int size() {
+	public long size() {
 		return size;
 	}
 	
@@ -77,7 +80,20 @@ public class Int1DRange {
 	}
 	
 	public String toString() {
+		if (this.isEmpty()) return "Empty";
+		if (min == max) return String.valueOf(min);
+		if (size == 2) return min+", "+max;
 		return min+" to "+max;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Int1DRange)) return false;
+		Int1DRange range = (Int1DRange) obj;
+		if (range.isEmpty() && this.isEmpty()) return true;
+		if (range.min != this.min) return false;
+		if (range.max != this.max) return false;
+		return true;
 	}
 	
 	public Iterable<Int1D.WithIndex> getAllMutable() {

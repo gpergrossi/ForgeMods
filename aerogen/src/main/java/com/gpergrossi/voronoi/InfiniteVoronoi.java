@@ -1,10 +1,11 @@
 package com.gpergrossi.voronoi;
 
 import java.util.List;
-import com.gpergrossi.util.data.Large2DArray;
+
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.Rect;
+import com.gpergrossi.util.spacial.Large2DArray;
 
 public class InfiniteVoronoi {
 	

@@ -1,6 +1,6 @@
 package com.gpergrossi.voronoi;
 
-import com.gpergrossi.util.data.LinkedBinaryNode;
+import com.gpergrossi.util.data.btree.AbstractLinkedBinaryNode;
 
 /**
  * This class mostly recasts the LinkedBinaryNode class. I tried to find a way around this by
@@ -9,60 +9,43 @@ import com.gpergrossi.util.data.LinkedBinaryNode;
  * 
  * @author Gregary Pergrossi
  */
-public abstract class ShoreTreeNode extends LinkedBinaryNode {
+public abstract class ShoreTreeNode extends AbstractLinkedBinaryNode<ShoreTreeNode> {
+	
+	public static int IDCounter = 0;
+
+	public final int ID;
+	String debugName;
+	
+	ShoreTree rootParent;
 	
 	public ShoreTreeNode() {
 		super();
+		this.ID = (IDCounter++);
 	}
 	
 	public ShoreTreeNode(ShoreTree rootParent) {
-		super(rootParent);
-	}
-	
-	public ShoreTreeNode getLeftChild() {
-		return (ShoreTreeNode) super.getLeftChild();
-	}
-
-	public ShoreTreeNode getRightChild() {
-		return (ShoreTreeNode) super.getRightChild();
-	}
-	
-	public ShoreTreeNode getParent() {
-		return (ShoreTreeNode) super.getParent();
-	}
-
-	public ShoreTreeNode getPredecessor() {
-		return (ShoreTreeNode) super.getPredecessor();
-	}
-
-	public ShoreTreeNode getSuccessor() {
-		return (ShoreTreeNode) super.getSuccessor();
-	}
-	
-	public ShoreTreeNode getRoot() {
-		return (ShoreTreeNode) super.getRoot();
-	}
-	
-	public ShoreTreeNode getFirstDescendant() {
-		return (ShoreTreeNode) super.getFirstDescendant();
-	}
-	
-	public ShoreTreeNode getLastDescendant() {
-		return (ShoreTreeNode) super.getLastDescendant();
-	}
-	
-	public ShoreTreeNode getSibling() {
-		return (ShoreTreeNode) super.getSibling();
-	}
-
-	/**
-	 * Returns an iterator over this node's subtree.
-	 */
-	@Override
-	public Iterator<ShoreTreeNode> subtreeIterator() {
-		return super.<ShoreTreeNode>castedSubtreeIterator();
+		this();
+		this.rootParent = rootParent;
 	}
 	
 	public abstract ShoreArc getArc(final BuildState state, double siteX);
+	
+	public boolean isRoot() {
+		if (this.rootParent == null) return false;
+		if (this.rootParent.root != this) throw new IllegalStateException("ShoreTreeNode's rootParent does not acknowledge node as root!");
+		return true;
+	}
+	
+	@Override
+	public void removeFromParent() {
+		super.removeFromParent();
+		if (this.isRoot()) rootParent.setRoot(null);
+	}
+	
+	@Override
+	public void replaceWith(ShoreTreeNode child) {
+		super.replaceWith(child);
+		if (this.isRoot()) rootParent.setRoot(child);
+	}
 	
 }

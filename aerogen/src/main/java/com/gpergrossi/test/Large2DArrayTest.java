@@ -2,7 +2,7 @@ package com.gpergrossi.test;
 
 import org.junit.Test;
 
-import com.gpergrossi.util.data.Large2DArray;
+import com.gpergrossi.util.spacial.Large2DArray;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;

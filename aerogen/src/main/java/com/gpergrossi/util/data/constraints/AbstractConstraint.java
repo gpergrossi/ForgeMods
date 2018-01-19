@@ -1,4 +1,4 @@
-package com.gpergrossi.util.data.constraints.generic;
+package com.gpergrossi.util.data.constraints;
 
 /**
  * <i>All classes that extend AbstractConstraint should be immutable!</i><br /><br />
@@ -31,9 +31,10 @@ package com.gpergrossi.util.data.constraints.generic;
  * constraint solver and 'B < A' is asserted, the solver would AND these two assertions together and get
  * the NEVER constraint, indicating that the new assertion, 'B < A', is invalid.
  *
- * @param <T> the value type
+ * @param <Subclass> the constraint subclass type
+ * @param <Type> the value type
  */
-public abstract class AbstractConstraint<T> {
+public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Subclass, Type>, Type> {
 	
 	/**
 	 * An {@code AbstractConstraintCategory} groups {@code AbstractConstraint}s that
@@ -48,21 +49,22 @@ public abstract class AbstractConstraint<T> {
 	 * and automatically provide the Singleton instance to Constraints being constructed in that Category.<br />
 	 * ConstraintCategories are then used in the construction of ConstraintSolvers.<br />
 	 *
+	 * @param <S> the constraint subclass type
 	 * @param <T> the value type
 	 */
-	public static abstract class Category<T> {
-		public abstract AbstractConstraint<T> getAlwaysConstraint();
-		public abstract AbstractConstraint<T> getEqualConstraint();
-		public abstract AbstractConstraint<T> getNeverConstraint();
+	public static abstract class Category<Subclass extends AbstractConstraint<Subclass, ?>> {
+		public abstract Subclass getAlwaysConstraint();
+		public abstract Subclass getEqualConstraint();
+		public abstract Subclass getNeverConstraint();
 	}
 
-	protected final Category<T> category;
+	protected final Category<Subclass> category;
 	
-	public AbstractConstraint(Category<T> category) {
+	public AbstractConstraint(Category<Subclass> category) {
 		this.category = category;
 	}
 	
-	public Category<T> getCategory() {
+	public Category<Subclass> getCategory() {
 		return category;
 	}
 	
@@ -72,7 +74,7 @@ public abstract class AbstractConstraint<T> {
 	 * is the relation from A to B, returns the relation from B
 	 * to A. (E.G. LESS.reverse() == GREATER)
 	 */
-	public abstract AbstractConstraint<T> reverse();
+	public abstract Subclass reverse();
 
 	/**
 	 * Returns the constraint representing the compliment (inverse)
@@ -82,17 +84,17 @@ public abstract class AbstractConstraint<T> {
 	 * That is, all values in 'B-prime' fail the constraint for a given constant value 'A'. <br />
 	 * An example of this would be LESS.compliment() returns GREATER_OR_EQUAL.
 	 */
-	public abstract AbstractConstraint<T> compliment();
+	public abstract Subclass compliment();
 	
 	/**
 	 * Returns the constraint representing this constraint AND {@code other}.
 	 */
-	public abstract AbstractConstraint<T> and(AbstractConstraint<T> other);
+	public abstract Subclass and(Subclass other);
 	
 	/**
 	 * Returns the constraint representing this constraint OR {@code other}
 	 */
-	public abstract AbstractConstraint<T> or(AbstractConstraint<T> other);
+	public abstract Subclass or(Subclass other);
 	
 	/**
 	 * Returns the implied constraint from A to C, treating this constraint as the relation from A to B
@@ -101,7 +103,7 @@ public abstract class AbstractConstraint<T> {
 	 * @param bc - relation from B to C. For example {@code bc} could be 'LESS', meaning B is LESS than C.
 	 * @return the implied relation from A to C, or null if there is no implied relationship
 	 */
-	public abstract AbstractConstraint<T> chain(AbstractConstraint<T> bc);
+	public abstract Subclass chain(Subclass bc);
 
 	/**
 	 * Returns true if there is any possible pair of values that might satisfy this
@@ -137,7 +139,7 @@ public abstract class AbstractConstraint<T> {
 	 * @param valueB the value on the 'right' of the constraint operation
 	 * @return true if {@code valueA} &lt;constraint&gt; {@code valueB}. (E.G. A < B)
 	 */
-	public abstract boolean check(T valueA, T valueB);
+	public abstract boolean check(Type valueA, Type valueB);
 	
 	/**
 	 * Return true if this constraint and {@code other} represent the same concept.
@@ -149,7 +151,7 @@ public abstract class AbstractConstraint<T> {
 	 * @param other
 	 * @return
 	 */
-	public abstract boolean equals(AbstractConstraint<T> other);
+	public abstract boolean equals(Subclass other);
 	
 	/**
 	 * Return a short inline string to be placed between variables when printing this constraint.

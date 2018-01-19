@@ -13,7 +13,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.gpergrossi.util.data.LinkedBinaryNode;
 import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.shapes.Rect;
@@ -22,18 +21,22 @@ import com.gpergrossi.util.math.func.Function;
 import com.gpergrossi.util.math.func.Quadratic;
 import com.gpergrossi.util.math.func.Vertical;
 
-public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
+import static com.gpergrossi.util.data.btree.IBinaryNode.getTreeBreadthAndDepth;
+
+public class ShoreTree implements Iterable<ShoreTreeNode> {
 	
 	ShoreTreeNode root;
 	
-	public ShoreTreeNode getRoot() {
+	ShoreTreeNode getRoot() {
 		return root;
 	}
 
-	@Override
-	public void setRoot(LinkedBinaryNode node) {
+	void setRoot(ShoreTreeNode node) {
 		if (node == null) throw new RuntimeException("Cannot remove root node from ShoreTree");
 		if (!(node instanceof ShoreTreeNode)) throw new RuntimeException("ShoreTree can only have a root of type TreeNode");
+		
+		root.rootParent = null;
+		if (node != null) node.rootParent = this;
 		this.root = (ShoreTreeNode) node;
 	}
 	
@@ -58,19 +61,21 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		boolean debug = Voronoi.DEBUG;
 		Voronoi.DEBUG = false;
 		
-		drawCircleEvents(state, g, root.subtreeIterator());
-		drawParabolas(state, g, root.subtreeIterator());
-		drawBreakpoints(state, g, root.subtreeIterator());
+		drawCircleEvents(state, g, root.iterator());
+		drawParabolas(state, g, root.iterator());
+		drawBreakpoints(state, g, root.iterator());
 		
 		drawTree(state, g);
 		
 		Voronoi.DEBUG = debug;
 	}
 
-	private void drawCircleEvents(BuildState state, Graphics2D g, Iterable<ShoreTreeNode> nodes) {
+	private void drawCircleEvents(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
 		g.setColor(Color.BLUE);
 		
-		for (ShoreTreeNode n : nodes) {
+		while (nodes.hasNext()) {
+			ShoreTreeNode n = nodes.next();
+			
 			if (!(n instanceof ShoreArc)) continue;
 			ShoreArc arc = (ShoreArc) n;
 			
@@ -108,8 +113,10 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		}
 	}
 
-	private void drawParabolas(BuildState state, Graphics2D g, Iterable<ShoreTreeNode> nodes) {
-		for (ShoreTreeNode n : nodes) {
+	private void drawParabolas(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
+		while (nodes.hasNext()) {
+			ShoreTreeNode n = nodes.next();
+			
 			if (!(n instanceof ShoreArc)) continue;
 			ShoreArc arc = (ShoreArc) n;
 			
@@ -168,10 +175,13 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		}
 	}
 	
-	private void drawBreakpoints(BuildState state, Graphics2D g, Iterable<ShoreTreeNode> nodes) {
+	private void drawBreakpoints(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
-		for (ShoreTreeNode n : nodes) {
+		
+		while (nodes.hasNext()) {
+			ShoreTreeNode n = nodes.next();
+			
 			if (!(n instanceof ShoreBreakpoint)) continue;
 			ShoreBreakpoint breakpoint = (ShoreBreakpoint) n;
 			
@@ -214,7 +224,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
 		
-		OrderedPair<Integer> breadthAndDepth = this.getRoot().getBreadthAndDepth();
+		OrderedPair<Integer> breadthAndDepth = getTreeBreadthAndDepth(this.getRoot());
 		double dy = 50.0;
 		double minY = state.getBounds().getBounds().maxY()+dy;
 		double minX = state.getBounds().getBounds().minX();
@@ -223,19 +233,19 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 		Rectangle2D rect = new Rectangle2D.Double(minX, minY, state.getBounds().getBounds().width(), dy*(breadthAndDepth.second+1));
 		g.fill(rect);
 		
-		List<LinkedBinaryNode> layer = new ArrayList<>();
-		List<LinkedBinaryNode> next = new ArrayList<>();
+		List<ShoreTreeNode> layer = new ArrayList<>();
+		List<ShoreTreeNode> next = new ArrayList<>();
 		layer.add(this.getRoot());
 		
-		Map<LinkedBinaryNode, Double2D> positions = new HashMap<>();
-		Map<LinkedBinaryNode, Double> splitWidth = new HashMap<>();
+		Map<ShoreTreeNode, Double2D> positions = new HashMap<>();
+		Map<ShoreTreeNode, Double> splitWidth = new HashMap<>();
 
 		g.setColor(Color.ORANGE);
 		int depth = 0;
 		while (layer.size() > 0) {
 			next.clear();
 			
-			for (LinkedBinaryNode n : layer) {
+			for (ShoreTreeNode n : layer) {
 				double x;
 				if (n.getParent() == null) {
 					x = state.getBounds().getBounds().centerX();
@@ -244,14 +254,14 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 				} else {
 					double parX = positions.get(n.getParent()).x();
 					double parW = splitWidth.get(n.getParent());
-					double xShare = parW / (n.getParent().getBreadthAndDepth().first);
-					double width = (n.getBreadthAndDepth().first)*xShare;
+					double xShare = parW / (getTreeBreadthAndDepth(n.getParent()).first);
+					double width = (getTreeBreadthAndDepth(n).first)*xShare;
 					splitWidth.put(n, width);
 					
 					if (n.isLeftChild()) {
 						x = parX - parW/2 + width/2.0;
 					} else {
-						double sibW = (n.getSibling().getBreadthAndDepth().first+1)*xShare;
+						double sibW = (getTreeBreadthAndDepth(n.getSibling()).first+1)*xShare;
 						x = parX - parW/2 + sibW + width/2.0;
 					}
 				}
@@ -292,7 +302,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 				if (n.getRightChild() != null) next.add(n.getRightChild());
 			}
 			
-			List<LinkedBinaryNode> swap = layer;
+			List<ShoreTreeNode> swap = layer;
 			layer = next;
 			next = swap;
 			depth++;
@@ -301,7 +311,7 @@ public class ShoreTree implements LinkedBinaryNode.Tree<ShoreTreeNode> {
 
 	@Override
 	public Iterator<ShoreTreeNode> iterator() {
-		return this.root.subtreeIterator();
+		return this.root.iterator();
 	}
 	
 }

@@ -2,18 +2,35 @@ package com.gpergrossi.util.data.queue;
 
 import java.util.AbstractQueue;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 
-public class MultiQueue<T extends Comparable<T>> extends AbstractQueue<T> {
+public class PriorityMultiQueue<T> extends AbstractQueue<T> {
 	
-	int modifyCount;
-	List<Queue<T>> queues;
+	private int modifyCount;
+	private List<Queue<T>> queues;
+	private Comparator<T> comparator;
 	
-	public MultiQueue() {
+	public PriorityMultiQueue() {
+		this(null);
+	}
+	
+	public PriorityMultiQueue(Comparator<T> comparator) {
+		this.modifyCount = 0;
 		this.queues = new ArrayList<>();
+		this.comparator = comparator;
+	}
+	
+	@SuppressWarnings("unchecked")
+	private int compare(T a, T b) {
+		if (comparator != null) {
+			return comparator.compare(a, b);
+		} else {
+			return ((Comparable<T>) a).compareTo(b);
+		}
 	}
 	
 	@Override
@@ -37,14 +54,14 @@ public class MultiQueue<T extends Comparable<T>> extends AbstractQueue<T> {
 		for (Queue<T> queue : queues) {
 			T element = queue.peek();
 			if (element == null) continue;
-			if (winningElement == null || winningElement.compareTo(element) > 0) {
+			if (winningElement == null || compare(element, winningElement) < 0) {
 				winningElement = element;
 				winner = queue;
 			}
 		}
 		return winner;
 	}
-	
+
 	@Override
 	public T poll() {		
 		Queue<T> highest = getHighestPriorityQueue();
@@ -62,13 +79,14 @@ public class MultiQueue<T extends Comparable<T>> extends AbstractQueue<T> {
 	@Override
 	public Iterator<T> iterator() {
 		return new Iterator<T>() {
-			{ init(); }
-
 			int expectedModifyCount;
 			int numQueues;
 			Object[] iterators;
 			Object[] nextElements;
 			int numItems;
+
+			// Static initializer calls init()
+			{ init(); }
 			
 			private void init() {
 				expectedModifyCount = modifyCount;
@@ -101,7 +119,7 @@ public class MultiQueue<T extends Comparable<T>> extends AbstractQueue<T> {
 				for (int i = 1; i < numQueues; i++) {
 					if (nextElements[i] == null) continue;
 					T element = (T) nextElements[i];
-					if (winningElement == null || element.compareTo(winningElement) < 0) {
+					if (winningElement == null || compare(element, winningElement) < 0) {
 						winningElement = element;
 						winner = i;
 					}

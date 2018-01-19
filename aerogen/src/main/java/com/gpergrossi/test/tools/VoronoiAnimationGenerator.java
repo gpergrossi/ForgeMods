@@ -1,4 +1,4 @@
-package com.gpergrossi.test;
+package com.gpergrossi.test.tools;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -26,7 +26,7 @@ import com.gpergrossi.voronoi.Voronoi;
 import com.gpergrossi.voronoi.VoronoiBuilder;
 import com.gpergrossi.voronoi.VoronoiWorker;
 
-public class VoronoiTest {
+public class VoronoiAnimationGenerator {
 
 	private static Random random = new Random();
 	
@@ -86,10 +86,12 @@ public class VoronoiTest {
 		}
 		String sequence = sequenceBuilder.toString();
 		
-		if (num != -1) {
-			test(num, canvasSize, verbosity, grid, sequence, frameTime);
-		} else if (num != 0) {
-			for (num = 1050000; num > 0;  num -= 10000) test(num, canvasSize, verbosity, grid, "", 1000);
+		if (num > 0) {
+			doAnimation(num, canvasSize, verbosity, grid, sequence, frameTime);
+		} else if (num == -1) {
+			for (num = 1050000; num > 0; num -= 10000) {
+				doAnimation(num, canvasSize, verbosity, grid, "", 1000);
+			}
 		} else {
 			System.err.println("please specify a size!");
 		}
@@ -104,14 +106,14 @@ public class VoronoiTest {
 		return count;
 	}
 
-	private static void test(int numSites, double canvasSize, int verbosity, boolean useGrid, String sequence, int frameTime) throws IOException {		
+	private static void doAnimation(int numSites, double canvasSize, int verbosity, boolean useGrid, String animationSequence, int frameTime) throws IOException {		
 		Double2D.ALLOCATION_COUNT = 0;
 
 		BufferedImage frameImage = null;
 		ImageOutputStream gifOutput = null;
 		GifSequenceWriter gifWriter = null;
 		
-		if (sequence.contains("f")) {
+		if (animationSequence.contains("f")) {
 			File file = new File("animation.gif");
 			if (file.exists()) file.delete();
 			gifOutput = new FileImageOutputStream(file);
@@ -135,8 +137,8 @@ public class VoronoiTest {
 		int frameCount = 0;
 		int relaxAddPoints = 0; 
 		
-		for (int i = 0; i < sequence.length(); i++) {
-			char command = sequence.charAt(i);
+		for (int i = 0; i < animationSequence.length(); i++) {
+			char command = animationSequence.charAt(i);
 
 			boolean relax = false;
 			boolean frameToGif = false;
@@ -187,7 +189,7 @@ public class VoronoiTest {
 		if (verbosity >= 2) System.out.println(Double2D.ALLOCATION_COUNT+" Vec2's allocated");
 		
 		if (verbosity >= 2) printStats(voronoi, canvasSize);
-		if (sequence.contains("f")) {
+		if (animationSequence.contains("f")) {
 			gifWriter.close();
 			gifOutput.close();
 		}

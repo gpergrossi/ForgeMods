@@ -1,4 +1,4 @@
-package com.gpergrossi.test;
+package com.gpergrossi.test.tools;
 
 import java.awt.Color;
 import java.awt.EventQueue;
@@ -62,6 +62,7 @@ public class GUINoiseViewer extends View {
 
 	public GUINoiseViewer(double x, double y, double width, double height) {
 		super (x, y, width, height);
+		DRAG_MOUSE_BUTTON = LEFT_CLICK;
 	}	
 	
 	@Override

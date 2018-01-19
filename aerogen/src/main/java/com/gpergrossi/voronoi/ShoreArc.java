@@ -148,7 +148,7 @@ public class ShoreArc extends ShoreTreeNode {
 
 	@Override
 	public String toString() {
-		return "Arc["+(debugName != null ? "Name='"+debugName+"', " : "")+"ID="+id+", "
+		return "Arc["+(this.debugName != null ? "Name='"+this.debugName+"', " : "")+"ID="+this.ID+", "
 				+ "Site="+site.id+", CircleEvent="+(circleEvent!=null)+"]";
 	}
 

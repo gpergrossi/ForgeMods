@@ -1,4 +1,4 @@
-package com.gpergrossi.test;
+package com.gpergrossi.test.tools;
 
 import java.awt.Color;
 import java.awt.EventQueue;
@@ -13,7 +13,6 @@ import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.util.Random;
 
-import com.gpergrossi.util.data.LinkedBinaryNode;
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 import com.gpergrossi.util.geom.shapes.Ray;
@@ -30,7 +29,7 @@ import com.gpergrossi.voronoi.Voronoi;
 import com.gpergrossi.voronoi.VoronoiBuilder;
 import com.gpergrossi.voronoi.VoronoiWorker;
 
-public class GUITestView extends View {
+public class GUIVoronoiTestView extends View {
 	
 	public static ViewerFrame frame;
 	
@@ -42,7 +41,7 @@ public class GUITestView extends View {
 			public void run() {
 				try {
 					System.setProperty("sun.java2d.opengl", "true");
-					frame = new ViewerFrame(new GUITestView(0, 0, 1024, 768));
+					frame = new ViewerFrame(new GUIVoronoiTestView(0, 0, 1024, 768));
 					frame.setVisible(true);
 				} catch(Exception e) {
 					e.printStackTrace();
@@ -78,7 +77,7 @@ public class GUITestView extends View {
 	
 	Convex poly = new Circle(0, 200, 100).toPolygon(5);
 
-	public GUITestView (double x, double y, double width, double height) {
+	public GUIVoronoiTestView (double x, double y, double width, double height) {
 		super (x, y, width, height);
 		
 		voronoiBuilder = new VoronoiBuilder();
@@ -350,7 +349,6 @@ public class GUITestView extends View {
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_C) {
 			System.out.println("Clearing");
-			LinkedBinaryNode.IDCounter = 0;
 			voronoiBuilder.clearSites();
 			voronoiBuilder.setBounds(new Circle(300, 0, 100).toPolygon(5));
 			voronoiWorker = null;

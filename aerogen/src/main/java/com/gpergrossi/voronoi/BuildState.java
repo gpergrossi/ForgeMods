@@ -16,7 +16,7 @@ import java.util.function.Predicate;
 
 import com.gpergrossi.util.data.OrderedPair;
 import com.gpergrossi.util.data.queue.FixedSizeArrayQueue;
-import com.gpergrossi.util.data.queue.MultiQueue;
+import com.gpergrossi.util.data.queue.PriorityMultiQueue;
 import com.gpergrossi.util.data.storage.GrowingStorage;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.LineSeg;
@@ -38,7 +38,7 @@ public final class BuildState {
 
 	private PriorityQueue<Event> circleQueue;
 	private FixedSizeArrayQueue<Event> siteQueue;
-	private MultiQueue<Event> eventMultiQueue;
+	private PriorityMultiQueue<Event> eventMultiQueue;
 	
 	private int totalCircleEvents = 0;
 	private int invalidCircleEvents = 0;
@@ -62,7 +62,7 @@ public final class BuildState {
 		this.bounds = bounds;
 		this.shoreTree = new ShoreTree();
 
-		this.eventMultiQueue = new MultiQueue<Event>();
+		this.eventMultiQueue = new PriorityMultiQueue<Event>();
 		this.circleQueue = new PriorityQueue<Event>(siteLocations.length*2);
 		eventMultiQueue.addQueue(circleQueue);
 		// event Queue is initialized later because it is computationally expensive
@@ -488,7 +488,7 @@ public final class BuildState {
 			if (arc.isRightChild()) throw new RuntimeException("Unexpected predecessor! "+predecessor + ", should be "+parentBreakpoint);
 			throw new RuntimeException("The parent of any arc should be its successor or its predecessor!");
 		}
-		sibling.disconnect();
+		sibling.removeFromParent();
 		parentBreakpoint.replaceWith(sibling);
 		
 		// Step 3. Update the remaining breakpoint

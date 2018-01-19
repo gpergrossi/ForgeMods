@@ -1,4 +1,4 @@
-package com.gpergrossi.test;
+package com.gpergrossi.test.experiment;
 
 public class DiscordSpamGenerator {
 

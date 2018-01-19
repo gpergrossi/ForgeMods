@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.util.data.Octree;
 import com.gpergrossi.util.data.ranges.Int2DRange;
 import com.gpergrossi.util.data.ranges.Int3DRange;
 import com.gpergrossi.util.geom.vectors.Double3D;
 import com.gpergrossi.util.geom.vectors.Int3D;
 import com.gpergrossi.util.math.func2d.FractalNoise2D;
+import com.gpergrossi.util.spacial.Octree;
 
 public class IslandCaves {
 

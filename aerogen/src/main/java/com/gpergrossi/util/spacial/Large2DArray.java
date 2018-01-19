@@ -1,4 +1,4 @@
-package com.gpergrossi.util.data;
+package com.gpergrossi.util.spacial;
 
 import java.util.HashMap;
 import java.util.Iterator;

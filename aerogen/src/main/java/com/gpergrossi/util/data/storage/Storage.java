@@ -3,14 +3,15 @@ package com.gpergrossi.util.data.storage;
 /**
  * All classes in the "storage" package are based on this interface and the StorageItem interface.
  * 
- * These storage classes place maximum priority on speed and are design to deal with very large
- * numbers of elements. As such, items are stored as contiguously as possible (to increase cache
- * performance at least as far as the array of object references) without using memory copies.
+ * These storage classes place maximum priority on speed (rather than memory) and are designed to deal
+ * with large numbers of dynamically changing elements. Items are stored as contiguously as possible 
+ * without using memory copies. The hope is to increase cache performance when iterating (at least as 
+ * far as the array of object references). I don't know much about the JVM's organization of object
+ * arrays, but I hope that this makes at least some sense. 
  * 
  * Elements stored in these classes must implement the StorageItem interface so that they can be
  * assigned an index. These indices are used to provide constant time lookup and removal from the
- * data structures at the cost of the necessary memory. However the design goals for these data
- * structures were to provide speed as a highest priority.
+ * data structures at the cost of the small amount of necessary memory.
  * 
  * @author Gregary Pergrossi
  */
