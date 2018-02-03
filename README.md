@@ -1,6 +1,3 @@
-# ForgeMods
-My collection of forge mods. Each has its own project directory and branch(es).
-
 # Aerogen
 A floating island generation mod. Originally available at https://dev.bukkit.org/projects/aerogen
 The new version is a complete rewrite and will be open source. It will also use Forge instead of 
