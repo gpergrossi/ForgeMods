@@ -28,7 +28,7 @@ import net.minecraft.world.WorldEntitySpawner;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkPrimer;
-import net.minecraft.world.gen.ChunkGeneratorSettings;
+import net.minecraftforge.common.DimensionManager;
 
 public class AeroGenerator {
 
@@ -58,10 +58,17 @@ public class AeroGenerator {
 	// ========================================
 	
 	private static boolean guiEnabled = false;
+	private static int guiDimension = 0;
 	private static ViewerFrame viewFrame;
 	
 	public static void toggleGUI() {
 		setGUIEnabled(!guiEnabled);
+	}
+	
+	public static void showGUIDimension(int dimension) {
+		guiDimension = dimension;
+		if (guiEnabled) setGUIEnabled(false);
+		setGUIEnabled(true);
 	}
 	
 	public static void guiClosed() {
@@ -71,8 +78,14 @@ public class AeroGenerator {
 	
 	public static void setGUIEnabled(boolean enabled) {
 		guiEnabled = enabled;
-		if (enabled) {
-			viewFrame = new ViewerFrame(new AeroGeneratorView());
+		if (enabled) {			
+			World world = DimensionManager.getWorld(guiDimension);
+			if (world == null) return;
+				
+			AeroGenerator generator = AeroGenerator.getGeneratorForWorld(world);
+			if (generator == null) return;
+			
+			viewFrame = new ViewerFrame(new AeroGeneratorView(generator));
 			viewFrame.setVisible(true);
 		} else {
 			if (viewFrame != null) {
@@ -91,7 +104,6 @@ public class AeroGenerator {
 	
 	private World world;
 	private AeroGeneratorSettings settings;
-	private ChunkGeneratorSettings mcGenSettings;
 	
 	private WorldPrimer worldPrimer;
 	private RegionManager regionManager;
@@ -108,8 +120,8 @@ public class AeroGenerator {
 		this.regionManager = new RegionManager(this);
 				
 		Random random = new Random(settings.seed);
-		seedX = random.nextLong() / 2L * 2L + 1L;
-		seedY = random.nextLong() / 2L * 2L + 1L;
+		seedX = random.nextLong() / 2L * 2L + 1L; // No idea why we're doing x/2*2+1 but it came
+		seedY = random.nextLong() / 2L * 2L + 1L; // from some minecraft code so I copied it. :/
 		
 		this.load();
 	}
@@ -123,21 +135,13 @@ public class AeroGenerator {
 	public World getWorld() {
 		return world;
 	}
-
+	
 	public AeroGeneratorSettings getSettings() {
 		return this.settings;
-	}
-
-	public ChunkGeneratorSettings getMinecraftGeneratorSettings() {
-		return this.mcGenSettings;
 	}
 	
 	public RegionManager getRegionManager() {
 		return regionManager;
-	}
-	
-	public void setChunkGeneratorSettings(ChunkGeneratorSettings mcGenSettings) {
-		this.mcGenSettings = mcGenSettings;
 	}
 
 	public void getBiomeInts(Int2DRange.Integers returnIntsRange) {		
@@ -194,6 +198,9 @@ public class AeroGenerator {
 				return false;
 			}
 			
+			if (!spawnIsland.isInitialized()) spawnIsland.initialize();
+			if (!spawnIsland.isGenerated()) spawnIsland.generate();
+			
 			spawn = spawnIsland.findGoodSpawnLocation();
 			
 			if (spawn == null) {
@@ -231,7 +238,9 @@ public class AeroGenerator {
 				if (!region.getRegionPolygon().contains(block.x(), block.y())) continue;
 				for (IslandCell cell : region.getCells()) {
 					if (!cell.getPolygon().contains(block.x(), block.y())) continue;
-					biomes[index] = cell.getIsland().getBiome().getMinecraftBiomeForSurroundingAir();
+					Island island = cell.getIsland();
+					if (!island.isInitialized()) island.initialize();
+					biomes[index] = island.getBiome().getMinecraftBiomeForSurroundingAir();
 				}
 			}
 		}

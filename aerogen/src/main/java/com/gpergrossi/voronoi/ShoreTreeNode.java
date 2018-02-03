@@ -1,6 +1,6 @@
 package com.gpergrossi.voronoi;
 
-import com.gpergrossi.util.data.btree.AbstractLinkedBinaryNode;
+import com.gpergrossi.util.data.btree.AbstractBinaryNode;
 
 /**
  * This class mostly recasts the LinkedBinaryNode class. I tried to find a way around this by
@@ -9,7 +9,7 @@ import com.gpergrossi.util.data.btree.AbstractLinkedBinaryNode;
  * 
  * @author Gregary Pergrossi
  */
-public abstract class ShoreTreeNode extends AbstractLinkedBinaryNode<ShoreTreeNode> {
+public abstract class ShoreTreeNode extends AbstractBinaryNode<ShoreTreeNode> {
 	
 	public static int IDCounter = 0;
 

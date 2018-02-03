@@ -1,22 +1,27 @@
 package com.gpergrossi.voronoi;
 
 import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
-import com.gpergrossi.util.geom.shapes.Convex;
-import com.gpergrossi.util.geom.vectors.Double2D;
 
 public class VoronoiWorker {
 
+	Voronoi voronoiBackup; // Saved backup in case we need to step backward (I.E. start over)
 	BuildState state;
-
-	Convex bounds;
-	Double2D[] siteArray;
 	
-	public VoronoiWorker(Convex bounds, Double2D[] siteArray) {
-		this.bounds = bounds;
-		this.siteArray = siteArray;
+	public VoronoiWorker(Voronoi voronoi) {
+		this.voronoiBackup = voronoi;
+		this.restart();
 	}
 
+	private void restart() {
+		Voronoi voronoiCopy = new Voronoi(voronoiBackup.bounds);
+		for (Site site : voronoiBackup.sites) {
+			Site siteCopy = new Site(voronoiCopy, site.index, site.point);
+			voronoiCopy.addSite(siteCopy);
+		}
+		
+		this.state = new BuildState(voronoiCopy);
+	}
+	
 	public boolean isDone() {
 		if (state == null) return false;
 		return state.isFinished();
@@ -28,15 +33,12 @@ public class VoronoiWorker {
 	}
 
 	/**
-	 * Do at least ms milliseconds of work. Will often exceed this value.<pre>
-	 * If ms == 0, doWork will return after the smallest amount of progress is made.
-	 * If ms == -1, doWork will not return until finished.</pre>
+	 * Do at least ms milliseconds of work. Will often exceed this value.<br />
+	 * If ms == 0, doWork will return after the smallest possible amount of progress is made.<br />
+	 * If ms == -1, doWork will not return until finished.
 	 * @param ms
 	 */
 	public int doWork(int ms) {
-		if (state == null) {
-			state = new BuildState(bounds, siteArray);
-		}
 		return state.processEvents(ms);
 	}
 
@@ -49,12 +51,6 @@ public class VoronoiWorker {
 	
 	
 	public void doWorkVerbose() {
-		if (state == null) {
-			state = new BuildState(bounds, siteArray);
-			System.out.println("Build Init");
-			System.out.println("\nBuild Step 0 (out of <"+state.getTheoreticalMaxSteps()+")");
-			return;
-		}
 		System.out.println("\nBuild Step "+state.getNumEventsProcessed()+" (out of <"+state.getTheoreticalMaxSteps()+")");
 		state.processNextEvent();
 	}
@@ -64,7 +60,7 @@ public class VoronoiWorker {
 		int step = state.getNumEventsProcessed();
 		if (step == 0) return;
 		
-		state = new BuildState(bounds, siteArray);
+		restart();
 
 		while (state.getNumEventsProcessed() < step-1) {		
 			System.out.println("Rewind: "+state.getNumEventsProcessed()+"/"+(step-1));
@@ -78,15 +74,8 @@ public class VoronoiWorker {
 	}
 	
 	public void debugDraw(Graphics2D g) {
-		if (state == null || !state.isFinished()) {
-			g.draw(bounds.asAWTShape());
-		}
-		if (state == null) {
-			for (Double2D site : siteArray) {
-				Ellipse2D ellipse = new Ellipse2D.Double(site.x()-1, site.y()-1, 2, 2);
-				g.fill(ellipse);
-			}
-			return;
+		if (!state.isFinished()) {
+			g.draw(voronoiBackup.bounds.asAWTShape());
 		}
 		state.drawDebugState(g);
 	}

@@ -92,6 +92,10 @@ public class Int2DRange {
 		return grow(-inset, -inset);
 	}
 	
+	public Int2DRange scale(int scaleUp) {
+		return resize(minX*scaleUp, minY*scaleUp, maxX*scaleUp, maxY*scaleUp);
+	}
+	
 	public Int2DRange intersect(Int2DRange other) {
 		int minX = Math.max(this.minX, other.minX);
 		int minY = Math.max(this.minY, other.minY);

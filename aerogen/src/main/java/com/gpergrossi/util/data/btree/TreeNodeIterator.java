@@ -1,6 +1,7 @@
 package com.gpergrossi.util.data.btree;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 import static com.gpergrossi.util.data.btree.IBinaryNode.getFirstDescendant;
@@ -29,9 +30,10 @@ public class TreeNodeIterator<T extends IBinaryNode<T>> implements Iterator<T> {
 	}
 
 	public T next() {
-		T returnValue = nextElem;
+		if (!hasNext()) throw new NoSuchElementException();
+		T result = nextElem;
 		nextElem = getSuccessor(nextElem);
-		return (T) returnValue;
+		return result;
 	}
 	
 	public static class Traversal<S extends IBinaryNode<S>, T> implements Iterator<T> {

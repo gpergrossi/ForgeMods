@@ -202,7 +202,7 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 			g.setTransform(identity);
 			transform.transform(pos, pos);
 			g.setColor(new Color(255,0,0));
-			g.drawString(breakpoint.getArcLeft().getSite().id+":"+breakpoint.getArcRight().getSite().id, (int) pos.getX(), (int) pos.getY());
+			g.drawString(breakpoint.getArcLeft().getSite().index+":"+breakpoint.getArcRight().getSite().index, (int) pos.getX(), (int) pos.getY());
 			g.setTransform(transform);
 			
 		}
@@ -288,11 +288,11 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 				g.setColor(Color.RED);
 				if (n instanceof ShoreBreakpoint) {
 					ShoreBreakpoint bp = (ShoreBreakpoint) n;
-					g.drawString("  BP:"+bp.getArcLeft().getSite().id+":"+bp.getArcRight().getSite().id, (int) label.getX(), (int) label.getY());
+					g.drawString("  BP:"+bp.getArcLeft().getSite().index+":"+bp.getArcRight().getSite().index, (int) label.getX(), (int) label.getY());
 				}
 				if (n instanceof ShoreArc) {
 					ShoreArc arc = (ShoreArc) n;
-					g.drawString("  Arc:"+arc.getSite().id, (int) label.getX(), (int) label.getY());
+					g.drawString("  Arc:"+arc.getSite().index, (int) label.getX(), (int) label.getY());
 				}
 				g.setTransform(transform);
 				

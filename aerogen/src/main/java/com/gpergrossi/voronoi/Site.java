@@ -1,7 +1,9 @@
 package com.gpergrossi.voronoi;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
@@ -9,10 +11,16 @@ import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.Polygon;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
-public class Site implements Comparable<Site> {
+public final class Site implements Comparable<Site> {
 
+	private static final IntFunction<Double2D[]> VEC2_ARRAY_ALLOCATOR = new IntFunction<Double2D[]>() {
+		public Double2D[] apply(int value) {
+			return new Double2D[value];
+		}
+	};
+	
 	public final Voronoi voronoi;
-	public int id;
+	public final int index;
 	public final Double2D point;
 	
 	public Object data;
@@ -27,9 +35,9 @@ public class Site implements Comparable<Site> {
 	protected boolean isFinished;
 	protected boolean isBoundary;
 
-	protected Site(Voronoi voronoi, int id, Double2D sitePoint) {
+	protected Site(Voronoi voronoi, int index, Double2D sitePoint) {
 		this.voronoi = voronoi;
-		this.id = id;
+		this.index = index;
 		this.point = sitePoint;
 		this.edges = new Edge[8];
 		this.vertices = new Vertex[8];
@@ -77,15 +85,20 @@ public class Site implements Comparable<Site> {
 		};
 	}
 	
-	private static final IntFunction<Double2D[]> Vec2ArrayAllocator = new IntFunction<Double2D[]>() {
-		public Double2D[] apply(int value) {
-			return new Double2D[value];
+
+
+	public List<Site> getNeighbors() {
+		List<Site> neighbors = new ArrayList<>();
+		for (Edge edge : getEdges()) {
+			Site neighbor = edge.getNeighbor(this);
+			if (neighbor != null) neighbors.add(neighbor);
 		}
-	};
+		return neighbors;
+	}
 	
 	public Convex getPolygon() {
 		if (polygon == null) {
-			Double2D[] verts = Arrays.stream(vertices, 0, numVertices).map(vert -> vert.getPosition()).toArray(Vec2ArrayAllocator);
+			Double2D[] verts = Arrays.stream(vertices, 0, numVertices).map(vert -> vert.getPosition()).toArray(VEC2_ARRAY_ALLOCATOR);
 			int count = Polygon.removeDuplicates(verts);
 			Double2D[] copy = Polygon.copyArray(verts, count);
 			Polygon.makeImmutable(copy);
@@ -116,35 +129,35 @@ public class Site implements Comparable<Site> {
 		this.isFinished = true;
 	}
 	
-	boolean hasVertex(Vertex vertex) {
+	protected boolean hasVertex(Vertex vertex) {
 		for (int i = 0; i < numVertices; i++) {
 			if (vertices[i] == vertex) return true;
 		}
 		return false;
 	}
 
-	void addVertex(Vertex vertex) {
+	protected void addVertex(Vertex vertex) {
 		if (numVertices >= vertices.length) this.vertices = Arrays.copyOf(vertices, vertices.length*2);
 		vertices[numVertices++] = vertex;
 	}
-
-	boolean hasEdge(Edge edge) {
+	
+	protected boolean hasEdge(Edge edge) {
 		for (int i = 0; i < numEdges; i++) {
 			if (edges[i] == edge) return true;
 		}
 		return false;
 	}
 	
-	void addEdge(Edge edge) {
+	protected void addEdge(Edge edge) {
 		if (numEdges >= edges.length) this.edges = Arrays.copyOf(edges, edges.length*2);
 		edges[numEdges++] = edge;
 	}
 
-	void sortVertices(double[] vertexValues) {
+	protected void sortVertices(double[] vertexValues) {
 		sort(vertices, 0, numVertices, vertexValues);
 	}
 
-	void sortEdges(double[] edgeValues) {
+	protected void sortEdges(double[] edgeValues) {
 		sort(edges, 0, numEdges, edgeValues);
 	}
 
@@ -193,11 +206,11 @@ public class Site implements Comparable<Site> {
 	
 	@Override
 	public String toString() {
-		return "Site[ID="+id+", X="+point.x()+", Y="+point.y()+"]";
+		return "Site[ID="+index+", X="+point.x()+", Y="+point.y()+"]";
 	}
 
 	public int getID() {
-		return id;
+		return index;
 	}
 
 }

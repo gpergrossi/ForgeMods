@@ -6,68 +6,84 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
-import com.gpergrossi.util.data.StableArrayList;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
 public class VoronoiBuilder {
 
-	private StableArrayList<Double2D> sites;
+	private int nextSiteIndex = 0;
+	private Map<Integer, Double2D> sites;
 	private double padding = 5.0;
 	
 	private Convex bounds = null;
 	private Rect defaultBounds = null;
-	private boolean userBounds = false;
+	private boolean enforceBounds = false;
 	
 	public VoronoiBuilder() {
 		this(40);
 	}
 	
 	public VoronoiBuilder(int initialCapacity) {
-		sites = new StableArrayList<>(t -> new Double2D[t], initialCapacity);
+		sites = new TreeMap<>();
+	}
+	
+	private int internalAddSite(Double2D point) {
+		int index = nextSiteIndex;
+		sites.put(nextSiteIndex++, point);
+		return index;
 	}
 
 	public int addSite(Double2D point) {
-		if (userBounds && !bounds.contains(point.x(), point.y())) {
+		if (enforceBounds && !bounds.contains(point.x(), point.y())) {
 			System.err.println("site rejected by bounds: "+point+", "+bounds);
 			return -1;
-		}
-		int index = sites.put(point);
+		}		
 		boundsAddPoint(point);
-		return index;
+		return internalAddSite(point);
 	}
 	
-	public int addSiteSafe(Double2D point) {
-		if (userBounds && !bounds.contains(point.x(), point.y())) {
+
+	public int addSiteSafe(Double2D point, double minDistance) {
+		if (enforceBounds && !bounds.contains(point.x(), point.y())) {
 			return -1;
 		}
-		for (Double2D s : sites) {
-			if (point.distanceTo(s) < 1) return -1;
+		for (Double2D s : sites.values()) {
+			if (point.distanceTo(s) < minDistance) return -1;
 		}
-		int index = sites.put(point);
 		boundsAddPoint(point);
-		return index;
+		return internalAddSite(point);
 	}
 
-	public void removeSite(Double2D site) {
-		sites.remove(site);
+	public int findSiteIndex(Double2D site) {
+		Iterator<Entry<Integer, Double2D>> iter = sites.entrySet().iterator();
+		while (iter.hasNext()) {
+			Entry<Integer, Double2D> entry = iter.next();
+			return entry.getKey();
+		}
+		return -1;
 	}
 	
 	public void removeSite(int siteID) {
 		sites.remove(siteID);
+		if (sites.size() == 0) nextSiteIndex = 0;
 	}
 
 	public void clearSites(boolean keepBounds) {
 		sites.clear();
+		nextSiteIndex = 0;
 		if (!keepBounds) {
 			bounds = null;
 			defaultBounds = null;
-			userBounds = false;
+			enforceBounds = false;
 		} else {
-			userBounds = true;
+			enforceBounds = true;
 		}
 	}
 	
@@ -75,44 +91,46 @@ public class VoronoiBuilder {
 		clearSites(false);
 	}
 	
-	public void shrink() {
-		sites.shrink();
-	}
-	
 	public VoronoiWorker getBuildWorker() {
 		if (sites.size() == 0) throw new RuntimeException("Cannot construct diagram with no sites.");
-		return new VoronoiWorker(getBounds(), getSiteArray());
-	}
-	
-	private Double2D[] getSiteArray() {
-		Double2D[] siteArray = new Double2D[sites.size()];
-		siteArray = sites.toArray(siteArray);
-		return siteArray;
+		Voronoi newDiagram = new Voronoi(bounds);
+		for (Entry<Integer, Double2D> entry : sites.entrySet()) {
+			Site site = new Site(newDiagram, entry.getKey(), entry.getValue());
+			newDiagram.addSite(site);
+		}
+		return new VoronoiWorker(newDiagram);
 	}
 	
 	/**
-	 * Sets the bounds of this diagram
+	 * Sets the bounds of this diagram.
 	 * All current and future points outside these bounds will be removed.
 	 * @param bounds
 	 */
 	public void setBounds(Convex bounds) {
 		this.bounds = bounds;
-		this.userBounds = true;
-		for (Double2D v : sites) {
-			if (!bounds.contains(v.x(), v.y())) {
-				removeSite(v);
-			}
+		this.enforceBounds = true;
+		
+		final Iterator<Entry<Integer, Double2D>> iter = sites.entrySet().iterator();
+		while (iter.hasNext()) {
+			final Entry<Integer, Double2D> entry = iter.next();
+			final Double2D point = entry.getValue();
+			if (!bounds.contains(point.x(), point.y())) iter.remove();
 		}
+		if (sites.size() == 0) nextSiteIndex = 0;
+	}
+	
+	public void setBounds(Rect bounds) {
+		this.setBounds(bounds.toPolygon(4));
 	}
 	
 	public Convex getBounds() {
-		if (userBounds) return bounds;
+		if (enforceBounds) return bounds;
 		else return defaultBounds.toPolygon(4);
 	}
 	
 	private void boundsAddPoint(Double2D point) {
 		Rect pointRect = new Rect(point.x(), point.y(), 0, 0);
-		if (!userBounds) pointRect.outset(padding);
+		if (!enforceBounds) pointRect.outset(padding);
 		if (defaultBounds == null) {
 			defaultBounds = pointRect;
 		} else {
@@ -120,8 +138,8 @@ public class VoronoiBuilder {
 		}
 	}
 
-	public List<Double2D> getSites() {
-		return sites;
+	public Collection<Double2D> getSites() {
+		return new ArrayList<Double2D>(sites.values());
 	}
 
 	public Voronoi build() {
@@ -137,16 +155,13 @@ public class VoronoiBuilder {
 		FileOutputStream fos = new FileOutputStream("saved");
 		DataOutputStream dos = new DataOutputStream(fos);
 		
-		List<Double2D> packed = new ArrayList<>();
-		sites.iterator().forEachRemaining(e -> packed.add(e));
-		
-		dos.writeInt(packed.size());
-		for (Double2D site : packed) {
+		dos.writeInt(sites.size());
+		for (Double2D site : sites.values()) {
 			dos.writeDouble(site.x());
 			dos.writeDouble(site.y());
 		}
 
-		System.out.println("Saved "+packed.size()+" sites");
+		System.out.println("Saved "+sites.size()+" sites");
 		dos.close();
 	}
 	

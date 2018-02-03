@@ -164,7 +164,7 @@ public class VoronoiAnimationGenerator {
 					while (true) {
 						double x = center + random.nextDouble()*2.0*range - range;
 						double y = center + random.nextDouble()*2.0*range - range;
-						int index = builder.addSiteSafe(new Double2D(x, y));
+						int index = builder.addSiteSafe(new Double2D(x, y), 1);
 						if (index != -1) break;
 						range += 1;
 					}

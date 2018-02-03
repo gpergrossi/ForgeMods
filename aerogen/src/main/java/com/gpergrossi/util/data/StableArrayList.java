@@ -175,6 +175,32 @@ public class StableArrayList<T> implements List<T> {
 		};
 	}
 
+	public Iterator<Tuple2<Integer, T>> iteratorWithIndices() {
+		return new Iterator<Tuple2<Integer, T>>() {
+			int cursorIndex = getFirstIndex();
+			
+			public boolean hasNext() {
+				if (cursorIndex > lastIndexUsed) return false;
+				return true;
+			}
+			
+			public Tuple2<Integer, T> next() {
+				int index = cursorIndex;
+				T elem = elements[cursorIndex];
+				cursorIndex = getNextIndex(cursorIndex);
+				return new Tuple2<>(index, elem);
+			}
+			
+			public void remove() {
+				StableArrayList.this.remove(cursorIndex);
+			}
+			
+			public void forEachRemaining(Consumer<? super Tuple2<Integer, T>> action) {
+				while (hasNext()) action.accept(next());
+			}
+		};
+	}
+	
 	@Override
 	public Object[] toArray() {
 		T[] out = arrayAllocator.apply(size());
@@ -189,7 +215,7 @@ public class StableArrayList<T> implements List<T> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <K> K[] toArray(K[] a) {
-		if (a == null || a.length < size()) {
+		if (a.length < size()) {
 			a = Arrays.copyOf(a, size());
 		}
 		int i = 0;

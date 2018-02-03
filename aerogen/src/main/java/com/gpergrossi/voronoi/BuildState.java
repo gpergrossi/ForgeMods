@@ -10,6 +10,7 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.function.Predicate;
@@ -32,8 +33,6 @@ import com.gpergrossi.voronoi.Event.Type;
  */
 public final class BuildState {
 
-	private static final Predicate<ShoreBreakpoint> NEW_BREAKPOINTS = (bp -> bp != null && bp.edge == null);
-
 	private Voronoi voronoi;
 
 	private PriorityQueue<Event> circleQueue;
@@ -52,27 +51,19 @@ public final class BuildState {
 	private ShoreTree shoreTree;
 	private GrowingStorage<Edge> edges;
 	private GrowingStorage<Vertex> vertices;
-	private Site[] sites;
+	private List<Site> sites;
 	
 	private boolean initialized;
 	private boolean finishing;
 	private boolean finished;
 	
-	public BuildState (Convex bounds, Double2D[] siteLocations) {
-		this.bounds = bounds;
-		this.shoreTree = new ShoreTree();
+	public BuildState(Voronoi voronoi) {
+		this.voronoi = voronoi;
+		this.bounds = voronoi.getBounds();
+		this.sites = voronoi.getSites();
 
-		this.eventMultiQueue = new PriorityMultiQueue<Event>();
-		this.circleQueue = new PriorityQueue<Event>(siteLocations.length*2);
-		eventMultiQueue.addQueue(circleQueue);
-		// event Queue is initialized later because it is computationally expensive
-		// see the initialize() method, called by processNextEvent()
-		
-		this.sites = createSites(siteLocations);
-
-		this.voronoi = new Voronoi(bounds);
-		this.edges = new GrowingStorage<>(t -> new Edge[t], sites.length*5); // Initial capacity based on experiments
-		this.vertices = new GrowingStorage<>(t -> new Vertex[t], sites.length*5); // Initial capacity based on experiments
+		// Most construction is done in the initialize() method
+		// which is called the first time an event is processed
 		
 		this.finished = false;
 		this.finishing = false;
@@ -151,7 +142,7 @@ public final class BuildState {
 	}
 
 	public int getTheoreticalMaxSteps() {
-		int numSites = sites.length;
+		int numSites = sites.size();
 		int maxPossibleCircleEvents = numSites*2 - 5;
 		if (numSites <= 2) maxPossibleCircleEvents = 0;
 		return numSites + maxPossibleCircleEvents;
@@ -251,9 +242,9 @@ public final class BuildState {
 				g.setColor(new Color(0,255,0));
 				Double2D center = edge.getCenter();
 				int firstID = -1;
-				if (edge.sites.first != null) firstID = edge.sites.first.id;
+				if (edge.sites.first != null) firstID = edge.sites.first.index;
 				int secondID = -1;
-				if (edge.sites.second != null) secondID = edge.sites.second.id;
+				if (edge.sites.second != null) secondID = edge.sites.second.index;
 				
 				g.setTransform(identity);
 				Point2D pt = new Point2D.Double(center.x(), center.y());
@@ -276,7 +267,7 @@ public final class BuildState {
 				g.setTransform(identity);
 				Point2D pt = new Point2D.Double(s.point.x(), s.point.y());
 				transform.transform(pt, pt);
-				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
+				g.drawString(""+s.index, (int) pt.getX(), (int) pt.getY());
 				g.setTransform(transform);
 			}
 		} else {
@@ -291,9 +282,9 @@ public final class BuildState {
 				
 				Double2D center = edge.getCenter();
 				int firstID = -1;
-				if (edge.sites.first != null) firstID = edge.sites.first.id;
+				if (edge.sites.first != null) firstID = edge.sites.first.index;
 				int secondID = -1;
-				if (edge.sites.second != null) secondID = edge.sites.second.id;
+				if (edge.sites.second != null) secondID = edge.sites.second.index;
 				
 				g.setTransform(identity);
 				Point2D pt = new Point2D.Double(center.x(), center.y());
@@ -346,7 +337,7 @@ public final class BuildState {
 				Point2D pt = new Point2D.Double(s.point.x(), s.point.y());
 				transform.transform(pt, pt);
 				g.setColor(new Color(0,255,255));
-				g.drawString(""+s.id, (int) pt.getX(), (int) pt.getY());
+				g.drawString(""+s.index, (int) pt.getX(), (int) pt.getY());
 				g.drawString("("+s.numVertices+")", (int) pt.getX(), (int) pt.getY()+10);
 				g.setTransform(transform);
 			}
@@ -379,23 +370,16 @@ public final class BuildState {
 		// Advance sweep line
 		sweeplineY = e.y;
 	}
-
-	private Site[] createSites(Double2D[] siteLocations) {
-		Site[] sites = new Site[siteLocations.length];
-		
-		// Create Site objects and assign them an ID corresponding to their index in the siteLocations array
-		for (int i = 0; i < siteLocations.length; i++) {
-			sites[i] = new Site(this.voronoi, i, siteLocations[i]);
-		}
-		
-		return sites;
-	}
 	
 	private void initialize() {
+		this.shoreTree = new ShoreTree();
+		this.edges = new GrowingStorage<>(t -> new Edge[t], sites.size()*5); // Initial capacity based on experiments
+		this.vertices = new GrowingStorage<>(t -> new Vertex[t], sites.size()*5); // Initial capacity based on experiments
+		
 		// Create site events
-		Event[] siteEvents = new Event[sites.length];
-		for (int i = 0; i < sites.length; i++) {
-			siteEvents[i] = Event.createSiteEvent(sites[i]);
+		Event[] siteEvents = new Event[sites.size()];
+		for (int i = 0; i < sites.size(); i++) {
+			siteEvents[i] = Event.createSiteEvent(sites.get(i));
 		}
 		
 		// Sort the site events array, could cause an exception because identical sites are not allowed
@@ -406,7 +390,10 @@ public final class BuildState {
 		}
 		
 		// Create a queue consuming the siteEvents array
+		this.circleQueue = new PriorityQueue<Event>(sites.size()*2);
 		this.siteQueue = FixedSizeArrayQueue.consume(siteEvents);
+		this.eventMultiQueue = new PriorityMultiQueue<Event>();
+		eventMultiQueue.addQueue(circleQueue);
 		eventMultiQueue.addQueue(siteQueue);
 		
 		// Initialize shore tree
@@ -417,6 +404,8 @@ public final class BuildState {
 		
 		initialized = true;
 	}
+	
+	private static final Predicate<ShoreBreakpoint> NEW_BREAKPOINTS = (bp -> bp != null && bp.edge == null);
 
 	private void processSiteEvent(Site newSite) {
 		
@@ -848,9 +837,9 @@ public final class BuildState {
 	}
 
 	private boolean finishComplete() {
-		this.voronoi.setMutableSites(this.sites);
-		this.voronoi.setMutableVertices(this.vertices);
-		this.voronoi.setMutableEdges(this.edges);
+		this.voronoi.finalizeSites();
+		this.voronoi.setVertices(this.vertices);
+		this.voronoi.setEdges(this.edges);
 		finished = true;
 		
 		double p = ((double) invalidCircleEvents) / ((double) totalCircleEvents) * 100.0;

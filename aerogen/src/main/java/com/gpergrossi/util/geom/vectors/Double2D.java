@@ -5,6 +5,7 @@ import java.awt.geom.Point2D;
 public class Double2D implements IVector2D<Double2D> {
 
 	public static final double EPSILON = 0.001;
+	public static final double EPSILON2 = Double2D.EPSILON * Double2D.EPSILON;
 	
 	public static long ALLOCATION_COUNT;
 	
@@ -16,6 +17,12 @@ public class Double2D implements IVector2D<Double2D> {
 		double dx = x1-x0;
 		double dy = y1-y0;
 		return Math.sqrt(dx*dx + dy*dy);
+	}
+	
+	public static double distanceSquared(double x0, double y0, double x1, double y1) {
+		double dx = x1-x0;
+		double dy = y1-y0;
+		return dx*dx + dy*dy;
 	}
 	
 	public static double angle(double x0, double y0, double x1, double y1) {
@@ -33,7 +40,7 @@ public class Double2D implements IVector2D<Double2D> {
 	}
 	
 	public static boolean equals(double x0, double y0, double x1, double y1) {
-		return (distance(x0, y0, x1, y1) < EPSILON);
+		return (distanceSquared(x0, y0, x1, y1) < EPSILON2);
 	}
 	
 	
@@ -158,7 +165,8 @@ public class Double2D implements IVector2D<Double2D> {
 		int dx = (int) Math.signum(this.x - other.x);
 		if (dx != 0) return dx;
 		
-		return Integer.compare(this.hashCode(), other.hashCode());
+		return 0;
+		//return Integer.compare(this.hashCode(), other.hashCode());
 	}
 
 	@Override

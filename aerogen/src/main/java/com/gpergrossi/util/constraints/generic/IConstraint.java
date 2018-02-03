@@ -1,13 +1,13 @@
-package com.gpergrossi.util.data.constraints;
+package com.gpergrossi.util.constraints.generic;
 
 /**
- * <i>All classes that extend AbstractConstraint should be immutable!</i><br /><br />
+ * <i>All classes that implement IConstraint should be immutable!</i><br /><br />
  * 
- * A {@code Constraint} describes the relationship between two variables. The operators &lt;, &gt;, and =
+ * An {@code IConstraint} describes the relationship between two variables. The operators &lt;, &gt;, and =
  * are examples of constraints. They describe a required relationship between their left-hand argument
- * and their right-hand argument in order for them to return true. <br /><br />
+ * and their right-hand argument. <br /><br />
  * 
- * Constraints must also be operable via the {@link #and}, {@link #or}, and {@link #chain} methods, which are 
+ * IConstraints must be operable via the {@link #and}, {@link #or}, and {@link #chain} methods, which are 
  * described in detail in their method-level javadoc comments. The methods in this class provide
  * ways of reasoning about constraints that are necessary for the constraint solver.<br /><br />
  * 
@@ -27,46 +27,16 @@ package com.gpergrossi.util.data.constraints;
  * constraint is necessary because it raises a contradiction, for example, when 'A < A' is asserted.<br />
  * 
  * NEVER is the last mandatory constraint. It is used by the constraint solver to mark any contradicting
- * assertions and therefore to detect impossible asserts being made. If 'A < B' is already stored in the
+ * assertions and therefore to detect impossible assertions being made. If 'A < B' is already stored in the
  * constraint solver and 'B < A' is asserted, the solver would AND these two assertions together and get
  * the NEVER constraint, indicating that the new assertion, 'B < A', is invalid.
  *
- * @param <Subclass> the constraint subclass type
- * @param <Type> the value type
+ * @param <Subclass> the type of the lowest-level IConstraint subclass
+ * @param <Type> the value type for the constraint (e.g. Integer)
  */
-public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Subclass, Type>, Type> {
+public interface IConstraint<Subclass extends IConstraint<Subclass, Type>, Type> {
 	
-	/**
-	 * An {@code AbstractConstraintCategory} groups {@code AbstractConstraint}s that
-	 * are safe to operate with each other. Constraints in a Category will have well-defined
-	 * {@link AbstractConstrain#and and}, {@link AbstractConstrain#or or}, and {@link AbstractConstrain#chain chain}
-	 * results with other Constraints from the same Category.<br /><br />
-	 * 
-	 * ConstraintCategory makes the primitive Constraints, ALWAYS, EQUAL, and NEVER, publicly available.<br /><br />
-	 * 
-	 * All constraints must be constructed with a ConstraintCategory as their parent.
-	 * For most basic implementations of ConstraintCategory, it is recommended to use the Singleton pattern
-	 * and automatically provide the Singleton instance to Constraints being constructed in that Category.<br />
-	 * ConstraintCategories are then used in the construction of ConstraintSolvers.<br />
-	 *
-	 * @param <S> the constraint subclass type
-	 * @param <T> the value type
-	 */
-	public static abstract class Category<Subclass extends AbstractConstraint<Subclass, ?>> {
-		public abstract Subclass getAlwaysConstraint();
-		public abstract Subclass getEqualConstraint();
-		public abstract Subclass getNeverConstraint();
-	}
-
-	protected final Category<Subclass> category;
-	
-	public AbstractConstraint(Category<Subclass> category) {
-		this.category = category;
-	}
-	
-	public Category<Subclass> getCategory() {
-		return category;
-	}
+	public IConstraintClass<Subclass> getConstraintClass();
 	
 	/**
 	 * Returns the constraint representing the reverse
@@ -74,36 +44,12 @@ public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Sub
 	 * is the relation from A to B, returns the relation from B
 	 * to A. (E.G. LESS.reverse() == GREATER)
 	 */
-	public abstract Subclass reverse();
-
-	/**
-	 * Returns the constraint representing the compliment (inverse)
-	 * of this constraint's relationship. <br />
-	 * For any constraint, one can imagine a set of values 'B' wherein the constraint returns true for a constant value 'A'. <br />
-	 * The compliment constraint would give a set of values 'B-prime' that is the compliment of the normal set 'B'. 
-	 * That is, all values in 'B-prime' fail the constraint for a given constant value 'A'. <br />
-	 * An example of this would be LESS.compliment() returns GREATER_OR_EQUAL.
-	 */
-	public abstract Subclass compliment();
+	public Subclass reverse();
 	
 	/**
 	 * Returns the constraint representing this constraint AND {@code other}.
 	 */
-	public abstract Subclass and(Subclass other);
-	
-	/**
-	 * Returns the constraint representing this constraint OR {@code other}
-	 */
-	public abstract Subclass or(Subclass other);
-	
-	/**
-	 * Returns the implied constraint from A to C, treating this constraint as the relation from A to B
-	 * and using the parameter {@code bc} as the relation from B to C.<br />
-	 * An example of this would be LESS.chain(EQUAL) returns LESS (E.G. A &lt; B and B = C implies A &lt; C)
-	 * @param bc - relation from B to C. For example {@code bc} could be 'LESS', meaning B is LESS than C.
-	 * @return the implied relation from A to C, or null if there is no implied relationship
-	 */
-	public abstract Subclass chain(Subclass bc);
+	public Subclass and(Subclass other);
 
 	/**
 	 * Returns true if there is any possible pair of values that might satisfy this
@@ -117,7 +63,7 @@ public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Sub
 	 * all Constraint classes.</b>
 	 * @return
 	 */
-	public abstract boolean isPossible();
+	public boolean isPossible();
 	
 	/**
 	 * Returns true if there is no possible pair of values for which this constraint
@@ -131,7 +77,7 @@ public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Sub
 	 * all Constraint classes.</b>
 	 * @return
 	 */
-	public abstract boolean isGuaranteed();
+	public boolean isGuaranteed();
 	
 	/**
 	 * Return true if the constraint allows the given values {@code valueA} and {@code valueB}.
@@ -139,7 +85,7 @@ public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Sub
 	 * @param valueB the value on the 'right' of the constraint operation
 	 * @return true if {@code valueA} &lt;constraint&gt; {@code valueB}. (E.G. A < B)
 	 */
-	public abstract boolean check(Type valueA, Type valueB);
+	public boolean check(Type a, Type b);
 	
 	/**
 	 * Return true if this constraint and {@code other} represent the same concept.
@@ -151,7 +97,7 @@ public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Sub
 	 * @param other
 	 * @return
 	 */
-	public abstract boolean equals(Subclass other);
+	public boolean equals(Subclass other);
 	
 	/**
 	 * Return a short inline string to be placed between variables when printing this constraint.
@@ -160,6 +106,6 @@ public abstract class AbstractConstraint<Subclass extends AbstractConstraint<Sub
 	 * "A <b>+5<</b> B"
 	 * @return
 	 */
-	public abstract String inline();
+	public String inline();
 	
 }

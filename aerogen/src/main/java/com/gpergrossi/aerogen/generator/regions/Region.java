@@ -11,54 +11,51 @@ import com.gpergrossi.aerogen.definitions.regions.RegionBiomes;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
+import com.gpergrossi.util.constraints.integer.IntegerConstraint;
+import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.voronoi.Edge;
-import com.gpergrossi.voronoi.InfiniteCell;
 import com.gpergrossi.voronoi.Site;
 import com.gpergrossi.voronoi.Voronoi;
 import com.gpergrossi.voronoi.VoronoiBuilder;
+import com.gpergrossi.voronoi.infinite.InfiniteCell;
 
 public class Region {
 	
-	private RegionManager manager;
-	private InfiniteCell regionCell;
+	// Region details
+	private final RegionManager manager;
+	private final InfiniteCell regionCell;
+	
 	private Random random;
 	private RegionBiome biome;
 
-	// Loaded regions are part of a LinkedList
-	Region loadedRegionsPrev;
-	Region loadedRegionsNext;
-	
 	List<Island> islands;
 	List<IslandCell> islandCells;
-	
-	int maxHeightLayers = 4;
-	int numHeightLayers;
 	double averageCellRadius;
 	
+	ConstraintMatrix<IntegerConstraint> islandAltitudeConstraints;
 	List<IRegionFeature> features;
+	
+	private int minIslandAltitude = 32;
+	private int maxIslandAltitude = 128;
 	
 	public Region(RegionManager manager, InfiniteCell boundaryCell) {
 		this.manager = manager;
-		
+				
 		this.regionCell = boundaryCell;
 		if (boundaryCell != null) {
 			boundaryCell.reserve();	
 			this.random = new Random(boundaryCell.getSeed());
 			init();
 		}
-		
-		// Region not a part of the linked list yet
-		this.loadedRegionsPrev = this;
-		this.loadedRegionsNext = this;
 	}
 
 	public void release() {
 		regionCell.release();
 	}
 	
-	public void init() {
+	public void init() {		
 		if (regionCell.cellX == 0 && regionCell.cellY == 0) {
 			// Region (0, 0) is the spawn region and is always of type START_AREA
 			biome = RegionBiomes.START_AREA;
@@ -70,9 +67,11 @@ public class Region {
 		
 		this.averageCellRadius = Math.sqrt(manager.getCellSize())/2.0;
 		this.islandCells = createIslands(subCells);
-		
+		this.islandCells = Collections.unmodifiableList(islandCells);
+		this.islands = Collections.unmodifiableList(islands);
+
+		initIslandAltitudeConstraints();
 		createFeatures();
-		
 		resolveIslandAltitudes();
 	}
 
@@ -90,7 +89,7 @@ public class Region {
 		builder.setBounds(bounds.toPolygon(4));
 		for (int i = 0; i < num; i++) {
 			int success = -1;
-			while (success == -1) success = builder.addSiteSafe(bounds.getBounds().getRandomPoint(random));
+			while (success == -1) success = builder.addSiteSafe(bounds.getBounds().getRandomPoint(random), 1);
 		}
 		Voronoi voronoi = builder.build();
 		for (int i = 0; i < relax; i++) voronoi = voronoi.relax(builder);
@@ -207,8 +206,6 @@ public class Region {
 			}
 			island.finishGrant();
 			islands.add(island);
-
-			islands = Collections.unmodifiableList(islands);
 		}
 		
 //		Iterator<Island> iter = islands.iterator();
@@ -235,11 +232,46 @@ public class Region {
 		}
 	}
 	
+	private void initIslandAltitudeConstraints() {
+		islandAltitudeConstraints = new ConstraintMatrix<>(IntegerConstraint.CLASS, islands.size()+1);
+		IntegerConstraint globalHeightConstraint = IntegerConstraint.greaterOrEqual(minIslandAltitude);
+		globalHeightConstraint = globalHeightConstraint.and(IntegerConstraint.lessOrEqual(maxIslandAltitude));
+		for (int i = 0; i < islands.size(); i++) {
+			islandAltitudeConstraints.andConstraint(i+1, globalHeightConstraint, 0);
+		}
+	}
+	
+	/**
+	 * Attempts to add the given altitude constraint to this region's island altitude constraints.
+	 * If the constraint is impossible to satisfy, this method will return false.
+	 * @param islandA - island left of constraint
+	 * @param constraint - an integer constraint on island altitude. (e.g. IntegerConstraint.LESS)
+	 * @param islandB - island right of the constraint
+	 * @return true if the constraint is possible, false if it creates a contradiction.<br/>
+	 * 		   (e.g. adding C < A to a system: A < B, B < C)
+	 */
+	public boolean constrainIslandAltitudes(Island islandA, IntegerConstraint constraint, Island islandB) {
+		if (islandA == null || islandB == null) throw new IllegalArgumentException("Islands must be non-null");
+		if (islandA.getRegion() != this || islandB.getRegion() != this) throw new IllegalArgumentException("Islands must belong to this region!");
+		
+		final int indexA = islandA.regionIndex+1;
+		final int indexB = islandB.regionIndex+1;
+		
+		return islandAltitudeConstraints.andConstraint(indexA, constraint, indexB);
+	}
+	
 	/**
 	 * Gives each island an altitude integer from 0 to numHeightLayers-1
 	 */
 	private void resolveIslandAltitudes() {
-		// TODO
+		final AltitudeSolver solver = new AltitudeSolver(this, random);
+		islandAltitudeConstraints = solver.solve(islandAltitudeConstraints);
+		for (int i = 0; i < islands.size(); i++) {
+			final Island island = islands.get(i);
+			final IntegerConstraint relative = islandAltitudeConstraints.getMatrixEntry(i+1, 0).getConstraint();
+			final int altitude = relative.valueFor(0);
+			island.setAltitude(altitude);
+		}
 	}
 
 	private double calculateSharedPerimeterLength(Site siteInQuestion, List<Site> otherSites) {
@@ -313,26 +345,8 @@ public class Region {
 		return features;
 	}
 
-	public int numHeightLayers() {
-		return numHeightLayers;
-	}
-
 	public IslandBiome getIslandBiome(Island island, Random random) {
 		return biome.getRandomIslandBiome(random);
-	}
-
-	public int getAltitude(Island island, Random random) {
-		int minHeight = this.biome.getIslandMinAltitude();
-		int maxHeight = this.biome.getIslandMaxAltitude();
-		
-		if (island.getAltitudeLayer() != Island.LAYER_UNASSIGNED) {
-			int heightRange = maxHeight - minHeight + 1;
-			double heightPerLayer = heightRange / numHeightLayers();
-			minHeight = (int) (minHeight + island.getAltitudeLayer() * heightPerLayer);
-			maxHeight = (int) (minHeight + island.getAltitudeLayer() * heightPerLayer + heightPerLayer);
-		}
-		
-		return this.biome.getRandomIslandAltitude(random, minHeight, maxHeight);
 	}
 	
 }

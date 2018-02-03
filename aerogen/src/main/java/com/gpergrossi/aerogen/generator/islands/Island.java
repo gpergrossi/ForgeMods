@@ -30,17 +30,17 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.ChunkPrimer;
 
 public class Island {
-	
-	public static final int LAYER_UNASSIGNED = Integer.MIN_VALUE;
 
 	public IslandDebugRender debugRender;
 	
-	Region region;
+	public final Region region;
 	public final int regionIndex;
-	long seed;
-	Random random;
-	List<IslandCell> cells;
-	Map<String, Object> extensions;
+	public final long seed;
+	public final Random random;
+
+	private int altitude;
+	private List<IslandCell> cells;
+	private Map<String, Object> extensions;
 	
 	boolean grantFinished = false;	// finishGrant() has been called
 	boolean initialized = false;	// Island shape creation
@@ -49,11 +49,7 @@ public class Island {
 	IslandBiome biome;
 	IslandShape shape;
 	IslandCaves caves;
-	
-	int altitude;
 	IslandHeightmap heightmap;
-
-	int altitudeLayer;
 	List<ITerrainFeature> terrainFeatures;
 	
 	public Island(Region region, int regionIsleIndex, long seed) {
@@ -62,7 +58,6 @@ public class Island {
 		this.seed = seed;
 		this.random = new Random(seed);
 		this.cells = new ArrayList<>();
-		this.altitudeLayer = LAYER_UNASSIGNED;
 		this.extensions = new HashMap<>();
 	}
 	
@@ -72,6 +67,10 @@ public class Island {
 		cells.add(cell);
 	}
 
+	public void setAltitude(int altitude) {
+		this.altitude = altitude;
+	}
+	
 	public void finishGrant() {
 		this.cells = Collections.unmodifiableList(cells);
 		this.shape = new IslandShape(this, cells);
@@ -93,7 +92,6 @@ public class Island {
 		if (!initialized) throw new IllegalStateException("Island needs to initialize() before being generated");
 		if (this.generated) return;
 
-		this.altitude = region.getAltitude(this, random);
 		this.heightmap = biome.getHeightMap(this);
 		this.heightmap.initialize(random);
 
@@ -198,14 +196,6 @@ public class Island {
 		return seed;
 	}
 	
-	public int getAltitudeLayer() {
-		return altitudeLayer;
-	}
-
-	public void setAltitudeLayer(int altitudeLayer) {
-		this.altitudeLayer = altitudeLayer;
-	}
-	
 	public void setExtension(String key, Object value) {
 		this.extensions.put(key, value);
 	}
@@ -259,12 +249,12 @@ public class Island {
 	}
 	
 	public IslandHeightmap getHeightmap() {
-		if (!this.generated) throw new IllegalStateException("Cannot get island height map until it has been generated");
+		if (this.heightmap == null) throw new IllegalStateException("Cannot get island height map until it has been generated");
 		return heightmap;
 	}
 
 	public double getVolume(Int2DRange chunkRange) {
-		if (!this.generated) throw new IllegalStateException("Cannot get island chunk volume until it has been generated");
+		if (this.heightmap == null) throw new IllegalStateException("Cannot get island chunk volume until it has been generated");
 		
 		double volume = 0;
 		for (Int2D.Mutable block : chunkRange.getAllMutable()) {

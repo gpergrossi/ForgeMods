@@ -158,12 +158,12 @@ public class IslandCaves {
 			Double3D.Mutable scratch = new Double3D.Mutable();
 			
 			// The t value for the intersect. Line represented as: v(t) = v0 + t*dv, for t on [0, 1]
-			scratch = scratch.copy(point).subtract(start);
+			scratch = scratch.copyFrom(point).subtract(start);
 			double t = scratch.dot(delta) / deltaLength2;   // this is divided by length squared because projection = a.b/|b| and then 1/|b| brings it to the 0 to 1 range
 			t = Math.max(0, Math.min(1, t));
 			
 			// Closest point on line is v(t)
-			scratch.copy(delta).multiply(t).add(start);
+			scratch.copyFrom(delta).multiply(t).add(start);
 			
 			// How thick is the cave segment at this t?
 			double segmentRadius = startRadius * (1-t) + endRadius * (t);

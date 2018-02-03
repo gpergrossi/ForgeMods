@@ -26,6 +26,10 @@ public class FractalNoise2D implements Function2D {
 		this((long)(Math.random()*Long.MAX_VALUE), frequency, octaves, 0.5);
 	}
 	
+	/**
+	 * Returns a value between -1.0 and 1.0. More octaves
+	 * make values more likely to be in the middle.
+	 */
 	public double getValue(double x, double y) {
 		double value = 0;
 		double dividend = 0;

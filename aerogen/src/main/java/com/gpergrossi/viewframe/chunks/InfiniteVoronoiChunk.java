@@ -5,9 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.util.Random;
 
-import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.Rect;
-import com.gpergrossi.voronoi.InfiniteCell;
+import com.gpergrossi.voronoi.infinite.InfiniteCell;
 
 public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 	
@@ -33,16 +32,11 @@ public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 	@Override
 	public void load() {
 		InfiniteVoronoiChunkLoader loader = getChunkLoader();
-		
 		int chunkSize = (int) loader.getChunkSize();
 		bounds = new Rect(chunkX * chunkSize, chunkY * chunkSize, chunkSize, chunkSize);
-
 		cell = loader.voronoi.getCell(chunkX, chunkY);
-		
-		Convex poly = cell.getPolygon();
-		shape = poly.asAWTShape();
-		Random r = new Random(cell.getSeed());
-		color = new Color(Color.HSBtoRGB(r.nextFloat(), 1, r.nextFloat()*0.5f + 0.5f));
+		shape = cell.getPolygon().asAWTShape();
+		color = randomColor(new Random(cell.getSeed()));
 	}
 
 	@Override
@@ -82,6 +76,10 @@ public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 //		g.drawRect(minX, minY, (int) loader.getChunkSize(), (int) loader.getChunkSize());
 		
 		
+	}
+	
+	private Color randomColor(Random random) {
+		return new Color(Color.HSBtoRGB(random.nextFloat(), 1, random.nextFloat()*0.5f + 0.5f));
 	}
 
 }

@@ -7,6 +7,7 @@ import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -16,6 +17,7 @@ import java.util.Random;
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 import com.gpergrossi.util.geom.shapes.Ray;
+import com.gpergrossi.util.geom.shapes.Spline;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.viewframe.View;
@@ -61,7 +63,7 @@ public class GUIVoronoiTestView extends View {
 		g2d.setBackground(new Color(0,0,0,255));
 	}
 	
-	boolean useChunkLoader = false;
+	boolean useChunkLoader = true;
 	
 	VoronoiBuilder voronoiBuilder;
 	VoronoiWorker voronoiWorker;
@@ -70,31 +72,39 @@ public class GUIVoronoiTestView extends View {
 	View2DChunkManager<InfiniteVoronoiChunk> chunkManager;
 //	ChunkLoader<MinecraftViewChunk> chunkLoader;
 //	View2DChunkManager<MinecraftViewChunk> chunkManager;
+
+	Spline spline;
 	
 	double seconds;
 	double printTime;
 	double radiansPerDegree = (Math.PI/180.0);
 	
 	Convex poly = new Circle(0, 200, 100).toPolygon(5);
-
+	
 	public GUIVoronoiTestView (double x, double y, double width, double height) {
 		super (x, y, width, height);
 		
 		voronoiBuilder = new VoronoiBuilder();
 		voronoiBuilder.setBounds(new Circle(300, 0, 100).toPolygon(5));
-		
-		if (useChunkLoader) {
-			chunkLoader = new InfiniteVoronoiChunkLoader(8964591453215L);
-			chunkManager = new View2DChunkManager<InfiniteVoronoiChunk>(chunkLoader, 1);
-//			chunkLoader = new MinecraftViewChunkLoader(8964591453215L);
-//			chunkManager = new View2DChunkManager<MinecraftViewChunk>(chunkLoader, 3);
-		}
 	}
 
 	
 	
 	@Override
-	public void init() {}
+	public void init() {
+		if (!useChunkLoader) {
+			spline = new Spline();
+			for (int i = 0; i <= 8; i++) {
+				Double2D randomPt = new Double2D(Math.random()*3000-1500, Math.random()*2000-1000);
+				spline.addGuidePoint(i, randomPt);
+			}
+		} else {
+//			chunkLoader = new MinecraftViewChunkLoader(8964591453215L);
+//			chunkManager = new View2DChunkManager<MinecraftViewChunk>(chunkLoader, 3);
+			chunkLoader = new InfiniteVoronoiChunkLoader(8964591453215L);
+			chunkManager = new View2DChunkManager<InfiniteVoronoiChunk>(chunkLoader, 1);
+		}
+	}
 	
 	@Override
 	public void start() {
@@ -163,6 +173,28 @@ public class GUIVoronoiTestView extends View {
 			if (seg != null) g2d.draw(seg.asAWTShape());
 			
 			g2d.setColor(Color.WHITE);
+			
+			// Draw spline
+			Double2D.Mutable current = new Double2D.Mutable();
+			Double2D.Mutable previous = new Double2D.Mutable();
+			spline.getPoint(previous, 0);
+			
+			double steps = 800;
+			double step = 8.0/steps;
+			for (double d = -step; d < 8+step; d += step) {
+				spline.getPoint(current, d + Math.random()*step);
+				
+				g2d.draw(new Line2D.Double(previous.x(), previous.y(), current.x(), current.y()));
+				
+				Double2D.Mutable swap = previous;
+				previous = current;
+				current = swap;
+			}
+			
+			for (Double2D pt : spline.getGuidePoints()) {
+				g2d.fill(new Ellipse2D.Double(pt.x()-10, pt.y()-10, 20, 20));
+			}
+			
 		}
 		
 		if (useChunkLoader) { 
@@ -270,7 +302,7 @@ public class GUIVoronoiTestView extends View {
 					Point2D point = site.toPoint2D();
 					if (clickP.distance(point) < 4) {
 						System.out.println("Removing site");
-						voronoiBuilder.removeSite(site);
+						voronoiBuilder.removeSite(voronoiBuilder.findSiteIndex(site));
 						break;
 					}
 				}
@@ -286,7 +318,15 @@ public class GUIVoronoiTestView extends View {
 	}
 
 	@Override
-	public void mouseMoved() {}
+	public void mouseMoved() {
+		if (spline != null) {
+			double mx = getMouseScreenX();
+			double screenX = getViewWidth();
+			double alpha = mx / screenX;
+			System.out.println("catmull rom alpha = "+alpha);
+			spline.setCatmullRomAlpha(alpha);
+		}
+	}
 
 	@Override
 	public void mouseScrolled() {}
@@ -369,6 +409,12 @@ public class GUIVoronoiTestView extends View {
 				voronoiBuilder.addSite(new Double2D(Math.cos(d)*d*100, Math.sin(d)*d*100));
 				voronoiBuilder.addSite(new Double2D(Math.cos(d+Math.PI*2.0/3.0)*d*100, Math.sin(d+Math.PI*2.0/3.0)*d*100));
 				voronoiBuilder.addSite(new Double2D(Math.cos(d-Math.PI*2.0/3.0)*d*100, Math.sin(d-Math.PI*2.0/3.0)*d*100));
+			}
+		} else if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
+			spline = new Spline();
+			for (int i = 0; i <= 8; i++) {
+				Double2D randomPt = new Double2D(Math.random()*3000-1500, Math.random()*2000-1000);
+				spline.addGuidePoint(i, randomPt);
 			}
 		}
 	}

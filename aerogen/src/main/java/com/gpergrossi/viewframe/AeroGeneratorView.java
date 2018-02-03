@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.generator.AeroGenerator;
@@ -22,14 +21,15 @@ import com.gpergrossi.util.geom.shapes.Convex;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
 
 public class AeroGeneratorView extends View {
 
 	List<Region> regions;
+	AeroGenerator generator;
 	
-	public AeroGeneratorView() {
+	public AeroGeneratorView(AeroGenerator generator) {
 		super(0, 0, 800, 600);
+		this.generator = generator;
 	}
 
 	@Override
@@ -50,26 +50,18 @@ public class AeroGeneratorView extends View {
 
 	@Override
 	public void update(double secondsPassed) {
-		
 	}
 
 	@Override
 	public void drawWorld(Graphics2D g2d) {
 		g2d.setColor(Color.WHITE);
 		
-		AeroGenerator dim = null;
-		for (Map.Entry<World, AeroGenerator> gen : AeroGenerator.getGenerators()) {
-			dim = gen.getValue();
-			break;
-		}
-		if (dim == null) return;
-		
-		BlockPos spawn = dim.getWorld().getSpawnPoint();
+		BlockPos spawn = generator.getWorld().getSpawnPoint();
 		g2d.drawLine(spawn.getX()-5, spawn.getZ()-5, spawn.getX()+5, spawn.getZ()+5);
 		g2d.drawLine(spawn.getX()-5, spawn.getZ()+5, spawn.getX()+5, spawn.getZ()-5);
 		
 		regions.clear();
-		dim.getRegionManager().getLoadedRegions(regions);
+		generator.getRegionManager().getLoadedRegions(regions);
 		for (Region region : regions) {
 			for (Island island : region.getIslands()) {
 
@@ -114,7 +106,7 @@ public class AeroGeneratorView extends View {
 			g2d.draw(region.getRegionPolygon().asAWTShape());
 		}
 		
-		Iterator<WorldPrimerChunk> chunkIter = dim.getWorldPrimer().chunks.iterator();
+		Iterator<WorldPrimerChunk> chunkIter = generator.getWorldPrimer().chunks.iterator();
 		
 		try {
 			while (chunkIter.hasNext()) {
@@ -138,7 +130,7 @@ public class AeroGeneratorView extends View {
 		} catch (ConcurrentModificationException e) {}
 
 		g2d.setColor(Color.WHITE);
-		for (EntityPlayerMP player : dim.getWorld().getPlayers(EntityPlayerMP.class, p -> true)) {
+		for (EntityPlayerMP player : generator.getWorld().getPlayers(EntityPlayerMP.class, p -> true)) {
 			Vec3d pos = player.getPositionVector();
 			Vec3d dir = player.getLookVec();
 			g2d.drawOval((int) pos.x-2, (int) pos.z-2, 4, 4);

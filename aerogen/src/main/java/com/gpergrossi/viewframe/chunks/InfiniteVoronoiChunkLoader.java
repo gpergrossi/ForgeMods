@@ -2,7 +2,7 @@ package com.gpergrossi.viewframe.chunks;
 
 import java.util.Random;
 
-import com.gpergrossi.voronoi.InfiniteVoronoi;
+import com.gpergrossi.voronoi.infinite.InfiniteVoronoi;
 
 public class InfiniteVoronoiChunkLoader extends View2DChunkLoader<InfiniteVoronoiChunk> {
 	

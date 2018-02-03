@@ -3,10 +3,9 @@ package com.gpergrossi.util.data.queue;
 import java.util.AbstractQueue;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
-
-import com.gpergrossi.util.data.DoublyLinkedList;
 
 /**
  * <p>A queue based on an array of a given size, if too many items are added to the queue, a larger array
@@ -28,12 +27,12 @@ public class GrowingArrayQueue<T> extends AbstractQueue<T> {
 	private int size;
 	private int modifyCount;
 	IntFunction<T[]> arrayAllocator;
-	DoublyLinkedList<FixedSizeArrayQueue<T>> queues;
+	LinkedList<FixedSizeArrayQueue<T>> queues;
 	int nextQueueCapacity;
 	
 	public GrowingArrayQueue(IntFunction<T[]> arrayAllocator, int initialCapacity) {
 		this.arrayAllocator = arrayAllocator;
-		this.queues = new DoublyLinkedList<>();
+		this.queues = new LinkedList<>();
 		this.modifyCount = 0;
 
 		this.nextQueueCapacity = Math.max(initialCapacity, 1);

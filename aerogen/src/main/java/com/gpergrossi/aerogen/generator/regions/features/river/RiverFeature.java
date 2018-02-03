@@ -11,6 +11,8 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
+import com.gpergrossi.util.constraints.integer.IntegerConstraint;
+import com.gpergrossi.util.data.WeightedList;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.voronoi.Edge;
 import com.gpergrossi.voronoi.Site;
@@ -20,10 +22,13 @@ public class RiverFeature implements IRegionFeature {
 	// Settings
 	protected int numRivers = 1;
 	protected double chanceToShareHeadLake = 1.0;
-	protected double minWaterfallWidth = 8;
+	protected double minWaterfallWidth = 8;	// Min Edge width to allow waterfall
 	protected boolean allowIntersect = false;
 	protected double forkChance = 0;
 	protected double maxForkAngle = 2.0*Math.PI/3.0;
+	protected int minWaterfallHeight = 16;
+	
+	protected Set<IslandCell> consumedCells;
 	
 	// Output
 	protected Region region;
@@ -33,6 +38,7 @@ public class RiverFeature implements IRegionFeature {
 	
 	public RiverFeature setRiverCount(int count) {
 		this.numRivers = count;
+		this.consumedCells = new HashSet<>();
 		return this;
 	}
 	
@@ -40,140 +46,142 @@ public class RiverFeature implements IRegionFeature {
 		return rivers;
 	}
 	
+	public boolean consumed(IslandCell cell) {
+		return consumedCells.contains(cell);
+	}
+	
+	public void consume(IslandCell cell) {
+		consumedCells.add(cell);
+	}
+	
 	public void create(Region region, Random random) {
 		this.region = region;
 		this.rivers = new ArrayList<>(numRivers);
 		for (int i = 0; i < numRivers; i++) {
-			createRiver(region, random);
+			rivers.add(createRiver(region, random));
 		}
 	}
 	
-	public void createRiver(Region region, Random random) {
-		River currentRiver = new River();
+	public River createRiver(Region region, Random random) {
+		River river = new River();
 		
-		while (currentCell != null) {
-
-			Island currentIsland = currentCell.getIsland();
-			RiverCell currentRiverCell = null;
-
-			boolean endOfRiver = false;
-			boolean newIsland = false;
-			boolean createWaterfall = false;
+		// Choose a starting cell
+		IslandCell headCell = null;
+		if (rivers.size() > 0 && random.nextDouble() <= chanceToShareHeadLake) {
+			River previousRiver = rivers.get(rivers.size()-1);
+			RiverCell previousHeadCell = previousRiver.getHead();
+			headCell = previousHeadCell.islandCell;
+		} else {
+			headCell = region.getRandomCell(random);
+		}
+		Double2D startingDirection = Double2D.unit(random.nextDouble()*Math.PI*2.0);
+		
+		IntegerConstraint waterfallConstraint = IntegerConstraint.less(-minWaterfallHeight);
+		
+		RandomCellExplorer cellExplorer = new RandomCellExplorer(random, headCell, startingDirection);
+		IslandCell previousCell, currentCell = null;
+		Island currentIsland = null;
+		
+		while (cellExplorer.hasNext()) {
+			previousCell = currentCell;
+			Island previousIsland = currentIsland;
 			
-			if (previousCell == null) newIsland = true;
-			else if (currentIsland != previousCell.getIsland()) {
-				int islandHeight = currentIsland.getAltitudeLayer(); 
-				if (riverHeight <= 0) endOfRiver = true;
-				else if (islandHeight == Island.LAYER_UNASSIGNED) riverHeight = riverHeight - 1;
-				else if (islandHeight < riverHeight) riverHeight = islandHeight;
-				else endOfRiver = true;
-				newIsland = true;
+			currentCell = cellExplorer.next();
+			currentIsland = currentCell.getIsland();
+			Edge previousEdge = cellExplorer.previousEdge();
+			
+			consume(currentCell);
+			
+			// First cell only
+			if (previousCell == null) {
+				river.addCell(currentCell);
+				continue;
 			}
 
-			if (endOfRiver) {
-				currentRiver.addWaterfall(previouseEdge.toLineSeg(), new IslandCell(null, currentCell.getVoronoiSite())); 
-				break;
-			}
-			
-			if (newIsland) {
-				currentIsland.setAltitudeLayer(riverHeight);
-				minLayerUsed = Math.min(minLayerUsed, riverHeight);
-				maxLayerUsed = Math.max(maxLayerUsed, riverHeight);
-				if (previousCell != null) createWaterfall = true;
-			}
-			
-			if (createWaterfall) {
-				currentRiverCell = currentRiver.addWaterfall(previouseEdge.toLineSeg(), currentCell);
+			if (currentIsland != previousIsland) {
+				final boolean canConstrain = region.constrainIslandAltitudes(currentIsland, waterfallConstraint, previousIsland);
+				if (canConstrain) {
+					// Waterfall to new island
+					river.addWaterfall(previousEdge.toLineSeg(), currentCell);
+				} else {
+					// Waterfall into void
+					IslandCell voidCell = new IslandCell(null, currentCell.getVoronoiSite());
+					river.addWaterfall(previousEdge.toLineSeg(), voidCell); 
+					break;
+				}
 			} else {
-				currentRiverCell = currentRiver.addCell(currentCell);
+				river.addCell(currentCell);
+			}
+		}
+		
+		return river;
+	}
+	
+	public class RandomCellExplorer implements Iterator<IslandCell> {
+
+		Random random;
+		Double2D previousMove;
+		Edge currentEdge;
+		Edge nextEdge;
+		IslandCell nextCell;
+		
+		public RandomCellExplorer(Random random, IslandCell startingCell, Double2D startingDirection) {
+			this.random = random;
+			this.nextCell = startingCell;
+			this.previousMove = startingDirection.normalize(); 
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return nextCell != null;
+		}
+		
+		@Override
+		public IslandCell next() {
+			IslandCell currentCell = nextCell;
+			currentEdge = nextEdge;
+
+			nextEdge = chooseNextEdge();
+			if (nextEdge != null) {
+				Site nextSite = nextEdge.getNeighbor(nextCell.getVoronoiSite());
+				
+				previousMove = nextSite.getPolygon().getCentroid();
+				previousMove = previousMove.subtract(nextCell.getPolygon().getCentroid());
+				previousMove = previousMove.normalize();
+				
+				nextCell = (IslandCell) nextSite.data;
+			} else {
+				nextCell = null;
 			}
 			
-			nextWeights.clear();
-			nextEdges.clear();
-			double totalWeight = 0;
-			Site currentSite = currentCell.getVoronoiSite();
+			return currentCell;
+		}
+
+		public Edge previousEdge() {
+			return currentEdge;
+		}
+		
+		private Edge chooseNextEdge() {
+			WeightedList<Edge> nextEdges = new WeightedList<>();
+			Site currentSite = nextCell.getVoronoiSite();
 			for (Edge e : currentSite.getEdges()) {
 				Site n = e.getNeighbor(currentSite);
-				if (n == null || consumed.contains(n.data)) continue;
+				if (n == null || consumed((IslandCell) n.data)) continue;
 				
 				double edgeLength = e.toLineSeg().length();
 				if (edgeLength < minWaterfallWidth) continue;
 				
 				Double2D nVector = n.getPolygon().getCentroid();
-				nVector = nVector.subtract(currentCell.getPolygon().getCentroid());
+				nVector = nVector.subtract(nextCell.getPolygon().getCentroid());
 				nVector = nVector.normalize();
 				double dotProduct = nVector.dot(previousMove);
 				
-				double weight = Math.pow(edgeLength, 4) + dotProduct * region.getAverageCellRadius() * 10;
-				nextEdges.add(e);
-				nextWeights.add(weight);
-				totalWeight += weight;
+				double weightD = edgeLength/region.getAverageCellRadius() + (1+dotProduct);
+				int weight = (int) (weightD*1000.0);
+				if (weight > 0)	nextEdges.add(e, weight);
 			}
-			if (nextEdges.size() == 0) break;
-			
-			Edge nextEdge = null;
-			double target = random.nextDouble();
-			Iterator<Double> weightIter = nextWeights.iterator();
-			for (Edge e : nextEdges) {
-				double range = weightIter.next() / totalWeight;
-				target -= range;
-				if (target < 0) { nextEdge = e;	break; }
-			}
-			
-			Site nextSite = nextEdge.getNeighbor(currentSite);
-			
-			previousMove = nextSite.getPolygon().getCentroid();
-			previousMove = previousMove.subtract(currentCell.getPolygon().getCentroid());
-			previousMove = previousMove.normalize();
-			
-			previousCell = currentRiverCell;
-			previouseEdge = nextEdge;
-			currentCell = (IslandCell) nextSite.data;
-		}
-		
-		if (currentRiver.numCells() == 0) break;
-		rivers.add(currentRiver);
-	}
-	
-	public class CellIterator implements Iterator<IslandCell> {
-
-		Random random;
-		IslandCell currentCell;
-		RiverCell previousCell;
-		Double2D previousMove;
-		Edge previouseEdge;
-		List<Edge> nextEdges;
-		List<Double> nextWeights;
-		
-		public CellIterator(Random random) {
-			this.random = random;
-			
-			// Choose a starting cell
-			IslandCell riverHeadCell;
-			if (rivers.size() > 0 && random.nextDouble() <= chanceToShareHeadLake) {
-				River previousRiver = rivers.get(rivers.size()-1);
-				RiverCell previousHeadCell = previousRiver.getHead();
-				riverHeadCell = previousHeadCell.islandCell;
-			} else {
-				riverHeadCell = region.getRandomCell(random);
-			}
-			
-			// Choose a starting direction
-			Double2D previousMove = Double2D.unit(random.nextDouble()*Math.PI*2.0);
-			
-
-		}
-		
-		@Override
-		public boolean hasNext() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public IslandCell next() {
-			// TODO Auto-generated method stub
-			return null;
+			if (nextEdges.size() == 0) return null;
+			return nextEdges.getRandom(random);
 		}
 		
 	}

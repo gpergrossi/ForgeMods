@@ -1,14 +1,22 @@
-package com.gpergrossi.util.data.constraints;
+package com.gpergrossi.util.constraints.integer;
 
+import java.util.Random;
+
+import com.gpergrossi.util.constraints.generic.IConstraint;
+import com.gpergrossi.util.constraints.generic.IConstraintClass;
+import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.util.constraints.matrix.ImplicationRules;
 import com.gpergrossi.util.data.ranges.Int1DMultiRange;
 import com.gpergrossi.util.data.ranges.Int1DRange;
 
-public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Integer> {
+public class IntegerConstraint implements IConstraint<IntegerConstraint, Integer> {
 
-	public static final AbstractConstraint.Category<IntegerConstraint> CATEGORY = Category.INSTANCE;
+	public static final IConstraintClass<IntegerConstraint> CLASS = Class.INSTANCE;
 	
-	private static class Category extends AbstractConstraint.Category<IntegerConstraint> {
-		public static Category INSTANCE = new Category();
+	private static class Class implements IConstraintClass<IntegerConstraint> {
+		public static IConstraintClass<IntegerConstraint> INSTANCE = new Class();
+		
+		private Class() {}
 		
 		@Override
 		public IntegerConstraint getAlwaysConstraint() {
@@ -24,13 +32,16 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 		public IntegerConstraint getNeverConstraint() {
 			return IntegerConstraint.NEVER;
 		}
+		
+		public ImplicationRules<IntegerConstraint> getImplicationRules(ConstraintMatrix<IntegerConstraint> matrix) {
+			return new IntegerImplicationRules(matrix);
+		}
 	}
 	
 	public static final IntegerConstraint NEVER = new IntegerConstraint(Int1DRange.EMPTY);
 	public static final IntegerConstraint LESS = new IntegerConstraint(Integer.MIN_VALUE, -1);
 	public static final IntegerConstraint LESS_OR_EQUAL = new IntegerConstraint(Integer.MIN_VALUE, 0);
 	public static final IntegerConstraint EQUAL = new IntegerConstraint(0, 0);
-	public static final IntegerConstraint NOT_EQUAL = EQUAL.compliment();
 	public static final IntegerConstraint GREATER_OR_EQUAL = new IntegerConstraint(0, Integer.MAX_VALUE);
 	public static final IntegerConstraint GREATER = new IntegerConstraint(1, Integer.MAX_VALUE);
 	public static final IntegerConstraint ALWAYS = new IntegerConstraint(Int1DRange.ALL);
@@ -50,11 +61,6 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 		return new IntegerConstraint(offset, offset);
 	}
 	
-	public static IntegerConstraint notEqual(int offset) {
-		if (offset == 0) return NOT_EQUAL;
-		return equal(offset).compliment();
-	}
-	
 	public static IntegerConstraint greaterOrEqual(int offset) {
 		if (offset == 0) return GREATER_OR_EQUAL;
 		return new IntegerConstraint(offset, Integer.MAX_VALUE);
@@ -64,6 +70,8 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 		if (offset == 0) return GREATER;
 		return new IntegerConstraint(offset+1, Integer.MAX_VALUE);
 	}
+	
+	
 	
 	/**
 	 * Values that are permitted for 'A minus B' if this constraint is 'from A to B'.
@@ -81,7 +89,6 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 	 * @param validValues - values that are permitted for 'A minus B' if this constraint is from A to B.
 	 */
 	private IntegerConstraint(Int1DMultiRange validValues) {
-		super(IntegerConstraint.Category.INSTANCE);
 		this.validValues = validValues;		
 	}
 
@@ -93,14 +100,16 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 		this(new Int1DMultiRange(min, max));
 	}
 	
+	
+	
+	@Override
+	public IConstraintClass<IntegerConstraint> getConstraintClass() {
+		return CLASS;
+	}
+	
 	@Override
 	public IntegerConstraint reverse() {
 		return new IntegerConstraint(this.validValues.reverse());
-	}
-
-	@Override
-	public IntegerConstraint compliment() {
-		return new IntegerConstraint(validValues.compliment());
 	}
 
 	@Override
@@ -108,16 +117,10 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 		return new IntegerConstraint(validValues.intersect(other.validValues));
 	}
 
-	@Override
-	public IntegerConstraint or(IntegerConstraint other) {
-		return new IntegerConstraint(validValues.union(other.validValues));
-	}
-
 	/**
-	 * Very cool discovery! The chain implication of two IntegerConstraints represented as 
-	 * Int1DMultiRanges turns out to be the mathematical convolution of the two Int1DMultiRanges.
+	 * The chain implication of two IntegerConstraints represented as Int1DMultiRanges 
+	 * turns out to be the mathematical convolution of the two Int1DMultiRanges.
 	 */
-	@Override
 	public IntegerConstraint chain(IntegerConstraint bc) {
 		return new IntegerConstraint(validValues.convolve(bc.validValues));
 	}
@@ -136,28 +139,44 @@ public class IntegerConstraint extends AbstractConstraint<IntegerConstraint, Int
 	public boolean check(Integer valueA, Integer valueB) {
 		return validValues.contains((long) valueA - valueB);
 	}
-
+	
 	@Override
 	public boolean equals(IntegerConstraint other) {
 		return this.validValues.equals(other.validValues);
 	}
 
+	public boolean isComplex() {
+		return (validValues.getRanges().size() > 1);
+	}
+	
+	public int getNumValues() {
+		long numValues = validValues.size();
+		if (numValues >= Integer.MAX_VALUE) return Integer.MAX_VALUE;
+		if (numValues <= Integer.MIN_VALUE) return Integer.MIN_VALUE;
+		return (int) numValues;
+	}
+
+	public int valueFor(long index) {
+		return validValues.valueFor(index);
+	}
+	
+	public int getRandomValue(Random random) {
+		return validValues.random(random);
+	}
+
+	public Int1DMultiRange getValidValues() {
+		return new Int1DMultiRange(validValues);		
+	}
+	
 	@Override
 	public String inline() {
 		if (this.equals(NEVER)) return " allows no ";
 		if (this.equals(LESS)) return " < ";
 		if (this.equals(LESS_OR_EQUAL)) return " <= ";
 		if (this.equals(EQUAL)) return " == ";
-		if (this.equals(NOT_EQUAL)) return " != ";
 		if (this.equals(GREATER)) return " > ";
 		if (this.equals(GREATER_OR_EQUAL)) return " >= ";
 		if (this.equals(ALWAYS)) return " allows any ";
-		
-		// Not equals with offset
-		if (this.validValues.size() == Int1DRange.ALL.size()-1) {
-			Int1DRange range = this.validValues.compliment().asSimpleRange().get();
-			return " != "+(range.min)+" + ";
-		}
 		
 		if (this.validValues.getRanges().size() == 1) {
 			Int1DRange range = this.validValues.asSimpleRange().get();

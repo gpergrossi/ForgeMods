@@ -69,11 +69,6 @@ public class IslandDebugRender {
 		float hue = rand.nextFloat();
 		float sat = 0.5f;
 		float bri = 0.5f;
-		
-		g.setColor(new Color(Color.HSBtoRGB(hue, 1, 1)));
-		String label = ""+island.getAltitudeLayer();
-		if (island.getAltitudeLayer() == Island.LAYER_UNASSIGNED) label = "U";
-		g.drawString(label, (shape.minX()+shape.maxX())/2, (shape.minZ()+shape.maxZ())/2);
 			
 		float maxEdge = shape.getMaxEdgeDistance();
 

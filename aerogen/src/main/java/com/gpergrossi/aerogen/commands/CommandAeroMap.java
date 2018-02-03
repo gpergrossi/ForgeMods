@@ -37,7 +37,22 @@ public class CommandAeroMap implements ICommand {
 
 	@Override
 	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-		AeroGenerator.toggleGUI();
+		if (args.length == 0) AeroGenerator.toggleGUI();
+		if (args.length == 1) {
+			if (args[0].equals("show") || args[0].equals("on")) {
+				AeroGenerator.setGUIEnabled(true);
+				return;
+			}
+			if (args[0].equals("hide") || args[0].equals("off")) {
+				AeroGenerator.setGUIEnabled(false);
+				return;
+			}
+			
+			try {
+				int dimension = Integer.parseInt(args[0]);
+				AeroGenerator.showGUIDimension(dimension);
+			} catch (NumberFormatException e) {}
+		}
 	}
 
 	@Override

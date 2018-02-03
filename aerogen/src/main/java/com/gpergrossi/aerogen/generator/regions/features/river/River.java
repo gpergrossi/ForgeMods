@@ -28,11 +28,7 @@ public class River {
 	public RiverCell addWaterfall(LineSeg edge, IslandCell destination) {
 		RiverCell previousCell = cells.get(cells.size()-1);
 		RiverCell currentCell = addCell(destination);
-		RiverWaterfall waterfall = new RiverWaterfall(this, previousCell, currentCell, edge);
-		if (previousCell.waterfallOut != null) throw new IllegalStateException("River cells can only have one waterfall!");
-		previousCell.waterfallOut = waterfall;
-		currentCell.waterfallIn = waterfall;
-		waterfalls.add(waterfall);
+		waterfalls.add(new RiverWaterfall(this, previousCell, currentCell, edge));
 		return currentCell;
 	}
 	

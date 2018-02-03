@@ -12,6 +12,10 @@ import com.gpergrossi.util.math.func2d.RemapOperation;
 
 public class IslandHeightmap {
 
+	public static final FractalNoise2D riverTurbulenceX = new FractalNoise2D(90123742244L, 1.0f/128.0f, 3);
+	public static final FractalNoise2D riverTurbulenceZ = new FractalNoise2D(-70182738918L, 1.0f/128.0f, 3);
+	public static final float turbulenceScale = 0.0f;
+
 	protected Island island;
 	protected IslandShape shape;
 	
@@ -112,8 +116,11 @@ public class IslandHeightmap {
 		}
 		surface += cliff;
 		
+		float riverOffsetX = (float) riverTurbulenceX.getValue(x, z) * turbulenceScale;
+		float riverOffsetZ = (float) riverTurbulenceZ.getValue(x, z) * turbulenceScale;
+		
 		// River Head Lake
-		double riverHeadDist = shape.riverHeadDist(x, z);
+		double riverHeadDist = shape.riverHeadDist(x + riverOffsetX, z + riverOffsetZ);
 		if (riverHeadDist < 24) {
 			double weight = 1.0 - riverHeadDist / 24.0;
 			if (weight < 0) weight = 0;
@@ -126,7 +133,7 @@ public class IslandHeightmap {
 		if (edgeDistance > 3) edgeSmoothing = 1.0 - 1.0/(0.03*Math.pow(edgeDistance-3, 2)+1); 
 		
 		// River calculation
-		double riverDist = shape.getRiverDistance(x, z);
+		double riverDist = shape.getRiverDistance(x + riverOffsetX, z + riverOffsetZ);
 		double riverDepth = (noiseSurface*4+1);
 		double riverWidth = (1-noiseSurface)*6+1;
 		double riverBank = 1.2+noiseUnderside;

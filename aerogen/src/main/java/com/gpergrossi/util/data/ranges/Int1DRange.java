@@ -74,6 +74,11 @@ public class Int1DRange {
 	public int indexFor(int value) {
 		return value-min;
 	}
+	
+	public int valueFor(long index) {
+		if (index >= size || index < 0) throw new IndexOutOfBoundsException();
+		return (int) (index+min);
+	}
 
 	public int random(Random random) {
 		return random.nextInt(max-min+1)+min;

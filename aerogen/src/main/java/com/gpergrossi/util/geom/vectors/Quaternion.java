@@ -1,7 +1,9 @@
 package com.gpergrossi.util.geom.vectors;
 
-public class Quaternion {
+public class Quaternion implements IVector<Quaternion> {
 
+	public static final Quaternion IDENTITY = new Quaternion(1, 0, 0, 0); 
+	
 	public static Quaternion fromVector(Double3D vector) {
 		return new Quaternion(0, vector.x(), vector.y(), vector.z());
 	}
@@ -9,61 +11,287 @@ public class Quaternion {
 	public static Quaternion fromAxisRotation(Double3D axis, double theta) {
 		double cos = Math.cos(theta/2.0);
 		double sin = Math.sin(theta/2.0);
-		Double3D axisNorm = axis.copy().normalize();
+		Double3D axisNorm = axis.mutable().normalize();
 		return new Quaternion(cos, sin * axisNorm.x, sin * axisNorm.y, sin * axisNorm.z);
 	}
+
+	protected double w; // real component
+	protected double x; // i component
+	protected double y; // j component
+	protected double z; // k component
 	
-	
-	
-	protected double r, i, j, k;
-	
-	public Quaternion(double r, double i, double j, double k) {
-		this.r = r;
-		this.i = i;
-		this.j = j;
-		this.k = k;
+	public Quaternion(double w, double x, double y, double z) {
+		this.w = w;
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 	
-	public Quaternion add(Quaternion q) {
-		return new Quaternion(r+q.r, i+q.i, j+q.j, k+q.k);
+	public double w() {
+		return w;
 	}
 	
-	public Quaternion multiply(Quaternion other) {
-		Quaternion a = this, b = other;
-		double r = (a.r * b.r) - (a.i * b.i) - (a.j * b.j) - (a.k * b.k);
-		double i = (a.r * b.i) + (a.i * b.r) + (a.j * b.k) - (a.k * b.j);
-		double j = (a.r * b.j) - (a.i * b.k) + (a.j * b.r) + (a.k * b.i);
-		double k = (a.r * b.k) + (a.i * b.j) - (a.j * b.i) + (a.k * b.r);
-		return new Quaternion(r, i, j, k);
+	public double x() {
+		return x;
 	}
 	
-	public Quaternion conjugate() {
-		return new Quaternion(r, -i, -j, -k);
+	public double y() {
+		return y;
 	}
 	
-	/**
-	 * Treating this quaternion as a unit quaternion, this method applies this quaternion's represented rotation to a 3D vector.
-	 * This is equivalent to the following calls: <pre>
-	 * this.multiply(Quaternion.fromVector(vector).multiply(this.conjugate()));
-	 * </pre>
-	 * @param vector - a vector to be rotated
-	 * @return the original vector .redefine()ed. Mutable vectors will be modified, immutable vectors will be copied.
-	 */
-	public Double3D applyRotation(Double3D vector) {
-		Quaternion conj = this.conjugate();
-		Quaternion vecq = Quaternion.fromVector(vector);
-		Quaternion result = this.multiply(vecq).multiply(conj);
-		
-		if (result.r < -0.0001 || result.r > 0.0001) {
-			System.err.println("Rotation probably invalid. Real part of result nonzero: "+result.r);
-		}
-		
-		return vector.redefine(result.i, result.j, result.k);
+	public double z() {
+		return z;
+	}
+	
+	public Quaternion redefine(double w, double x, double y, double z) {
+		return new Quaternion(w, x, y, z);
+	}
+
+	@Override
+	public Quaternion copy() {
+		return new Quaternion(w, x, y, z);
+	}
+
+	@Override
+	public Quaternion immutable() {
+		return this;
+	}
+
+	@Override
+	public Quaternion mutable() {
+		return new Mutable(w, x, y, z);
 	}
 	
 	@Override
-	public String toString() {
-		return String.format("Quaternion(%.3f + %.3fi + %.3fj + %.3fk)", r, i, j, k);
+	public Quaternion multiply(double scalar) {
+		return new Quaternion(w*scalar, x*scalar, y*scalar, z*scalar);
+	}
+
+	@Override
+	public Quaternion divide(double scalar) {
+		return new Quaternion(w/scalar, x/scalar, y/scalar, z/scalar);
+	}
+
+	@Override
+	public double dot(Quaternion vector) {
+		return (w * vector.w) + (x * vector.x) + (y * vector.y) + (z * vector.z);
+	}
+
+	@Override
+	public Quaternion add(Quaternion vector) {
+		return new Quaternion(w+vector.w, x+vector.x, y+vector.y, z+vector.z);
+	}
+
+	@Override
+	public Quaternion subtract(Quaternion vector) {
+		return new Quaternion(w-vector.w, x-vector.x, y-vector.y, z-vector.z);
+	}
+
+	@Override
+	public double length() {
+		return Math.sqrt(lengthSquared());
+	}
+
+	@Override
+	public double lengthSquared() {
+		return w*w + x*x + y*y + z*z;
+	}
+
+	@Override
+	public Quaternion normalize() {
+		return this.divide(this.length());
+	}
+
+	@Override
+	public double distanceTo(Quaternion vector) {
+		return Math.sqrt(this.distanceSquaredTo(vector));
+	}
+
+	@Override
+	public double distanceSquaredTo(Quaternion vector) {
+		final double dw = this.w - vector.w;
+		final double dx = this.x - vector.x;
+		final double dy = this.y - vector.y;
+		final double dz = this.z - vector.z;
+		return dw*dw + dx*dx + dy*dy + dz*dz;
+	}
+
+	public int compareTo(Quaternion other) {
+		int dw = (int) Math.signum(this.w - other.w);
+		if (dw != 0) return dw;
+		
+		int dz = (int) Math.signum(this.z - other.z);
+		if (dz != 0) return dz;
+		
+		int dy = (int) Math.signum(this.y - other.y);
+		if (dy != 0) return dy;
+
+		int dx = (int) Math.signum(this.x - other.x);
+		if (dx != 0) return dx;
+		
+		return 0;
+		//return Integer.compare(this.hashCode(), other.hashCode());
+	}
+
+	public boolean equals(Quaternion other) {
+		return this.distanceSquaredTo(other) < Double2D.EPSILON2;
 	}
 	
+	public Quaternion multiply(Quaternion vector) {
+		final Quaternion a = this;
+		final Quaternion b = vector;
+
+		final double w = (a.w * b.w) - (a.x * b.x) - (a.y * b.y) - (a.z * b.z);
+		final double x = (a.w * b.x) + (a.x * b.w) + (a.y * b.z) - (a.z * b.y);
+		final double y = (a.w * b.y) + (a.y * b.w) + (a.z * b.x) - (a.x * b.z);
+		final double z = (a.w * b.z) + (a.z * b.w) + (a.x * b.y) - (a.y * b.x);
+					
+		return this.redefine(w, x, y, z);
+	}
+	
+	public Double3D multiply(Double3D vector) {
+		final double x2 = (1f - 2*(y*y + z*z)) * vector.x() + 2*(x*y - w*z) * vector.y() + 2*(x*z + w*y) * vector.z();
+		final double y2 = 2*(x*y + w*z) * vector.x() + (1f - 2*(x*x + z*z)) * vector.y() + 2*(y*z - w*x) * vector.z();
+		final double z2 = 2*(x*z - w*y) * vector.x() + 2*(y*z + w*x) * vector.y() + (1f - 2*(x*x + y*y)) * vector.z();
+		return vector.redefine(x2, y2, z2);
+	}
+
+	public Quaternion conjugate() {
+		return this.redefine(w, -x, -y, -z);
+	}
+
+	public Quaternion inverse() {
+		double lengthSquared = this.lengthSquared();
+		if (lengthSquared != 0.0) {
+			double d = 1.0 / lengthSquared;
+			return this.redefine(w*d, -x*d, -y*d, -z*d);
+		}
+		return this;
+	}
+	
+	public static class Mutable extends Quaternion {
+
+		public Mutable() {
+			super(0, 0, 0, 0);
+		}
+		
+		public Mutable(double x, double y, double z, double w) {
+			super(x, y, z, w);
+		}
+
+		public void w(double w) {
+			this.w = w;
+		}
+		
+		public void x(double x) {
+			this.x = x;
+		}
+		
+		public void y(double y) {
+			this.y = y;
+		}
+		
+		public void z(double z) {
+			this.z = z;
+		}
+		
+		public Mutable redefine(double w, double x, double y, double z) {
+			this.w = w;
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			return this;
+		}
+
+		public Mutable copyFrom(Quaternion other) {
+			this.w = other.w;
+			this.x = other.x;
+			this.y = other.y;
+			this.z = other.z;
+			return this;
+		}
+		
+		@Override
+		public Mutable copy() {
+			return new Mutable(w, x, y, z);
+		}
+
+		@Override
+		public Quaternion immutable() {
+			return new Quaternion(x, y, z, w);
+		}
+		
+		@Override
+		public Mutable mutable() {
+			return copy();
+		}
+		
+		@Override
+		public Mutable multiply(double scalar) {
+			this.w *= scalar;
+			this.x *= scalar;
+			this.y *= scalar;
+			this.z *= scalar;
+			return this;
+		}
+
+		@Override
+		public Mutable divide(double scalar) {
+			this.w /= scalar;
+			this.x /= scalar;
+			this.y /= scalar;
+			this.z /= scalar;
+			return this;
+		}
+
+		@Override
+		public Mutable add(Quaternion vector) {
+			this.w += vector.x;
+			this.x += vector.x;
+			this.y += vector.y;
+			this.z += vector.z;
+			return this;
+		}
+
+		@Override
+		public Mutable subtract(Quaternion vector) {
+			this.w -= vector.w;
+			this.x -= vector.x;
+			this.y -= vector.y;
+			this.z -= vector.z;
+			return this;
+		}
+
+		@Override
+		public Mutable normalize() {
+			double length = length();
+			return this.divide(length);
+		}
+		
+		public Mutable multiply(Quaternion vector) {
+			final Quaternion a = this;
+			final Quaternion b = vector;
+
+			final double w = (a.w * b.w) - (a.x * b.x) - (a.y * b.y) - (a.z * b.z);
+			final double x = (a.w * b.x) + (a.x * b.w) + (a.y * b.z) - (a.z * b.y);
+			final double y = (a.w * b.y) + (a.y * b.w) + (a.z * b.x) - (a.x * b.z);
+			final double z = (a.w * b.z) + (a.z * b.w) + (a.x * b.y) - (a.y * b.x);
+						
+			return this.redefine(w, x, y, z);
+		}
+
+		public Mutable conjugate() {
+			return this.redefine(w, -x, -y, -z);
+		}
+
+		public Mutable inverse() {
+			double lengthSquared = this.lengthSquared();
+			if (lengthSquared != 0.0) {
+				double d = 1.0 / lengthSquared;
+				return this.redefine(w*d, -x*d, -y*d, -z*d);
+			}
+			return this;
+		}
+		
+	}
 }

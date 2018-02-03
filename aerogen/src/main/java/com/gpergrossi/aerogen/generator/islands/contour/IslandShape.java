@@ -26,7 +26,6 @@ public class IslandShape {
 	public float maxEdgeDistance;
 	
 	
-	
 	public IslandShape(Island island, List<IslandCell> cells) {
 		this.island = island;
 		this.cells = cells;
@@ -301,7 +300,7 @@ public class IslandShape {
 		return null;
 	}
 	
-	public double riverHeadDist(int x, int z) {
+	public double riverHeadDist(float x, float z) {
 		double riverDist = Double.POSITIVE_INFINITY;
 		for (RiverCell irc : island.getShape().getRiverCells()) {
 			if (irc.getRiverCellPrevious() != null) continue;
@@ -310,7 +309,7 @@ public class IslandShape {
 		return riverDist;
 	}
 	
-	public double getRiverDistance(int x, int z) {
+	public double getRiverDistance(float x, float z) {
 		double riverDist = Double.POSITIVE_INFINITY;
 		for (RiverCell irc : island.getShape().getRiverCells()) {
 			riverDist = Math.min(riverDist, irc.minDistToRiver(x, z));

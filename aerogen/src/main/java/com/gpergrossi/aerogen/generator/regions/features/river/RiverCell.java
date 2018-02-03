@@ -6,6 +6,7 @@ import java.util.List;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.util.geom.shapes.LineSeg;
+import com.gpergrossi.util.geom.shapes.Spline;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Double2D;
 
@@ -15,8 +16,8 @@ public class RiverCell {
 	IslandCell islandCell;
 	int riverIndex;
 	
-	RiverWaterfall waterfallOut;
-	RiverWaterfall waterfallIn;
+	private RiverWaterfall waterfallOut;
+	private RiverWaterfall waterfallIn;
 	
 	private List<LineSeg> riverCurve;
 	private List<LineSeg> riverCurvePre;
@@ -52,62 +53,63 @@ public class RiverCell {
 	}
 	
 	private void genRiverCurve() {
-		Double2D pt0 = this.getPolygon().getCentroid();
-		Double2D pt1 = pt0, pt2 = pt0, pt3 = pt0, pt4 = pt0;
-		RiverCell prev = getRiverCellPrevious(); 
-		if (prev != null) {
-			pt0 = pt1 = prev.getPolygon().getCentroid();
-			prev = prev.getRiverCellPrevious();		
-			if (prev != null) pt0 = prev.getPolygon().getCentroid();
+		RiverCell cell2 = this;
+		RiverCell cell1 = cell2.getRiverCellPrevious();
+		RiverCell cell0 = cell1 == null ? null : cell1.getRiverCellPrevious();
+		RiverCell cell3 = cell2.getRiverCellNext();
+		RiverCell cell4 = cell3 == null ? null : cell3.getRiverCellNext();
+		
+		Spline spline = new Spline();
+		
+		if (cell0 != null) spline.addGuidePoint(-2, cell0.getPolygon().getCentroid());
+		if (cell1 != null) spline.addGuidePoint(-1, cell1.getPolygon().getCentroid());
+		if (this.waterfallIn != null) {
+			Double2D.Mutable midpoint = new Double2D.Mutable();
+			this.waterfallIn.getEdge().getMidpoint(midpoint);
+			spline.addGuidePoint(-0.5, midpoint);
 		}
-		RiverCell next = getRiverCellNext(); 
-		if (next != null) {
-			pt4 = pt3 = next.getPolygon().getCentroid();
-			next = next.getRiverCellNext();		
-			if (next != null) pt4 = next.getPolygon().getCentroid();
+		spline.addGuidePoint(0, cell2.getPolygon().getCentroid());
+		if (this.waterfallOut != null) {
+			Double2D.Mutable midpoint = new Double2D.Mutable();
+			this.waterfallOut.getEdge().getMidpoint(midpoint);
+			spline.addGuidePoint(0.5, midpoint);
 		}
+		if (cell3 != null) spline.addGuidePoint(1, cell3.getPolygon().getCentroid());
+		if (cell4 != null) spline.addGuidePoint(2, cell4.getPolygon().getCentroid());
 
 		riverCurve = new ArrayList<>();
 		
 		// Do blend with previous segment
-		if (pt1 != pt2) {
+		if (cell1 != null) {
 			riverCurvePre = new ArrayList<>();
-			Double2D last = catmullRomSmooth2d(0.5f, pt0, pt1, pt2, pt3);
-			for (int i = 6; i <= 10; i++) {
-				Double2D pt = catmullRomSmooth2d(i*0.1f, pt0, pt1, pt2, pt3);
-				LineSeg seg = new LineSeg(last.x(), last.y(), pt.x(), pt.y());
-				riverCurve.add(seg);
-				riverCurvePre.add(seg);
-				last = pt;
+			Double2D.Mutable pt = new Double2D.Mutable();
+			Double2D last = null;
+			for (int i = 0; i <= 5; i++) {
+				spline.getPoint(pt, i*0.1-0.5);
+				if (last != null) {
+					LineSeg seg = new LineSeg(last.x(), last.y(), pt.x(), pt.y());
+					riverCurve.add(seg);
+					riverCurvePre.add(seg);
+				}
+				last = pt.immutable();
 			}
 		}
 		
 		// Do blend with next segment
-		if (pt2 != pt3) {
+		if (cell3 != null) {
 			riverCurvePost = new ArrayList<>();
-			Double2D last = catmullRomSmooth2d(0.0f, pt1, pt2, pt3, pt4);
-			for (int i = 1; i <= 5; i++) {
-				Double2D pt = catmullRomSmooth2d(i*0.1f, pt1, pt2, pt3, pt4);
-				LineSeg seg = new LineSeg(last, pt);
-				riverCurve.add(seg);
-				riverCurvePost.add(seg);
-				last = pt;
+			Double2D.Mutable pt = new Double2D.Mutable();
+			Double2D last = null;
+			for (int i = 0; i <= 5; i++) {
+				spline.getPoint(pt, i*0.1);
+				if (last != null) {
+					LineSeg seg = new LineSeg(last.x(), last.y(), pt.x(), pt.y());
+					riverCurve.add(seg);
+					riverCurvePost.add(seg);
+				}
+				last = pt.immutable();
 			}
 		}
-	}
-
-	private Double2D catmullRomSmooth2d(double t, Double2D pt0, Double2D pt1, Double2D pt2, Double2D pt3) {
-		double x = catmullRomSmooth(t, pt0.x(), pt1.x(), pt2.x(), pt3.x());
-		double y = catmullRomSmooth(t, pt0.y(), pt1.y(), pt2.y(), pt3.y());
-		return new Double2D(x, y);
-	}
-	
-	/**
-	 * Thanks to Richard Hawkes
-	 * http://hawkesy.blogspot.com/2010/05/catmull-rom-spline-curve-implementation.html
-	 */
-	private double catmullRomSmooth(double t, double x0, double x1, double x2, double x3) {
-		return 0.5 * ((2*x1) + (x2-x0)*t + (2*x0-5*x1+4*x2-x3)*t*t + (-x0+3*x1-3*x2+x3)*t*t*t);
 	}
 
 	public List<LineSeg> getRiverCurve() {
@@ -157,12 +159,20 @@ public class RiverCell {
 		return (waterfallIn != null || waterfallOut != null);
 	}
 
-	public boolean hasWaterfallSource() {
+	public boolean isWaterfallSource() {
 		return (waterfallOut != null);
 	}
 
-	public boolean hasWaterfallDestination() {
+	public boolean isWaterfallDestination() {
 		return (waterfallIn != null);
+	}
+
+	public void setWaterfallOut(RiverWaterfall waterfallOut) {
+		this.waterfallOut = waterfallOut;
+	}
+
+	public void setWaterfallIn(RiverWaterfall waterfallIn) {
+		this.waterfallIn = waterfallIn;
 	}
 	
 }

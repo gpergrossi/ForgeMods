@@ -6,7 +6,7 @@ public interface IVector2D<T extends IVector2D<T>> extends IVector<T> {
 	public double angle();
 	
 	/**
-	 * Effective roation of -90 degrees
+	 * Effective rotation of -90 degrees
 	 * @return
 	 */
 	public T perpendicular();

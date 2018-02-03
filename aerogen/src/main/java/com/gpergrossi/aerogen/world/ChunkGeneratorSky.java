@@ -10,7 +10,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.IChunkGenerator;
-import net.minecraft.world.gen.ChunkGeneratorSettings;
 
 /**
  * Provides the method implementations for IChunkGenerator. Most work is done
@@ -23,8 +22,21 @@ public class ChunkGeneratorSky implements IChunkGenerator {
 	
 	public ChunkGeneratorSky(World world, long seed, String settingsJSON) {
 		this.world = world;
+		
+		if (!world.getWorldInfo().getGeneratorOptions().equals(settingsJSON)) {
+			System.err.println("!!! Settings do not match for world info and provided string:");
+			System.err.println("!!! World: "+world.getWorldInfo().getGeneratorOptions());
+			System.err.println("!!! Provided: "+settingsJSON);
+		}
+		
+		if (world.getSeed() != seed) {
+			System.err.println("!!! Seeds do not match for world object and provided value:");
+			System.err.println("!!! World: "+world.getSeed());
+			System.err.println("!!! Provided: "+seed);
+		}
+		
+		world.getWorldInfo().getGeneratorOptions();
 		this.generator = AeroGenerator.getGeneratorForWorld(world);
-		this.generator.setChunkGeneratorSettings(ChunkGeneratorSettings.Factory.jsonToFactory(settingsJSON).build());
 	}
 
 	@Override

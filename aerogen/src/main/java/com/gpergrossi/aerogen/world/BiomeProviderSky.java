@@ -20,10 +20,10 @@ public class BiomeProviderSky extends BiomeProvider {
 	AeroGenerator generator;
 	List<Biome> spawnBiomes;
 	
-	public BiomeProviderSky(World worldIn) {
-		super(worldIn.getWorldInfo());
+	public BiomeProviderSky(World world) {
+		super(world.getWorldInfo());
 
-		generator = AeroGenerator.getGeneratorForWorld(worldIn);
+		generator = AeroGenerator.getGeneratorForWorld(world);
 		this.spawnBiomes = Lists.newArrayList(Biomes.FOREST);
 	}
 

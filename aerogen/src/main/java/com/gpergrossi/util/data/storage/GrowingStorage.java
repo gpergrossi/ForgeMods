@@ -2,10 +2,9 @@ package com.gpergrossi.util.data.storage;
 
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
-
-import com.gpergrossi.util.data.DoublyLinkedList;
 
 public class GrowingStorage<T extends StorageItem> implements Storage<T> {
 
@@ -16,10 +15,10 @@ public class GrowingStorage<T extends StorageItem> implements Storage<T> {
 	private int lastStorageIndex;
 	private int lastStorageCapacity;
 	
-	private DoublyLinkedList<FixedSizeStorage<T>> storages;
+	private LinkedList<FixedSizeStorage<T>> storages;
 	
 	public GrowingStorage(IntFunction<T[]> arrayAllocator, int initialCapacity) {
-		this.storages = new DoublyLinkedList<>();
+		this.storages = new LinkedList<>();
 		this.arrayAllocator = arrayAllocator;
 		grow(initialCapacity);
 	}

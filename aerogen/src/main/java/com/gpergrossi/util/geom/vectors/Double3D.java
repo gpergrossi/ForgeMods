@@ -1,9 +1,6 @@
 package com.gpergrossi.util.geom.vectors;
 
 public class Double3D implements IVector3D<Double3D> {
-
-	public static final double EPSILON = 0.001;
-	public static final double EPSILON2 = EPSILON * EPSILON;
 	
 	public static final Double3D X_AXIS = new Double3D(1, 0, 0);
 	public static final Double3D Y_AXIS = new Double3D(0, 1, 0);
@@ -113,12 +110,13 @@ public class Double3D implements IVector3D<Double3D> {
 		int dx = (int) Math.signum(this.x - other.x);
 		if (dx != 0) return dx;
 		
-		return Integer.compare(this.hashCode(), other.hashCode());
+		return 0;
+		//return Integer.compare(this.hashCode(), other.hashCode());
 	}
 
 	@Override
 	public boolean equals(Double3D other) {
-		return this.distanceSquaredTo(other) < EPSILON2;
+		return this.distanceSquaredTo(other) < Double2D.EPSILON2;
 	}
 	
 	@Override
@@ -126,13 +124,13 @@ public class Double3D implements IVector3D<Double3D> {
 		double x = this.y*vector.z - this.z*vector.y;
 		double y = this.z*vector.x - this.x*vector.z;
 		double z = this.x*vector.y - this.y*vector.x;
-		return new Double3D(x, y, z);
+		return this.redefine(x, y, z);
 	}
 
 	@Override
 	public Double3D rotate(Double3D axis, double theta) {
 		Quaternion rotation = Quaternion.fromAxisRotation(axis, theta);
-		return rotation.applyRotation(this);
+		return rotation.multiply(this);
 	}
 	
 	@Override
@@ -169,7 +167,7 @@ public class Double3D implements IVector3D<Double3D> {
 			return this;
 		}
 
-		public Mutable copy(Double3D other) {
+		public Mutable copyFrom(Double3D other) {
 			this.x = other.x;
 			this.y = other.y;
 			this.z = other.z;
@@ -183,7 +181,7 @@ public class Double3D implements IVector3D<Double3D> {
 
 		@Override
 		public Double3D immutable() {
-			return this;
+			return new Double3D(x, y, z);
 		}
 		
 		@Override
@@ -234,16 +232,13 @@ public class Double3D implements IVector3D<Double3D> {
 			double x = this.y*vector.z - this.z*vector.y;
 			double y = this.z*vector.x - this.x*vector.z;
 			double z = this.x*vector.y - this.y*vector.x;
-			this.x = x;
-			this.y = y;
-			this.z = z;
-			return this;
+			return this.redefine(x, y, z);
 		}
 		
 		@Override
 		public Mutable rotate(Double3D axis, double theta) {
 			Quaternion rotation = Quaternion.fromAxisRotation(axis, theta);
-			return (Mutable) rotation.applyRotation(this);
+			return (Mutable) rotation.multiply(this);
 		}
 		
 	}

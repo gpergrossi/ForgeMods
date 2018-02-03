@@ -28,7 +28,7 @@ public class Double3DTest {
 	}
 	
 	public static boolean equal(double a, double b) {
-		return (Math.abs(a - b) > 0.0001);
+		return (Math.abs(a - b) < 0.0001);
 	}
 	
 	@Test
@@ -72,5 +72,5 @@ public class Double3DTest {
 			assertTrue(equal(cross, rcross));
 		}
 	}
-
+	
 }

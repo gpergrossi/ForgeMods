@@ -5,12 +5,13 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.TreeMap;
 
-import com.google.common.base.Optional;
 import com.gpergrossi.util.data.queue.PriorityMultiQueue;
 import com.gpergrossi.util.data.queue.ReadOnlyQueue;
 
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Optional;
+import java.util.Random;
 
 public class Int1DMultiRange {
 
@@ -151,7 +152,7 @@ public class Int1DMultiRange {
 		if (rangesMap.size() == 1) {
 			return Optional.of(rangesMap.firstEntry().getValue());
 		} else {
-			return Optional.absent();
+			return Optional.empty();
 		}
 	}
 
@@ -298,6 +299,28 @@ public class Int1DMultiRange {
 	 */
 	public boolean contains(long value) {
 		return contains((int) Math.min(Math.max(value, Integer.MIN_VALUE), Integer.MAX_VALUE));
+	}
+	
+	public int valueFor(long index) {
+		for (Int1DRange range : rangesMap.values()) {
+			if (index >= range.size()) {
+				index -= range.size();
+				continue;
+			}
+			return range.valueFor(index);
+		}
+		throw new IndexOutOfBoundsException();
+	}
+	
+	public int random(Random random) {
+		long index;
+		if (this.size < Integer.MAX_VALUE) {
+			index = random.nextInt((int) size);
+		} else {
+			long rollLong = random.nextLong() & Long.MAX_VALUE;
+			index = rollLong % size;
+		}
+		return valueFor(index);
 	}
 	
 	@Override

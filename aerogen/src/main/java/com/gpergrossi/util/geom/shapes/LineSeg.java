@@ -29,6 +29,12 @@ public class LineSeg extends Line {
 		return length;
 	}
 
+	public void getMidpoint(Double2D.Mutable ptr) {
+		double t = length/2.0;
+		ptr.x(getX(t));
+		ptr.y(getY(t));
+	}
+	
 	public double length() {
 		return length;
 	}

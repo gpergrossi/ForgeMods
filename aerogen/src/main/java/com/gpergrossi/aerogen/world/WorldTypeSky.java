@@ -2,6 +2,8 @@ package com.gpergrossi.aerogen.world;
 
 import java.util.Random;
 
+import com.gpergrossi.aerogen.ui.GuiAerogenWorldSettingsScreen;
+
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeProvider;
@@ -14,16 +16,16 @@ public class WorldTypeSky extends WorldType {
 	public WorldTypeSky() {
 		super("AEROGEN_SKY");
 	}
-	
-    @SideOnly(Side.CLIENT)
-    public String getTranslateName() {
-        return "AeroGen Sky World";
-    }
 
+    /**
+     * Gets the translation key for the name of this world type.
+     */
     @SideOnly(Side.CLIENT)
-    public String getTranslatedInfo() {
-        return "AeroGen Sky World";
-    }
+    public String getTranslationKey() {
+    	// TODO change this back to generator.AEROGEN_SKY and add
+    	// the translation to an actual localization file somewhere
+    	return "Aerogen Sky";
+    }    
 
     @Override
     public BiomeProvider getBiomeProvider(World world) {
@@ -61,6 +63,24 @@ public class WorldTypeSky extends WorldType {
     public boolean handleSlimeSpawnReduction(Random random, World world) {
     	// Seems to return true when a slime should not be spawned or maybe when they should despawn
         return false; //random.nextInt(4) != 1 : 
+    }
+    
+    /**
+     * Called when the 'Customize' button is pressed on world creation GUI
+     * @param mc The Minecraft instance
+     * @param guiCreateWorld the createworld GUI
+     */
+    @SideOnly(Side.CLIENT)
+    public void onCustomizeButton(net.minecraft.client.Minecraft mc, net.minecraft.client.gui.GuiCreateWorld guiCreateWorld) {
+    	mc.displayGuiScreen(new GuiAerogenWorldSettingsScreen(guiCreateWorld, guiCreateWorld.chunkProviderSettingsJson));
+    }
+
+    /**
+     * Should world creation GUI show 'Customize' button for this world type?
+     * @return if this world type has customization parameters
+     */
+    public boolean isCustomizable() {
+        return true;
     }
     
 }

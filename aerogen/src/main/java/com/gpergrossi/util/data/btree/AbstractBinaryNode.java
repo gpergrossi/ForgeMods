@@ -4,6 +4,50 @@ import java.util.Iterator;
 
 public abstract class AbstractBinaryNode<T extends AbstractBinaryNode<T>> implements IBinaryNode<T>, Iterable<T> {
 	
+	protected final static <T extends AbstractBinaryNode<T>> void swap(T a, T b) {
+		if (a == b) return;
+		if (a.hasAncestor(b)) swap (b, a);
+		if (a.getRoot() != b.getRoot()) throw new IllegalArgumentException("Nodes must be in same tree");
+
+		// Remember all connections
+		T aLeft = a.getLeftChild();
+		T aRight = a.getRightChild();
+		T bLeft = b.getLeftChild();
+		T bRight = b.getRightChild();
+		T bParent = b.getParent();
+		boolean bSideIsRight = b.isRightChild();
+		
+		// Remove children from both nodes
+		if (bLeft != null) bLeft.removeFromParent();
+		if (bRight != null) bRight.removeFromParent();		
+		if (aLeft != null) aLeft.removeFromParent();
+		if (aRight != null) aRight.removeFromParent();
+		
+		// Remove b from its parent, replace a with b
+		b.removeFromParent();
+		a.replaceWith(b); // replaceWith is overridden in Node to handle tree root
+		
+		// Reconnect b's old children to a
+		a.setLeftChild(bLeft);
+		a.setRightChild(bRight);
+		
+		// Reconnect a's old children to b
+		// Special cases for when b is child of a
+		if (aLeft != b) b.setLeftChild(aLeft);
+		if (aRight != b) b.setRightChild(aRight);
+		
+		// Reconnect a to parent
+		// Special case for when b is child of a
+		if (bParent == a) bParent = b; 
+		if (bSideIsRight) {
+			bParent.setRightChild(a);
+		} else {
+			bParent.setLeftChild(a);
+		}
+	}
+	
+	
+	
 	T parent;
 	T leftChild, rightChild;
 	
