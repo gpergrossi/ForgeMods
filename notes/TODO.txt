@@ -1,0 +1,56 @@
+Forward Compatability:
+=========================
+Add a semi-immutable production line for regions/islands
+   steps in the process have a version number
+Create a regenerate command for regions/islands
+   saved islands and regions have some settings recorded
+   such as: seed, size, biomes list, etc.
+   to tell the user when its not possible to regenerate
+
+
+Systems:
+==============
+Region feature system that supports rivers and similar without
+   specific close integration with the island generator code
+
+
+Missing Game Features:
+=========================
+Trees of every type
+Accessible lava
+
+
+Important Fixes:
+===================
+Rivers and head lakes look far too regular
+Edge-of-chunk issue with trees eating eachother
+Grass eating jungle shrubs
+Jungle trees floating
+
+
+Nice to haves:
+=================
+Jungle island roots
+Feature placement option for full coverage with percent per tile
+	(instead of randomly rolling coordinates and testing)
+Mod capes?
+
+https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/2524489-realistic-terrain-generation-rtg-realistic-biomes
+https://minecraft.curseforge.com/projects/biomes-o-plenty
+
+
+
+
+
+
+
+Fixed/Done:
+===================
+(1/31)	Constraint system for waterfalls and future region features
+(2/1)	Waterfalls should just go to the center of their edge
+	  this requires more points in the bezier curve
+(2/2)	Double3DTest#rotateTest failing
+
+
+VR Idea:
+Timeline scrubbing 3d world 'video' with consequences

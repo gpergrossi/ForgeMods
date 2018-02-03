@@ -1,0 +1,61 @@
+Entry points to generation:
+  1. Chunk loading
+  2. Asking for a world spawn
+
+
+Generator steps:
+
+1. InfiniteVoronoi cell located
+2. New Region object assigned to cell
+3. Region is assigned a seed
+4. Region generation:
+   A. Region biome is assigned
+   B. Region cells voronoi diagram constructed
+   C. Islands Constructed
+   D. Islands assigned IslandCells
+   E. Region features populated:
+      1. Each feature produces instances
+      2. (Optional) Island altitude constraints created
+   F. Altitude constraints solved. Islands assigned altitudes
+5. Island generation:
+   A. Biome extensions applied
+   B. IslandBiome generates shape
+   C. IslandBiome generates heightmap
+   D. terrain features added to heightmap
+   E. caves carved
+6. Biomes are simply island's biome or region's empty-space biome
+
+
+Region features are for:
+- Island to island bridges
+- Rivers/Waterfalls
+- Structures (Strongholds, Villages, Jungle/Ocean Temples, Dungeons, etc.)
+- Features added to all/some islands that wouldn't normally have them
+- Non-island features
+
+Region features should be able to:
+1. Affect island cell groupings
+2. Create altitude constraints
+3. Set island biomes
+4. Avoid island biomes
+5. Read island's cell list
+6. Create island features
+
+Island features should be able to:
+1. Modify the shape of islands (make sure rivers are inside erosion)
+2. Modify island heightmaps (again, carving rivers)
+3. Place and remove blocks in the pre-populate and post-populate phase
+4. Add decorations to islands decorate list
+
+Decorations are simple features like:
+- Trees
+- Rocks
+- Flowers
+- Grass
+
+Decorations have two components:
+1. A block generator
+2. A "placement" class which decides:
+   a. Where the decoration can be placed (under water, on grass, on sand, in caves, etc.)
+   b. How many there are per island/chunk/volume/density
+   c. Cluster count and radius

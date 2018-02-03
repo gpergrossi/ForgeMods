@@ -1,0 +1,35 @@
+Updating versions: 
+reference: https://bedrockminer.jimdo.com/modding-tutorials/basic-modding-1-7/updating-forge-gradle/
+
+1. Close clipse
+
+2. Edit build.gradle to:
+
+   minecraft {
+      version = "new.version.here" // latest version numbers at http://files.minecraftforge.net/
+      runDir = "eclipse/assets"
+   }
+
+3. Run the following:
+
+   gradlew cleanCache
+   gradlew setupDecompWorkspace --refresh-dependencies
+   gradlew eclipse //or idea
+
+4. If there were errors, it's time to change the Gradle version number.
+   Find this in build.gradle:
+   
+   buildscript {
+       [...]
+       dependencies {
+           classpath 'net.minecraftforge.gradle:ForgeGradle:1.1-SNAPSHOT'
+       }
+   }
+   
+   Change the gradle version to work with the current release of forge.
+
+5. If all else fails:
+   a. backup source code
+   b. download a fresh copy of forge developer tools
+   c. setup the workspace
+   d. copy in the source code backup
