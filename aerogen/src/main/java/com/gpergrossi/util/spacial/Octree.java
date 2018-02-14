@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.gpergrossi.util.data.Tuple2;
-import com.gpergrossi.util.data.ranges.Int3DRange;
+import com.gpergrossi.util.geom.ranges.Int3DRange;
 import com.gpergrossi.util.geom.vectors.Double3D;
 import com.gpergrossi.util.spacial.Octree.IEntry;
 

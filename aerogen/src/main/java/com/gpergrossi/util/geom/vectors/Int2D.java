@@ -3,7 +3,7 @@ package com.gpergrossi.util.geom.vectors;
 import java.util.Optional;
 import java.util.function.Function;
 
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 
 public class Int2D implements IVector2D<Int2D> {
 
@@ -160,6 +160,11 @@ public class Int2D implements IVector2D<Int2D> {
 		this.x = (int) Math.floor(x * cos - y * sin);
 		this.y = (int) Math.floor(x * sin + y * cos);
 		return this;
+	}
+	
+	@Override
+	public int hashCode() {
+		return (x * 397) ^ y;
 	}
 	
 	public static class WithIndex extends Mutable {

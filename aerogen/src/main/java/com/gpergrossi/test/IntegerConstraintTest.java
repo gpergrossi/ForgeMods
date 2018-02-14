@@ -1,6 +1,6 @@
 package com.gpergrossi.test;
 
-import static com.gpergrossi.util.constraints.integer.IntegerConstraint.*;
+import static com.gpergrossi.constraints.integer.IntegerConstraint.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -9,10 +9,10 @@ import java.util.Random;
 
 import org.junit.Test;
 
-import com.gpergrossi.util.constraints.generic.IConstraintClass;
-import com.gpergrossi.util.constraints.integer.IntegerConstraint;
-import com.gpergrossi.util.constraints.integer.IntegerSolver;
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.generic.IConstraintClass;
+import com.gpergrossi.constraints.integer.IntegerConstraint;
+import com.gpergrossi.constraints.integer.IntegerSolver;
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
 
 public class IntegerConstraintTest {
 	

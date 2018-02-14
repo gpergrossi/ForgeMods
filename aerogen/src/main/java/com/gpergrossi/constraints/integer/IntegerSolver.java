@@ -1,9 +1,10 @@
-package com.gpergrossi.util.constraints.integer;
+package com.gpergrossi.constraints.integer;
 
 import java.util.Random;
+
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.matrix.MatrixEntry;
 import com.gpergrossi.util.data.WeightedList;
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
-import com.gpergrossi.util.constraints.matrix.MatrixEntry;
 
 public class IntegerSolver {
 	

@@ -17,7 +17,7 @@ public class Large2DArrayTest {
 	
 	@Test
 	public void testOne() {
-		Large2DArray<Integer> l2da = new Large2DArray<>(t -> new Integer[t]);
+		Large2DArray<Integer> l2da = new Large2DArray<>();
 		
 		l2da.set(40, 40, 70919283);
 		assertEquals((int) l2da.get(40, 40), 70919283);
@@ -26,7 +26,7 @@ public class Large2DArrayTest {
 	
 	@Test
 	public void testMany() {
-		Large2DArray<Integer> l2da = new Large2DArray<>(t -> new Integer[t]);
+		Large2DArray<Integer> l2da = new Large2DArray<>();
 		
 		System.out.println("Inserting values");
 		for (int i = 0; i < count; i++) {
@@ -65,7 +65,7 @@ public class Large2DArrayTest {
 	
 	@Test
 	public void valueUpdate() {
-		Large2DArray<Integer> l2da = new Large2DArray<>(t -> new Integer[t]);
+		Large2DArray<Integer> l2da = new Large2DArray<>();
 		
 		// Create
 		l2da.set(40, 40, 70919283);
@@ -86,7 +86,7 @@ public class Large2DArrayTest {
 	
 	@Test
 	public void redundantDelete() {
-		Large2DArray<Integer> l2da = new Large2DArray<>(t -> new Integer[t]);
+		Large2DArray<Integer> l2da = new Large2DArray<>();
 		
 		l2da.set(40, 40, 70919283);
 		assertEquals((int) l2da.get(40, 40), 70919283);
@@ -103,7 +103,7 @@ public class Large2DArrayTest {
 	
 	@Test
 	public void hashCollision() {
-		Large2DArray<Integer> l2da = new Large2DArray<>(t -> new Integer[t]);
+		Large2DArray<Integer> l2da = new Large2DArray<>();
 		
 		Large2DArray.StorageHash hash1 = new Large2DArray.StorageHash(40, 40);
 		Large2DArray.StorageHash hash2 = new Large2DArray.StorageHash(40 + 0x80000, 40);

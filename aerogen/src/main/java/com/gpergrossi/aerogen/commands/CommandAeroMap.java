@@ -3,7 +3,7 @@ package com.gpergrossi.aerogen.commands;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.gpergrossi.aerogen.generator.AeroGenerator;
+import com.gpergrossi.aerogen.AeroGenerator;
 
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;

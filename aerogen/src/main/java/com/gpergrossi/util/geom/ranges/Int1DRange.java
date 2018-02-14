@@ -1,4 +1,4 @@
-package com.gpergrossi.util.data.ranges;
+package com.gpergrossi.util.geom.ranges;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

@@ -1,11 +1,11 @@
-package com.gpergrossi.util.constraints.matrix;
+package com.gpergrossi.constraints.matrix;
 
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 
-import com.gpergrossi.util.constraints.generic.IConstraint;
+import com.gpergrossi.constraints.generic.IConstraint;
 
 public abstract class ImplicationRules<ConstraintClass extends IConstraint<ConstraintClass, ?>> {
 

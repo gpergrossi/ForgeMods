@@ -1,6 +1,6 @@
 package com.gpergrossi.util.math.func2d;
 
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 
 public class FiniteFeature implements Function2D {
 

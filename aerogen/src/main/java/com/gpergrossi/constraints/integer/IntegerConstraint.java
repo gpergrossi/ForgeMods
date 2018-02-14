@@ -1,13 +1,13 @@
-package com.gpergrossi.util.constraints.integer;
+package com.gpergrossi.constraints.integer;
 
 import java.util.Random;
 
-import com.gpergrossi.util.constraints.generic.IConstraint;
-import com.gpergrossi.util.constraints.generic.IConstraintClass;
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
-import com.gpergrossi.util.constraints.matrix.ImplicationRules;
-import com.gpergrossi.util.data.ranges.Int1DMultiRange;
-import com.gpergrossi.util.data.ranges.Int1DRange;
+import com.gpergrossi.constraints.generic.IConstraint;
+import com.gpergrossi.constraints.generic.IConstraintClass;
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.matrix.ImplicationRules;
+import com.gpergrossi.util.geom.ranges.Int1DMultiRange;
+import com.gpergrossi.util.geom.ranges.Int1DRange;
 
 public class IntegerConstraint implements IConstraint<IntegerConstraint, Integer> {
 

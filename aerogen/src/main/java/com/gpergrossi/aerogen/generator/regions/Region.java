@@ -8,11 +8,12 @@ import java.util.Random;
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
 import com.gpergrossi.aerogen.definitions.regions.RegionBiome;
 import com.gpergrossi.aerogen.definitions.regions.RegionBiomes;
+import com.gpergrossi.aerogen.generator.IslandProvider;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
-import com.gpergrossi.util.constraints.integer.IntegerConstraint;
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.integer.IntegerConstraint;
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.voronoi.Edge;
@@ -26,6 +27,7 @@ public class Region {
 	// Region details
 	private final RegionManager manager;
 	private final InfiniteCell regionCell;
+	private final IslandProvider provider;
 	
 	private Random random;
 	private RegionBiome biome;
@@ -42,6 +44,7 @@ public class Region {
 	
 	public Region(RegionManager manager, InfiniteCell boundaryCell) {
 		this.manager = manager;
+		this.provider = manager.getProvider();
 				
 		this.regionCell = boundaryCell;
 		if (boundaryCell != null) {
@@ -63,9 +66,10 @@ public class Region {
 			biome = RegionBiomes.randomBiome(random);
 		}
 		
-		List<Site> subCells = createSubCells(manager.getCellSize() * biome.getCellSizeMultiplier(), 4);
+		double cellSize = provider.getSettings().islandCellSize * biome.getCellSizeMultiplier();
+		List<Site> subCells = createSubCells(cellSize, 4);
 		
-		this.averageCellRadius = Math.sqrt(manager.getCellSize())/2.0;
+		this.averageCellRadius = Math.sqrt(cellSize)/2.0;
 		this.islandCells = createIslands(subCells);
 		this.islandCells = Collections.unmodifiableList(islandCells);
 		this.islands = Collections.unmodifiableList(islands);
@@ -329,6 +333,14 @@ public class Region {
 		return "Region ("+regionCell.cellX+", "+regionCell.cellY+")";
 	}
 
+	public RegionManager getManager() {
+		return manager;
+	}
+	
+	public IslandProvider getProvider() {
+		return provider;
+	}
+	
 	public Convex getRegionPolygon() {
 		return regionCell.getPolygon();
 	}

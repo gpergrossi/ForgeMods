@@ -4,11 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.features.AbstractFeature;
 import com.gpergrossi.aerogen.generator.decorate.placement.IPlacement;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
 import net.minecraft.util.math.BlockPos;
@@ -51,7 +50,7 @@ public class IslandDecorator {
 		return this;
 	}
 	
-	public void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random, GenerationPhase currentPhase) {
+	public void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random, PopulatePhase currentPhase) {
 		//System.out.println("Decorating with "+features.size()+" features");
 		Int2D.Mutable pos = new Int2D.Mutable();
 

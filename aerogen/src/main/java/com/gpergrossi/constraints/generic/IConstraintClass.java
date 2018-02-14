@@ -1,7 +1,7 @@
-package com.gpergrossi.util.constraints.generic;
+package com.gpergrossi.constraints.generic;
 
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
-import com.gpergrossi.util.constraints.matrix.ImplicationRules;
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.matrix.ImplicationRules;
 
 /**
  * An {@code IConstraintClass} represents a class of constraints (e.g. Integer constraints).

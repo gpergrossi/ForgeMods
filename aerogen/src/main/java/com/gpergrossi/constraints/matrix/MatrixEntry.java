@@ -1,6 +1,6 @@
-package com.gpergrossi.util.constraints.matrix;
+package com.gpergrossi.constraints.matrix;
 
-import com.gpergrossi.util.constraints.generic.IConstraint;
+import com.gpergrossi.constraints.generic.IConstraint;
 
 public abstract class MatrixEntry<ConstraintClass extends IConstraint<ConstraintClass, ?>> {
 	

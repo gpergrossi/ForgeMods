@@ -8,14 +8,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.AeroGenerator;
-import com.gpergrossi.aerogen.generator.WorldPrimerChunk;
+import com.gpergrossi.aerogen.AeroGenerator;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.river.River;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverFeature;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
+import com.gpergrossi.aerogen.primer.WorldPrimerChunk;
 import com.gpergrossi.util.geom.shapes.Convex;
 
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -25,6 +25,7 @@ import net.minecraft.util.math.Vec3d;
 public class AeroGeneratorView extends View {
 
 	List<Region> regions;
+	List<Island> islands;
 	AeroGenerator generator;
 	
 	public AeroGeneratorView(AeroGenerator generator) {
@@ -35,6 +36,7 @@ public class AeroGeneratorView extends View {
 	@Override
 	public void init() {
 		regions = new ArrayList<>();
+		islands = new ArrayList<>();
 		this.setFPS(12);
 	}
 	
@@ -61,9 +63,11 @@ public class AeroGeneratorView extends View {
 		g2d.drawLine(spawn.getX()-5, spawn.getZ()+5, spawn.getX()+5, spawn.getZ()-5);
 		
 		regions.clear();
-		generator.getRegionManager().getLoadedRegions(regions);
+		generator.getIslandProvider().debugGetLoadedRegions(regions);
 		for (Region region : regions) {
-			for (Island island : region.getIslands()) {
+			islands.clear();
+			generator.getIslandProvider().getIslandsInRegion(islands, region);
+			for (Island island : islands) {
 
 				Random random = new Random(island.getSeed());
 				float hue = random.nextFloat();
@@ -106,7 +110,7 @@ public class AeroGeneratorView extends View {
 			g2d.draw(region.getRegionPolygon().asAWTShape());
 		}
 		
-		Iterator<WorldPrimerChunk> chunkIter = generator.getWorldPrimer().chunks.iterator();
+		Iterator<WorldPrimerChunk> chunkIter = generator.getWorldPrimer().getChunks();
 		
 		try {
 			while (chunkIter.hasNext()) {
@@ -121,6 +125,11 @@ public class AeroGeneratorView extends View {
 					if (chunk.isPopulated()) blue = 255;
 				} else { red = green = blue = 0; }
 				g2d.setColor(new Color(red, green, blue));
+				
+				if (chunk.isDirty()) {
+					g2d.drawLine(chunkMinX+4, chunkMinZ+4, chunkMinX+12, chunkMinZ+12);
+					g2d.drawLine(chunkMinX+4, chunkMinZ+12, chunkMinX+12, chunkMinZ+4);
+				}
 				
 				if (!chunk.isNeighborSameStatus(-1, 0)) g2d.drawLine(chunkMinX, chunkMinZ, chunkMinX, chunkMinZ+15);
 				if (!chunk.isNeighborSameStatus(1, 0))  g2d.drawLine(chunkMinX+15, chunkMinZ, chunkMinX+15, chunkMinZ+15);
@@ -139,57 +148,30 @@ public class AeroGeneratorView extends View {
 	}
 
 	@Override
-	public void drawOverlayUI(Graphics2D g2d) {
-		// TODO Auto-generated method stub
-
-	}
+	public void drawOverlayUI(Graphics2D g2d) {}
+	
+	@Override
+	public void mousePressed() {}
 
 	@Override
-	public void mousePressed() {
-		// TODO Auto-generated method stub
-
-	}
+	public void mouseDragged() {}
 
 	@Override
-	public void mouseDragged() {
-		// TODO Auto-generated method stub
-
-	}
+	public void mouseReleased() {}
 
 	@Override
-	public void mouseReleased() {
-		// TODO Auto-generated method stub
-
-	}
+	public void mouseMoved() {}
 
 	@Override
-	public void mouseMoved() {
-		// TODO Auto-generated method stub
-
-	}
+	public void mouseScrolled() {}
 
 	@Override
-	public void mouseScrolled() {
-		// TODO Auto-generated method stub
-
-	}
+	public void keyPressed() {}
 
 	@Override
-	public void keyPressed() {
-		// TODO Auto-generated method stub
-
-	}
+	public void keyReleased() {}
 
 	@Override
-	public void keyReleased() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void keyTyped() {
-		// TODO Auto-generated method stub
-
-	}
+	public void keyTyped() {}
 
 }

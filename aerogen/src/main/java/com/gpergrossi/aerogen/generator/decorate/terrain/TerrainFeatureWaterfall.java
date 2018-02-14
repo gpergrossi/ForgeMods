@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
-import com.gpergrossi.aerogen.generator.GenerationPhase;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.geom.vectors.Int2D;
@@ -116,9 +116,9 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean provideChunk(ChunkPrimer primer, Int2DRange chunkRange, Random random) {
+	public void provideChunk(ChunkPrimer primer, Int2DRange chunkRange, Random random) {
 		Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
-		if (overlap.isEmpty()) return false;
+		if (overlap.isEmpty()) return;
 
 		IslandBiome biome = this.island.getBiome();
 		
@@ -171,16 +171,14 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 		for (ITerrainFeature feature : this.subFeatures) {
 			feature.provideChunk(primer, chunkRange, random);
 		}
-		
-		return true;
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
-		if (currentPhase != GenerationPhase.POST_POPULATE) return false;
+	public void populateChunk(World world, Int2DRange chunkRange, Random random, PopulatePhase currentPhase) {
+		if (currentPhase != PopulatePhase.POST_POPULATE) return;
 
 		Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
-		if (overlap.isEmpty()) return false;
+		if (overlap.isEmpty()) return;
 
 		IslandBiome biome = this.island.getBiome();
 		
@@ -213,8 +211,6 @@ public class TerrainFeatureWaterfall implements ITerrainFeature {
 		for (ITerrainFeature feature : this.subFeatures) {
 			feature.populateChunk(world, chunkRange, random, currentPhase);
 		}
-		
-		return true;	
 	}
 	
 	

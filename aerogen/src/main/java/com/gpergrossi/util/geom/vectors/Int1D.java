@@ -1,6 +1,6 @@
 package com.gpergrossi.util.geom.vectors;
 
-import com.gpergrossi.util.data.ranges.Int1DRange;
+import com.gpergrossi.util.geom.ranges.Int1DRange;
 
 public class Int1D implements IVector<Int1D> {
 

@@ -26,6 +26,9 @@ public class GuiAerogenWorldSettingsScreen extends GuiScreen {
 	private void loadValues(String settingsJSON) {
 		System.out.println("Settings: "+settingsJSON);
 		this.settingsJSON = settingsJSON;
+		
+		// TODO remove this
+		this.settingsJSON = "{regionGridSize:256.0}";
 	}
  
     /**

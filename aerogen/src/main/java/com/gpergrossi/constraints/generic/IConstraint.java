@@ -1,4 +1,4 @@
-package com.gpergrossi.util.constraints.generic;
+package com.gpergrossi.constraints.generic;
 
 /**
  * <i>All classes that implement IConstraint should be immutable!</i><br /><br />

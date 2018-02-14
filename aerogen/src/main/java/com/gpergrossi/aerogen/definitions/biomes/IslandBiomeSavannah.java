@@ -5,8 +5,9 @@ import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.Biome;
 import java.util.Random;
-import com.gpergrossi.aerogen.generator.GenerationPhase;
+
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureTrees;
 import com.gpergrossi.aerogen.generator.decorate.placeables.Placeables;
@@ -61,7 +62,7 @@ public class IslandBiomeSavannah extends IslandBiome {
 				new PlacementHighestBlock()
 				.withDesiredCount(0)
 				.withChanceForExtra(0.125f)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 

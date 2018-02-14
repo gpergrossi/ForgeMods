@@ -1,10 +1,10 @@
-package com.gpergrossi.util.constraints.matrix;
+package com.gpergrossi.constraints.matrix;
 
 import java.util.function.Consumer;
 
-import com.gpergrossi.util.constraints.generic.IConstraint;
-import com.gpergrossi.util.constraints.generic.IConstraintClass;
-import com.gpergrossi.util.constraints.matrix.MatrixEntry.Stored;
+import com.gpergrossi.constraints.generic.IConstraint;
+import com.gpergrossi.constraints.generic.IConstraintClass;
+import com.gpergrossi.constraints.matrix.MatrixEntry.Stored;
 
 public class ConstraintMatrix<ConstraintClass extends IConstraint<ConstraintClass, ?>> {
 	

@@ -1,9 +1,10 @@
 package com.gpergrossi.viewframe.chunks;
 
-import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+
+import com.gpergrossi.util.geom.vectors.Int2D;
 
 public class View2DChunkLoader<T extends View2DChunk<T>> extends ChunkLoader<T> {
 	
@@ -16,7 +17,7 @@ public class View2DChunkLoader<T extends View2DChunk<T>> extends ChunkLoader<T> 
 	public int chunkSize;
 	public long seed;
 	
-	Map<Point, T> map;
+	Map<Int2D, T> map;
 	
 	public View2DChunkLoader(int chunkSize, ChunkConstructor<T> chunkConstructor) {
 		this(new Random().nextLong(), chunkSize, chunkConstructor);
@@ -36,7 +37,7 @@ public class View2DChunkLoader<T extends View2DChunk<T>> extends ChunkLoader<T> 
 	
 	@Override
 	public T getChunk(int chunkX, int chunkY) {
-		Point pt = new Point(chunkX, chunkY);
+		Int2D pt = new Int2D(chunkX, chunkY);
 		
 		T chunk = map.get(pt);
 		if (chunk == null) {

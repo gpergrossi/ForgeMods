@@ -7,8 +7,8 @@ import net.minecraft.world.biome.Biome;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSingle;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
@@ -64,7 +64,7 @@ public class IslandBiomeForestRoofed extends IslandBiome {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(20)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 

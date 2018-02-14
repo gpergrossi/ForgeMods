@@ -11,7 +11,7 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
-import com.gpergrossi.util.constraints.integer.IntegerConstraint;
+import com.gpergrossi.constraints.integer.IntegerConstraint;
 import com.gpergrossi.util.data.WeightedList;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.voronoi.Edge;

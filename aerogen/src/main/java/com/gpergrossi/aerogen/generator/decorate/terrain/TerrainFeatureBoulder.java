@@ -2,8 +2,8 @@ package com.gpergrossi.aerogen.generator.decorate.terrain;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.GenerationPhase;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
 import net.minecraft.block.state.IBlockState;
@@ -65,9 +65,9 @@ public class TerrainFeatureBoulder implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean provideChunk(ChunkPrimer primer, Int2DRange chunkRange, Random random) {
+	public void provideChunk(ChunkPrimer primer, Int2DRange chunkRange, Random random) {
 		Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
-		if (overlap.isEmpty()) return false;
+		if (overlap.isEmpty()) return;
 		
 		for (Int2D xz : overlap.getAllMutable()) {
 			for (int y = minY; y <= maxY; y++) {
@@ -83,14 +83,10 @@ public class TerrainFeatureBoulder implements ITerrainFeature {
 				}
 			}
 		}
-		
-		return true;
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
-		return false;
-	}
+	public void populateChunk(World world, Int2DRange chunkRange, Random random, PopulatePhase currentPhase) {}
 	
 	
 

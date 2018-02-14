@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
 
 public class Large2DArray<T> implements Iterable<T> {
 
@@ -124,11 +123,8 @@ public class Large2DArray<T> implements Iterable<T> {
 	
 	long size;
 	BlockCache blockCache = new BlockCache();
-	Function<Integer, T[]> arrayAllocator;
 	
-	public Large2DArray(Function<Integer, T[]> arrayAllocator) {
-		this.arrayAllocator = arrayAllocator;
-	}	
+	public Large2DArray() {}	
 	
 	@SuppressWarnings("unchecked")
 	public T get(int i, int j) {

@@ -2,8 +2,8 @@ package com.gpergrossi.aerogen.definitions.biomes;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureMinable;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureUnderwaterDeposit;
@@ -15,7 +15,7 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.contour.IslandErosion;
 import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
 import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStone;
@@ -40,7 +40,7 @@ public abstract class IslandBiome {
 	
 	protected abstract IslandDecorator createDecorator();
 	
-	public final void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random, GenerationPhase currentPhase) {
+	public final void decorate(World world, Island island, Int2DRange chunkRange, Int2DRange overlapRange, Random random, PopulatePhase currentPhase) {
 		IslandDecorator decorator = this.getDecorator();
 		if (decorator == null) {
 			System.out.println("Null decorator");
@@ -121,7 +121,7 @@ public abstract class IslandBiome {
 				new PlacementIslandInterior()
 				.withDesiredCount(4)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -134,7 +134,7 @@ public abstract class IslandBiome {
 				new PlacementIslandInterior()
 				.withDesiredCount(4)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -146,7 +146,7 @@ public abstract class IslandBiome {
 				new PlacementIslandInterior()
 				.withDesiredCount(8)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 
@@ -158,7 +158,7 @@ public abstract class IslandBiome {
 				new PlacementIslandInterior()
 				.withDesiredCount(8)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -170,7 +170,7 @@ public abstract class IslandBiome {
 				new PlacementIslandInterior()
 				.withDesiredCount(8)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -183,7 +183,7 @@ public abstract class IslandBiome {
 				new PlacementIslandInterior()
 				.withDesiredCount(10)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -197,7 +197,7 @@ public abstract class IslandBiome {
 				.withDesiredCount(10)
 				.withMinDepth(5)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -211,7 +211,7 @@ public abstract class IslandBiome {
 				.withDesiredCount(5)
 				.withMinDepth(16)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -225,7 +225,7 @@ public abstract class IslandBiome {
 				.withDesiredCount(5)
 				.withMinDepth(24)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -239,7 +239,7 @@ public abstract class IslandBiome {
 				.withDesiredCount(5)
 				.withMinDepth(16)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -254,7 +254,7 @@ public abstract class IslandBiome {
 				.withChanceForExtra(0.2f)
 				.withMinDepth(24)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		
@@ -269,7 +269,7 @@ public abstract class IslandBiome {
 				.withChanceForExtra(0.5f)
 				.withMinDepth(24)
 				.scaleWithChunkMass(true)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 	}

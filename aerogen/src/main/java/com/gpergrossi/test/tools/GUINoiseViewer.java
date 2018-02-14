@@ -113,51 +113,27 @@ public class GUINoiseViewer extends View {
 	}
 
 	@Override
-	public void mousePressed() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void mousePressed() {}
 
 	@Override
-	public void mouseDragged() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void mouseDragged() {}
 
 	@Override
-	public void mouseReleased() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void mouseReleased() {}
 
 	@Override
-	public void mouseMoved() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void mouseMoved() {}
 
 	@Override
-	public void mouseScrolled() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void mouseScrolled() {}
 
 	@Override
-	public void keyPressed() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void keyPressed() {}
 
 	@Override
-	public void keyReleased() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void keyReleased() {}
 
 	@Override
-	public void keyTyped() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void keyTyped() {}
 	
 }

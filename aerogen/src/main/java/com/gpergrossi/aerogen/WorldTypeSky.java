@@ -1,9 +1,10 @@
-package com.gpergrossi.aerogen.world;
+package com.gpergrossi.aerogen;
 
 import java.util.Random;
 
 import com.gpergrossi.aerogen.ui.GuiAerogenWorldSettingsScreen;
 
+import jline.internal.Log;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeProvider;
@@ -25,18 +26,22 @@ public class WorldTypeSky extends WorldType {
     	// TODO change this back to generator.AEROGEN_SKY and add
     	// the translation to an actual localization file somewhere
     	return "Aerogen Sky";
-    }    
+    }
+
+    @Override
+    public IChunkGenerator getChunkGenerator(World world, String generatorOptions) {
+    	String options = world.getWorldInfo().getGeneratorOptions();
+    	if (!options.equals(generatorOptions)) {
+    		Log.error("!!! World info generator options do not match generator options parameter !!!");
+    	}
+        return new ChunkGeneratorSky(world);
+    }
 
     @Override
     public BiomeProvider getBiomeProvider(World world) {
     	return new BiomeProviderSky(world);
     }
-
-    @Override
-    public IChunkGenerator getChunkGenerator(World world, String generatorOptions) {
-        return new ChunkGeneratorSky(world, world.getSeed(), generatorOptions);
-    }
-
+    
     @Override
     public int getMinimumSpawnHeight(World world) {
         return 5;

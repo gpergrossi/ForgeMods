@@ -1,6 +1,9 @@
-package com.gpergrossi.aerogen.generator;
+package com.gpergrossi.aerogen.primer;
 
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import java.util.Iterator;
+
+import com.gpergrossi.aerogen.AeroGenerator;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.spacial.Large2DArray;
 
@@ -19,13 +22,17 @@ public class WorldPrimer extends World {
 		public net.minecraft.world.border.WorldBorder createWorldBorder() { return null; };
 	};
 	
-	public final AeroGenerator generator;
-	public final Large2DArray<WorldPrimerChunk> chunks;
+	protected final AeroGenerator generator;
+	protected final Large2DArray<WorldPrimerChunk> chunks;
+	protected final WorldPrimerChunkLoader chunkStore;
 	
 	public WorldPrimer(AeroGenerator generator) {
 		super(null, null, NULL_WORLD_PROVIDER, null, false);
 		this.generator = generator;
-		this.chunks = new Large2DArray<>(t -> new WorldPrimerChunk[t]);
+		this.chunks = new Large2DArray<>();
+		
+		this.chunkStore = WorldPrimerChunkLoader.forWorld(generator.getWorld());
+		chunkStore.setPrimer(this);
 	}
 
 	public WorldPrimerChunk getPrimerChunk(int chunkX, int chunkZ) {
@@ -51,6 +58,18 @@ public class WorldPrimer extends World {
 		return getOrCreatePrimerChunk(chunkX, chunkZ);
 	}
 	
+	public AeroGenerator getGenerator() {
+		return generator;
+	}
+
+	public World getMinecraftWorld() {
+		return generator.getWorld();
+	}
+
+	public Iterator<WorldPrimerChunk> getChunks() {
+		return chunks.iterator();
+	}
+	
 	public void getBiomeInts(Int2DRange.Integers returnIntsRange) {		
 		int minChunkX = (returnIntsRange.minX >> 4);
 		int minChunkZ = (returnIntsRange.minY >> 4);
@@ -73,6 +92,8 @@ public class WorldPrimer extends World {
 			}
 		}
 	}
+	
+	
 	
 	
 	
@@ -153,7 +174,7 @@ public class WorldPrimer extends World {
 	public int getHeight(int x, int z) {
         if (x < -30000000 || z < -30000000 || x >= 30000000 || z >= 30000000) return 0;
         if (!this.isChunkLoaded(x >> 4, z >> 4, true)) return 0;
-        return getOrCreatePrimerChunk(x >> 4, z >> 4).getHeight(x & 15, z & 15);
+        return getPrimerChunk(x >> 4, z >> 4).getHeight(x & 15, z & 15);
 	}
 
 	@Override

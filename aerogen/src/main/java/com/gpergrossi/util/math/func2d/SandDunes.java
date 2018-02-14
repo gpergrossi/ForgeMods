@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
 import net.minecraft.util.math.MathHelper;

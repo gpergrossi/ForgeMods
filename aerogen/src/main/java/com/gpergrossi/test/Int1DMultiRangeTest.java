@@ -6,8 +6,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.gpergrossi.util.data.ranges.Int1DMultiRange;
-import com.gpergrossi.util.data.ranges.Int1DRange;
+import com.gpergrossi.util.geom.ranges.Int1DMultiRange;
+import com.gpergrossi.util.geom.ranges.Int1DRange;
 
 public class Int1DMultiRangeTest {
 

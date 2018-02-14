@@ -6,7 +6,7 @@ public final class Quadratic extends Function {
 
 	public static Function fromPointAndLine(double x, double y, double lineY) {
 		double den = (y - lineY) * 2;
-		if (Math.abs(den) < 0.0001) { //TODO: EPSILON?
+		if (Math.abs(den) < 0.0001) {
 			return new Vertical(x);
 		}
 

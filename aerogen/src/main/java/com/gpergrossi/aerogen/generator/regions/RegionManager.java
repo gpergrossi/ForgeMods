@@ -4,19 +4,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import com.gpergrossi.aerogen.generator.AeroGenerator;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+
+import com.gpergrossi.aerogen.generator.IslandProvider;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.voronoi.infinite.InfiniteCell;
 import com.gpergrossi.voronoi.infinite.InfiniteVoronoi;
 
 public class RegionManager extends InfiniteVoronoi {
 	
-	AeroGenerator generator;
+	IslandProvider provider;
 	LinkedList<Region> loadedRegions;
 	
-	public RegionManager(AeroGenerator generator) {
-		super(generator.getSettings().regionGridSize, generator.getSettings().seed);
-		this.generator = generator;
+	public RegionManager(IslandProvider provider) {
+		super(provider.getSettings().regionGridSize, provider.getSettings().seed);
+		this.provider = provider;
 		this.loadedRegions = new LinkedList<>();
 	}
 
@@ -70,12 +71,8 @@ public class RegionManager extends InfiniteVoronoi {
 		return getRegionForCell(getCell(x, y));
 	}
 
-	public double getRegionSize() {
-		return generator.getSettings().regionGridSize;
-	}
-	
-	public double getCellSize() {
-		return generator.getSettings().islandCellBaseSize;
+	public IslandProvider getProvider() {
+		return provider;
 	}
 	
 }

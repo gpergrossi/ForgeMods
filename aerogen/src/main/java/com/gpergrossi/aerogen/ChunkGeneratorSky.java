@@ -1,14 +1,14 @@
-package com.gpergrossi.aerogen.world;
+package com.gpergrossi.aerogen;
 
 import java.util.List;
 import javax.annotation.Nullable;
 
-import com.gpergrossi.aerogen.generator.AeroGenerator;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.IChunkGenerator;
 
 /**
@@ -20,31 +20,24 @@ public class ChunkGeneratorSky implements IChunkGenerator {
 	World world;
 	AeroGenerator generator;
 	
-	public ChunkGeneratorSky(World world, long seed, String settingsJSON) {
-		this.world = world;
-		
-		if (!world.getWorldInfo().getGeneratorOptions().equals(settingsJSON)) {
-			System.err.println("!!! Settings do not match for world info and provided string:");
-			System.err.println("!!! World: "+world.getWorldInfo().getGeneratorOptions());
-			System.err.println("!!! Provided: "+settingsJSON);
-		}
-		
-		if (world.getSeed() != seed) {
-			System.err.println("!!! Seeds do not match for world object and provided value:");
-			System.err.println("!!! World: "+world.getSeed());
-			System.err.println("!!! Provided: "+seed);
-		}
-		
+	protected ChunkGeneratorSky(World world) {
+		this.world = world;		
 		world.getWorldInfo().getGeneratorOptions();
 		this.generator = AeroGenerator.getGeneratorForWorld(world);
 	}
 
 	@Override
 	public Chunk generateChunk(int chunkX, int chunkZ) {
+		if (generator == null) {
+			ChunkPrimer primer = new ChunkPrimer();
+			Chunk mcChunk = new Chunk(world, primer, chunkX, chunkZ);
+			return mcChunk;
+		}
 		return generator.generateChunk(chunkX, chunkZ);
 	}
 
-	public void populate(int chunkX, int chunkZ) {		
+	public void populate(int chunkX, int chunkZ) {
+		if (generator == null) return;
 		generator.postPopulate(world, chunkX, chunkZ);
 	}
 

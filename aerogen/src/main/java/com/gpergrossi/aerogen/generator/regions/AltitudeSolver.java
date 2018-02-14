@@ -2,11 +2,11 @@ package com.gpergrossi.aerogen.generator.regions;
 
 import java.util.Random;
 
-import com.gpergrossi.util.constraints.integer.IntegerConstraint;
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
-import com.gpergrossi.util.constraints.matrix.MatrixEntry;
+import com.gpergrossi.constraints.integer.IntegerConstraint;
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.matrix.MatrixEntry;
 import com.gpergrossi.util.data.WeightedList;
-import com.gpergrossi.util.data.ranges.Int1DMultiRange;
+import com.gpergrossi.util.geom.ranges.Int1DMultiRange;
 
 public class AltitudeSolver {
 

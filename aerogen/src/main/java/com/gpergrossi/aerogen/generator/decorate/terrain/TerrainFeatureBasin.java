@@ -3,10 +3,10 @@ package com.gpergrossi.aerogen.generator.decorate.terrain;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
-import com.gpergrossi.aerogen.generator.GenerationPhase;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
@@ -30,7 +30,17 @@ public class TerrainFeatureBasin implements ITerrainFeature {
 		if (x < 0 || x > 15 || y < 0 || y > 255 || z < 0 || z > 15) return AIR;
 		return primer.getBlockState(x, y, z);
 	}
+
+	RiverWaterfall waterfall;
+	protected Island island;
 	
+	protected Int2DRange rangeXZ;
+	protected int minY, maxY;
+	
+	protected double centerX, centerY, centerZ;
+	protected double edge, depth, radius;
+	protected double scaleX, scaleZ;
+
 	public TerrainFeatureBasin(RiverWaterfall waterfall, Random random) {		
 		this.waterfall = waterfall;
 		this.island = waterfall.getDestination().getIsland();
@@ -58,19 +68,8 @@ public class TerrainFeatureBasin implements ITerrainFeature {
 		
 		this.scaleX = 1.0+random.nextDouble()*0.2;
 		this.scaleZ = 1.0+random.nextDouble()*0.2;
-		
 	}
-
-	RiverWaterfall waterfall;
-	protected Island island;
 	
-	protected Int2DRange rangeXZ;
-	protected int minY, maxY;
-	
-	protected double centerX, centerY, centerZ;
-	protected double edge, depth, radius;
-	protected double scaleX, scaleZ;
-
 	@Override
 	public Int2DRange getRangeXZ() {
 		return rangeXZ;
@@ -87,9 +86,9 @@ public class TerrainFeatureBasin implements ITerrainFeature {
 	}
 
 	@Override
-	public boolean provideChunk(ChunkPrimer primer, Int2DRange chunkRange, Random random) {
+	public void provideChunk(ChunkPrimer primer, Int2DRange chunkRange, Random random) {
 		Int2DRange overlap = chunkRange.intersect(this.rangeXZ);
-		if (overlap.isEmpty()) return false;
+		if (overlap.isEmpty()) return;
 
 		IslandBiome biome = this.island.getBiome();
 		
@@ -118,12 +117,9 @@ public class TerrainFeatureBasin implements ITerrainFeature {
 				}
 			}
 		}
-		return true;
 	}
 
 	@Override
-	public boolean populateChunk(World world, Int2DRange chunkRange, Random random, GenerationPhase currentPhase) {
-		return false;
-	}	
+	public void populateChunk(World world, Int2DRange chunkRange, Random random, PopulatePhase currentPhase) {}	
 	
 }

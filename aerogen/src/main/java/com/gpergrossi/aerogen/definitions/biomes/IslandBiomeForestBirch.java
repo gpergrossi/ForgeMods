@@ -7,8 +7,8 @@ import net.minecraft.world.biome.Biome;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.GenerationPhase;
 import com.gpergrossi.aerogen.generator.decorate.IslandDecorator;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureRandomMeta;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.features.FeatureTrees;
@@ -55,7 +55,7 @@ public class IslandBiomeForestBirch extends IslandBiomeForest {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(6)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 
@@ -72,7 +72,7 @@ public class IslandBiomeForestBirch extends IslandBiomeForest {
 			.withPlacement(
 				new PlacementHighestBlock()
 				.withDesiredCount(2)
-				.withPhase(GenerationPhase.PRE_POPULATE)
+				.withPhase(PopulatePhase.PRE_POPULATE)
 			)
 		);
 		

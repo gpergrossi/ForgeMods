@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.spacial.Large2DArray;
@@ -26,7 +26,7 @@ public class InfiniteVoronoi {
 		this.seed = seed;
 
 		this.allocations = 0;
-		this.cellCache = new Large2DArray<>(t -> new InfiniteCell[t]);
+		this.cellCache = new Large2DArray<>();
 	}
 	
 	/**

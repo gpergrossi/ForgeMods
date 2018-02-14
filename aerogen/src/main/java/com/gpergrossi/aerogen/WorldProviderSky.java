@@ -1,10 +1,7 @@
-package com.gpergrossi.aerogen.world;
-
-import com.gpergrossi.aerogen.AeroGenMod;
+package com.gpergrossi.aerogen;
 
 import net.minecraft.world.DimensionType;
 import net.minecraft.world.WorldProvider;
-import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -15,17 +12,16 @@ public class WorldProviderSky extends WorldProvider {
 	}
 	
 	@Override
-	public DimensionType getDimensionType() {    	
+	protected void init() {}
+	
+	@Override
+	public DimensionType getDimensionType() {
     	return AeroGenMod.SKY_DIMENSION_TYPE;
 	}
 
 	public int getDimensionID() {
 		return AeroGenMod.SKY_DIMENSION_ID;
 	}
-
-    public IChunkGenerator createChunkGenerator() {
-        return AeroGenMod.WORLD_TYPE_SKY.getChunkGenerator(world, world.getWorldInfo().getGeneratorOptions());
-    }
 
     /**
      * the y level at which clouds are rendered.

@@ -8,16 +8,18 @@ import java.util.Map;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
-import com.gpergrossi.aerogen.generator.GenerationPhase;
+import com.gpergrossi.aerogen.generator.IslandProvider;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.decorate.terrain.ITerrainFeature;
 import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureBasin;
+import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureSpawnPlatform;
 import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureWaterfall;
 import com.gpergrossi.aerogen.generator.islands.carve.IslandCaves;
 import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
 import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.viewframe.IslandDebugRender;
@@ -36,6 +38,7 @@ public class Island {
 	public final Region region;
 	public final int regionIndex;
 	public final long seed;
+	public final IslandProvider provider;
 	public final Random random;
 
 	private int altitude;
@@ -56,6 +59,7 @@ public class Island {
 		this.region = region;
 		this.regionIndex = regionIsleIndex;
 		this.seed = seed;
+		this.provider = region.getProvider();
 		this.random = new Random(seed);
 		this.cells = new ArrayList<>();
 		this.extensions = new HashMap<>();
@@ -111,16 +115,18 @@ public class Island {
 		return !shape.getWaterfalls().isEmpty();
 	}
 	
-	public void provideBiomes(Biome[] outputBiomes, Int2DRange chunkBounds) {
+	public void provideBiomes(byte[] outputBiomes, Int2DRange chunkBounds) {
 		Int2DRange overlap = chunkBounds.intersect(this.shape.range);
 		
 		if (overlap.isEmpty()) return;
 		if (!initialized) this.initialize();
 		
+		final byte biomeByte = (byte) Biome.getIdForBiome(this.biome.getMinecraftBiome());
+		
 		for (Int2D tile : overlap.getAllMutable()) {
 			if (!shape.contains(tile)) continue;
 			int index = chunkBounds.indexFor(tile);
-			outputBiomes[index] = this.biome.getMinecraftBiome();
+			outputBiomes[index] = biomeByte;
 		}
 	}	
 	
@@ -159,7 +165,7 @@ public class Island {
 		return true;
 	}
 	
-	public void populateChunk(World world, Int2DRange chunkBounds, Random random, GenerationPhase currentPhase) {
+	public void populateChunk(World world, Int2DRange chunkBounds, Random random, PopulatePhase currentPhase) {
 		Int2DRange overlap = chunkBounds.intersect(this.shape.range);
 		
 		if (overlap.isEmpty() && !this.hasWaterfall()) return;
@@ -194,6 +200,10 @@ public class Island {
 	
 	public long getSeed() {
 		return seed;
+	}
+	
+	public IslandProvider getProvider() {
+		return provider;
 	}
 	
 	public void setExtension(String key, Object value) {
@@ -281,14 +291,36 @@ public class Island {
 			numTries++;
 		}
 		
-		if (numTries >= 30) return null;
+		// Failure may result in creation of a spawn platform
+		if (numTries >= 30) {
+			location.x((int) bounds.centerX());
+			location.y((int) bounds.centerY());
+			
+			BlockPos spawnPos = new BlockPos(location.x(), getAltitude(), location.y());
+			
+			boolean hasPlatform = false;
+			for (ITerrainFeature feature : this.terrainFeatures) {
+				if (feature instanceof TerrainFeatureSpawnPlatform) {
+					hasPlatform = true;
+					TerrainFeatureSpawnPlatform platform = (TerrainFeatureSpawnPlatform) feature;
+					spawnPos = platform.getSpawnPos();
+				}
+			}
+			if (!hasPlatform) this.terrainFeatures.add(new TerrainFeatureSpawnPlatform(this, spawnPos));
+			
+			// TODO creation of the spawn platform as a terrain feature could be too late
+			// If the chunks the platform would be in have already been created, this
+			// terrain feature will not be put into the world.
+			
+			return spawnPos;
+		}
+		// Otherwise:
 		
 		// Go as far inland as is easily find-able
 		float edgeDistNow = shape.getEdgeDistance(location.x(), location.y());
 		float edgeDistNeighbor;
 		
 		while (true) {
-		
 			// Is X+1 farther from the edge?
 			edgeDistNeighbor = shape.getEdgeDistance(location.x()+1, location.y());
 			if (edgeDistNeighbor > edgeDistNow) {

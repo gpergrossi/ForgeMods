@@ -4,7 +4,7 @@ import java.util.Random;
 
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
-import com.gpergrossi.util.data.ranges.Int2DRange;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.math.func2d.FractalNoise2D;
 import com.gpergrossi.util.math.func2d.Function2D;

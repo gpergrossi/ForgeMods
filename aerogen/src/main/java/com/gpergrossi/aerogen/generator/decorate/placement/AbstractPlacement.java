@@ -2,7 +2,7 @@ package com.gpergrossi.aerogen.generator.decorate.placement;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.generator.GenerationPhase;
+import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.islands.Island;
 
 import net.minecraft.util.math.BlockPos;
@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public abstract class AbstractPlacement implements IPlacement {
 	
-	GenerationPhase phase = GenerationPhase.POST_POPULATE;
+	PopulatePhase phase = PopulatePhase.POST_POPULATE;
 	int desiredPlacementsPerChunk = 1;
 	float chanceForExtraPlacement = 0;
 	
@@ -26,7 +26,7 @@ public abstract class AbstractPlacement implements IPlacement {
 		return this;
 	}
 
-	public AbstractPlacement withPhase(GenerationPhase phase) {
+	public AbstractPlacement withPhase(PopulatePhase phase) {
 		this.phase = phase;
 		return this;
 	}
@@ -45,7 +45,7 @@ public abstract class AbstractPlacement implements IPlacement {
 	}
 	
 	@Override
-	public GenerationPhase getPhase() {
+	public PopulatePhase getPhase() {
 		return phase;
 	}
 	

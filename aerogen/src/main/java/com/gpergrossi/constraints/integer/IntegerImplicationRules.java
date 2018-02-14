@@ -1,8 +1,8 @@
-package com.gpergrossi.util.constraints.integer;
+package com.gpergrossi.constraints.integer;
 
-import com.gpergrossi.util.constraints.matrix.ConstraintMatrix;
-import com.gpergrossi.util.constraints.matrix.ImplicationRules;
-import com.gpergrossi.util.constraints.matrix.MatrixEntry;
+import com.gpergrossi.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.constraints.matrix.ImplicationRules;
+import com.gpergrossi.constraints.matrix.MatrixEntry;
 
 public class IntegerImplicationRules extends ImplicationRules<IntegerConstraint> {
 
