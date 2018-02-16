@@ -1,11 +1,18 @@
 Forward Compatability:
 =========================
-Add a semi-immutable production line for regions/islands
-   steps in the process have a version number
+Incremental PrimerChunk saving and unloading
+
+IslandProvider implementation with:
+  a. old SettingsRevision generation
+  b. No collision between current generator and saved islands
+
 Create a regenerate command for regions/islands
    saved islands and regions have some settings recorded
    such as: seed, size, biomes list, etc.
    to tell the user when its not possible to regenerate
+
+Add a semi-immutable production line for regions/islands
+   steps in the process have a version number
 
 
 Systems:
@@ -25,7 +32,7 @@ Important Fixes:
 Rivers and head lakes look far too regular
 Edge-of-chunk issue with trees eating eachother
 Grass eating jungle shrubs
-Jungle trees floating
+Not enough jungle trees
 
 
 Nice to haves:
@@ -50,6 +57,10 @@ Fixed/Done:
 (2/1)	Waterfalls should just go to the center of their edge
 	  this requires more points in the bezier curve
 (2/2)	Double3DTest#rotateTest failing
+(2/4)   Per-Chunk random seeds now determined by Settings object
+(2/4)   Islands and Regions now aware of which IslandProvider they belong to
+(2/16)  Save and load primer chunks
+(2/16)  No more floating jungle trees!
 
 
 VR Idea:

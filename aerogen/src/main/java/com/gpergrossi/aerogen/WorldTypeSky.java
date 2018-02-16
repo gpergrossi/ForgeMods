@@ -4,7 +4,6 @@ import java.util.Random;
 
 import com.gpergrossi.aerogen.ui.GuiAerogenWorldSettingsScreen;
 
-import jline.internal.Log;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeProvider;
@@ -32,7 +31,7 @@ public class WorldTypeSky extends WorldType {
     public IChunkGenerator getChunkGenerator(World world, String generatorOptions) {
     	String options = world.getWorldInfo().getGeneratorOptions();
     	if (!options.equals(generatorOptions)) {
-    		Log.error("!!! World info generator options do not match generator options parameter !!!");
+    		AeroGenMod.log.error("!!! World info generator options do not match generator options parameter !!!");
     	}
         return new ChunkGeneratorSky(world);
     }

@@ -3,10 +3,13 @@ package com.gpergrossi.util.io.ndmf;
 import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -27,7 +30,7 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 		this.emptySlots = new LinkedList<>();
 	}
 	
-	public void read() {
+	public void readIndex() {
 		try {
 			IndexSegment<Name, Data> previousSegment = this;
 			int nextBlockID = readInternal();
@@ -48,7 +51,7 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 	 * @throws IOException
 	 */
 	private int readInternal() throws IOException {
-		super.read();
+		super.readSegment();
 		final int numSlots = getNumSlots();
 		for (int slotID = 0; slotID < numSlots; slotID++) {
 			final IndexEntrySlot<Name> slot = new IndexEntrySlot<Name>(this, slotID);
@@ -92,9 +95,10 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 		final int numSlots = this.nextSegment.getNumSlots();
 		for (int slotID = 0; slotID < numSlots; slotID++) {
 			final IndexEntrySlot<Name> slot = new IndexEntrySlot<Name>(this.nextSegment, slotID);
+			slot.write();
 			if (!slot.isLast())	this.nextSegment.emptySlots.offer(slot);
 		}
-		this.nextSegment.write();
+		this.nextSegment.writeSegment();
 	}
 	
 	private int getNumSlots() {
@@ -168,11 +172,25 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 		IndexSegment<Name, Data> segment = this;
 		IndexSegment<Name, Data> firstOpenSegment = null;
 		
+		if (ndmFile.debug && ndmFile.debugVerbosity >= 2) {
+			System.out.println("Looking for slot for "+name+" (canCreate="+canCreate+")");
+		}
+		
 		while (segment != null) {
-			IndexEntrySlot<Name> slot = segment.usedSlots.get(name);
+			segment.printSlots();
+			
+			final IndexEntrySlot<Name> slot = segment.usedSlots.get(name);
 			if (slot != null) {
+				if (ndmFile.debug && ndmFile.debugVerbosity >= 2) {
+					System.out.println("Found "+name+" in slot "+segment.blockIDStart+":"+slot.getSlotID());
+				}
 				if (firstOpenSegment != null) {
-					return slot.migrate(firstOpenSegment.internalGetEmptyEntry());
+					final IndexEntrySlot<Name> openSlot = firstOpenSegment.internalGetEmptyEntry();
+					if (ndmFile.debug && ndmFile.debugVerbosity >= 2) {
+						System.out.println("Migrating "+name+" from slot "+segment.blockIDStart+":"+slot.getSlotID()
+							+" to slot "+firstOpenSegment.blockIDStart+":"+openSlot.getSlotID());
+					}
+					return slot.migrate(openSlot);
 				} else {
 					return slot;
 				}
@@ -187,6 +205,22 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 		
 		if (canCreate) return firstOpenSegment.internalGetEmptyEntry();
 		else return null;
+	}
+
+	protected void printSlots() {
+		if (!ndmFile.debug) return;
+		if (ndmFile.debugVerbosity >= 3) {
+			System.out.println("  Segment "+this.blockIDStart+" has "+usedSlots.size()+" filled entries:");
+			List<Entry<Name, IndexEntrySlot<Name>>> entries = new ArrayList<>(this.usedSlots.entrySet());
+			Collections.sort(entries, (a, b) -> a.getValue().getSlotID() - b.getValue().getSlotID());
+			for (Entry<Name, IndexEntrySlot<Name>> entry : entries) {
+				System.out.println("  > "+entry.getKey()+" -> "+entry.getValue());
+			}
+			System.out.println("  + "+this.emptySlots.size()+" free slots");
+		} else if (ndmFile.debugVerbosity >= 2) {
+			System.out.println("  Segment "+this.blockIDStart+" has "+usedSlots.size()+" used and "+emptySlots.size()+" empty entries.");
+		}
+		
 	}
 
 	@Override
@@ -230,7 +264,9 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 		if (value == null) value = 0;
 		else if (value < 0) throw new IllegalArgumentException("Cannot set a negative offset!");
 		
-		IndexEntrySlot<Name> slot = getSlot(key, true);
+		IndexEntrySlot<Name> slot = getSlot(key, value != 0);
+		if (value == 0 && slot == null) return null;
+		
 		int oldValue = slot.getDataBlockID(); 
 		if (value != oldValue) slot.set(key, value);
 		return ((oldValue == 0) ? null : oldValue);

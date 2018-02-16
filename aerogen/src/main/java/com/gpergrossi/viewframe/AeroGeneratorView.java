@@ -119,17 +119,22 @@ public class AeroGeneratorView extends View {
 				int chunkMinZ = chunk.chunkZ << 4;
 				
 				int red = 64, green = 64, blue = 64;
-				if (!chunk.isCompleted()) {
-					if (chunk.hasBiomes()) red = 255;
-					if (chunk.isGenerated()) green = 255;
-					if (chunk.isPopulated()) blue = 255;
-				} else { red = green = blue = 0; }
+				if (chunk.hasBiomes()) red = 255;
+				if (chunk.isGenerated()) green = 255;
+				if (chunk.isPopulated()) blue = 255;
 				g2d.setColor(new Color(red, green, blue));
 				
-				if (chunk.isDirty()) {
+				if (!chunk.isSaved()) {
 					g2d.drawLine(chunkMinX+4, chunkMinZ+4, chunkMinX+12, chunkMinZ+12);
 					g2d.drawLine(chunkMinX+4, chunkMinZ+12, chunkMinX+12, chunkMinZ+4);
 				}
+				
+				// Line on right = generated
+				// Line on bottom = populated
+				// Line on left = biomes
+				if (chunk.wasLoadedWithBiomes()) g2d.drawLine(chunkMinX+2, chunkMinZ+2, chunkMinX+2, chunkMinZ+6);
+				if (chunk.wasLoadedPopulated()) g2d.drawLine(chunkMinX+2, chunkMinZ+6, chunkMinX+6, chunkMinZ+6);
+				if (chunk.wasLoadedGenerated()) g2d.drawLine(chunkMinX+6, chunkMinZ+2, chunkMinX+6, chunkMinZ+6);
 				
 				if (!chunk.isNeighborSameStatus(-1, 0)) g2d.drawLine(chunkMinX, chunkMinZ, chunkMinX, chunkMinZ+15);
 				if (!chunk.isNeighborSameStatus(1, 0))  g2d.drawLine(chunkMinX+15, chunkMinZ, chunkMinX+15, chunkMinZ+15);

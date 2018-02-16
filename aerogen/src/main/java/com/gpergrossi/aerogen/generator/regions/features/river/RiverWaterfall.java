@@ -1,12 +1,11 @@
 package com.gpergrossi.aerogen.generator.regions.features.river;
 
+import com.gpergrossi.aerogen.AeroGenMod;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.util.geom.shapes.Line;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.vectors.Double2D;
-
-import jline.internal.Log;
 
 public class RiverWaterfall {
 
@@ -42,7 +41,7 @@ public class RiverWaterfall {
 			}
 			// Bad default
 			if (riverSeg == null) {
-				Log.warn("Bad waterfall position");
+				AeroGenMod.log.warn("Bad waterfall position");
 				Double2D.Mutable midpoint = new Double2D.Mutable();
 				edge.getMidpoint(midpoint);
 				Double2D pos = midpoint.immutable();

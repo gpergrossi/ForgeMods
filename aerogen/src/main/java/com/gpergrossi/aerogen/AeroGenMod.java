@@ -1,5 +1,7 @@
 package com.gpergrossi.aerogen;
 
+import org.apache.logging.log4j.Logger;
+
 import com.gpergrossi.aerogen.commands.CommandAeroMap;
 import com.gpergrossi.aerogen.commands.CommandTest;
 
@@ -14,8 +16,11 @@ import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 @Mod(modid = AeroGenMod.MODID, version = AeroGenMod.VERSION, acceptableRemoteVersions = "*")
 @Mod.EventBusSubscriber
@@ -25,14 +30,21 @@ public class AeroGenMod {
     public static final String VERSION = "1.12.2-007";
     
     public static WorldType WORLD_TYPE_SKY;
-	
+	public static Logger log;
+    
+    
     public static boolean REGISTER_DIMENSION = false;
     public static int SKY_DIMENSION_ID;
 	public static DimensionType SKY_DIMENSION_TYPE;
     
+	@EventHandler
+	public void preInit(FMLPreInitializationEvent event) {
+		log = event.getModLog();
+	}
+	
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        System.out.println("Loading "+MODID+" version "+VERSION);
+        log.info("Loading "+MODID+" version "+VERSION);
         
         WORLD_TYPE_SKY = new WorldTypeSky();
         
@@ -54,11 +66,18 @@ public class AeroGenMod {
 	}
 
 	@EventHandler
-	public void serverLoad(FMLServerStartingEvent event) {
+	public void serverStart(FMLServerStartingEvent event) {
 		event.registerServerCommand(new CommandTest());
 		event.registerServerCommand(new CommandAeroMap());
 	}
 
+	@EventHandler
+	public void serverStop(FMLServerStoppedEvent event) {
+		for (AeroGenerator gen : AeroGenerator.getGenerators()) {
+			gen.shutdown();
+		}
+	}
+	
     @SubscribeEvent
 	public static void onEntitySpawn(EntityJoinWorldEvent event) {
 		if (event.getWorld().getWorldType() != WORLD_TYPE_SKY) return;
@@ -96,5 +115,12 @@ public class AeroGenMod {
     	if (generator == null) return;
     	generator.onWorldUnload(event);
     }
+    
+	@SubscribeEvent
+	public static void onWorldTick(TickEvent.WorldTickEvent event) {
+    	AeroGenerator generator = AeroGenerator.getGeneratorForWorld(event.world);
+    	if (generator == null) return;
+    	generator.onWorldTick(event);
+	}
     
 }

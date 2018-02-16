@@ -1,6 +1,8 @@
 package com.gpergrossi.aerogen;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +21,6 @@ import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.viewframe.AeroGeneratorView;
 import com.gpergrossi.viewframe.ViewerFrame;
 
-import jline.internal.Log;
 import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -33,6 +34,7 @@ import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.event.world.WorldEvent.CreateSpawnPosition;
 import net.minecraftforge.event.world.WorldEvent.Save;
 import net.minecraftforge.event.world.WorldEvent.Unload;
+import net.minecraftforge.fml.common.gameevent.TickEvent.WorldTickEvent;
 
 public class AeroGenerator {
 
@@ -55,6 +57,9 @@ public class AeroGenerator {
 		}
 	}
 
+	public static Collection<AeroGenerator> getGenerators() {
+		return Collections.unmodifiableCollection(generators.values());		
+	}
 	
 	
 	// ========================================
@@ -119,8 +124,9 @@ public class AeroGenerator {
 	}
 
 	/**
-	 * Init() needs to be called as late as possible, otherwise the perWorld data store
-	 * object will not behave correctly. IDK what causes this. Yay modding!
+	 * Init() cannot be called from the AeroGenerator constructor because the perWorld data store
+	 * will not behave correctly until later in the server startup process. Init is called by 
+	 * onWorldLoad() or onCreateWorldSpawn().
 	 */
 	private void initialize() {
 		if (initialized) return;
@@ -128,7 +134,7 @@ public class AeroGenerator {
 		this.worldSavedData = WorldSettingsHistory.forWorld(world);
 		
 		AeroGeneratorSettings settings = worldSavedData.getCurrentSettings();
-		Log.info("Settings: "+settings);
+		AeroGenMod.log.info("Settings: "+settings);
 
 		this.worldPrimer = new WorldPrimer(this);
 		this.islandProvider = new IslandProvider.Simple(settings);
@@ -156,7 +162,7 @@ public class AeroGenerator {
 		Island spawnIsland = islandProvider.getSpawnIsland();
 
 		if (spawnIsland == null) {
-			Log.warn("Could not find a good spawn! All islands in start region failed.");
+			AeroGenMod.log.warn("Could not find a good spawn! All islands in start region failed.");
 			return new BlockPos(0, 64, 0);
 			
 		}
@@ -166,8 +172,8 @@ public class AeroGenerator {
 			
 		BlockPos spawn = spawnIsland.findGoodSpawnLocation();
 		
-		Log.info("Spawn Island: "+spawnIsland+" ("+spawnIsland.getBiome().getName()+")");
-		Log.info("Spawn block: "+spawn);
+		AeroGenMod.log.info("Spawn Island: "+spawnIsland+" ("+spawnIsland.getBiome().getName()+")");
+		AeroGenMod.log.info("Spawn block: "+spawn);
 		
 		return spawn;
 	}
@@ -326,7 +332,7 @@ public class AeroGenerator {
 		if (!initialized) this.initialize();
 		
     	final World world = event.getWorld();
-		Log.info("Creating spawn point for world \""+world.getWorldInfo().getWorldName()+"\"...");
+    	AeroGenMod.log.info("Creating spawn point for world \""+world.getWorldInfo().getWorldName()+"\"...");
 		
     	BlockPos spawn = this.getSafeWorldSpawnPos();
     	if (spawn != null) {
@@ -342,7 +348,7 @@ public class AeroGenerator {
 	public void onWorldLoad(WorldEvent.Load event) {
 		if (!initialized) this.initialize();
 		
-		Log.info("Loading world \""+world.getWorldInfo().getWorldName()+"\"...");
+		AeroGenMod.log.info("Loading world \""+world.getWorldInfo().getWorldName()+"\"...");
 	}
 
 	/**
@@ -358,8 +364,28 @@ public class AeroGenerator {
 	 * associated with this AeroGenerator is unloaded.
 	 */
 	public void onWorldUnload(Unload event) {
-		// TODO Auto-generated method stub
+		this.worldPrimer.saveAll();
+		this.worldPrimer.flush();
+	}
+
+	/**
+	 * This method is called from AeroGenMod when the world
+	 * associated with this AeroGenerator ticks.
+	 */
+	public void onWorldTick(WorldTickEvent event) {
 		
+	}
+
+	/**
+	 * This method is called from AeroGenMod when the server
+	 * is shutting down.
+	 */
+	public void shutdown() {
+		setGUIEnabled(false);
+		if (worldPrimer != null) {
+			worldPrimer.close();
+			worldPrimer = null;
+		}
 	}
 
 }

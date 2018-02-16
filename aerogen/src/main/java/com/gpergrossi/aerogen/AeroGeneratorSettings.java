@@ -12,7 +12,6 @@ import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.InstanceCreator;
-import jline.internal.Log;
 
 public class AeroGeneratorSettings {
 	
@@ -84,7 +83,7 @@ public class AeroGeneratorSettings {
 						if (inherited == null) return (value == null);
 						return inherited.equals(value);
 					} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-						Log.error(e.getMessage());
+						AeroGenMod.log.error(e.getMessage());
 						return false;
 					}
 				}

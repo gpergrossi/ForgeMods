@@ -5,7 +5,6 @@ import java.util.TreeMap;
 import com.gpergrossi.aerogen.AeroGenMod;
 import com.gpergrossi.aerogen.AeroGeneratorSettings;
 
-import jline.internal.Log;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
@@ -103,7 +102,7 @@ public class WorldSettingsHistory extends WorldSavedData {
 	
 	@Override
 	public void readFromNBT(NBTTagCompound nbt) {
-		Log.info("Loading "+DATA_NAME);
+		AeroGenMod.log.info("Loading "+DATA_NAME);
 
 		final NBTTagList revisionsNBT = nbt.getTagList("Revisions", NBT_COMPOUND);
 		SettingsRevision lastRevision = null;
@@ -127,7 +126,7 @@ public class WorldSettingsHistory extends WorldSavedData {
 
 	@Override
 	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
-		Log.info("Saving "+DATA_NAME);
+		AeroGenMod.log.info("Saving "+DATA_NAME);
 		
 		final NBTTagList revisionsNBT = new NBTTagList();
 		
@@ -152,34 +151,34 @@ public class WorldSettingsHistory extends WorldSavedData {
 		WorldInfo worldInfo = world.getWorldInfo();
 		if (worldInfo.getGeneratorOptions().equals(json)) return;
 		
-		Log.info("Attempting to save new generator options to \""+worldInfo.getWorldName()+"/level.dat\"...");
+		AeroGenMod.log.info("Attempting to save new generator options to \""+worldInfo.getWorldName()+"/level.dat\"...");
 		
 		final int generatorOptionsFieldIndex = 6;
 		Object value = ReflectionHelper.getPrivateValue(WorldInfo.class, worldInfo, generatorOptionsFieldIndex);
 		if (value.getClass() != String.class) {
-			Log.error("Could not get generator options private field. Index is likely invalid!");
+			AeroGenMod.log.error("Could not get generator options private field. Index is likely invalid!");
 			return;
 		}
 		
 		String options = (String) value;
 		if (!options.equals(worldInfo.getGeneratorOptions())) {
-			Log.error("Could not get generator options private field. Index is likely invalid!");
+			AeroGenMod.log.error("Could not get generator options private field. Index is likely invalid!");
 			return;
 		}
 		
 		try {
 			ReflectionHelper.setPrivateValue(WorldInfo.class, worldInfo, json, generatorOptionsFieldIndex);
 		} catch (UnableToAccessFieldException e) {
-			Log.error("Could not access generator options private field!");
+			AeroGenMod.log.error("Could not access generator options private field!");
 			return;
 		}
 		
 		if (!worldInfo.getGeneratorOptions().equals(json)) {
-			Log.error("Could not set generator options private field. Index is likely invalid!");
+			AeroGenMod.log.error("Could not set generator options private field. Index is likely invalid!");
 			return;
 		}
 		
-		Log.info("Successfully saved new generator options.");
+		AeroGenMod.log.info("Successfully saved new generator options.");
 	}
 	
 }

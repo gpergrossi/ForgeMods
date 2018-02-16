@@ -26,13 +26,44 @@ public class IndexEntrySlot<Name> implements Map.Entry<Name, Integer> {
 	}
 	
 	public void set(Name name, int dataBlockID) {
+		if (dataBlockID < 0) throw new RuntimeException("Cannot update a negative offset segment!");
+		if (dataBlockID == 0) {
+			this.clear();
+			return;
+		}
+
+		if (!name.equals(this.name)) {
+			segment.usedSlots.remove(this.name);
+			segment.usedSlots.put(name, this);
+		}
+		
 		this.name = name;
 		this.dataBlockID = dataBlockID;
-		this.update();
+		this.write();
+
+		if (segment.ndmFile.debug && segment.ndmFile.debugVerbosity >= 2) {
+			System.out.println("Slot "+segment.blockIDStart+":"+slotID+" set to ("+name+"->"+dataBlockID+")");
+		}
 	}
 
-	public void clear() throws IOException {
-		this.set(null, 0);
+	public void clear() {
+		// Remove entry (null/zero value)
+		if (segment.usedSlots.get(this.name) == null) {
+			if (segment.ndmFile.debug && segment.ndmFile.debugVerbosity >= 2) {
+				System.out.println("Slot "+segment.blockIDStart+":"+slotID+" already empty");
+			}
+			return;
+		}
+		segment.usedSlots.remove(this.name);
+		segment.emptySlots.offer(this);
+		
+		this.name = null;
+		this.dataBlockID = 0;
+		this.write();
+
+		if (segment.ndmFile.debug && segment.ndmFile.debugVerbosity >= 2) {
+			System.out.println("Slot "+segment.blockIDStart+":"+slotID+" cleared");
+		}
 	}
 
 	public int getDataBlockID() {
@@ -121,29 +152,7 @@ public class IndexEntrySlot<Name> implements Map.Entry<Name, Integer> {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	/**
-	 * Writes this slot's name and offset to the disk and updates
-	 * the slot's segment's usedSlots map and emptySlots queue.
-	 * @throws IOException 
-	 */
-	public void update() {
-		if (this.dataBlockID < 0) throw new RuntimeException("Cannot update a negative offset segment!");
-		if (this.dataBlockID == 0) {
-			// Remove entry (null/zero value)
-			if (segment.usedSlots.get(this.name) == null) return;
-			this.name = null;
-			this.write();
-			segment.usedSlots.remove(this.name);
-			segment.emptySlots.offer(this);
-		} else {
-			// Update entry (non-null/zero value)
-			this.write();
-			if (segment.usedSlots.get(this.name) == this) return;
-			segment.usedSlots.put(this.name, this);
-		}
-	}
-	
+
 	/**
 	 * Moves the data from this slot to the {@link newSlot}.
 	 * All changes are written to the disk.
@@ -154,15 +163,15 @@ public class IndexEntrySlot<Name> implements Map.Entry<Name, Integer> {
 	public IndexEntrySlot<Name> migrate(IndexEntrySlot<Name> newSlot) {
 		if (newSlot.dataBlockID != 0) throw new RuntimeException("Cannot migrate to non-empty slot!");
 		
-		newSlot.dataBlockID = this.dataBlockID;
-		newSlot.name = this.name;
-		newSlot.update();
-		
-		this.dataBlockID = 0;
-		this.name = null;
-		this.update();
+		newSlot.set(this.name, this.dataBlockID);
+		this.clear();
 		
 		return newSlot;
+	}
+	
+	@Override
+	public String toString() {
+		return "IndexEntrySlot[block="+segment.blockIDStart+", slot="+slotID+", name="+name+", dataBlock="+dataBlockID+"]";
 	}
 	
 }

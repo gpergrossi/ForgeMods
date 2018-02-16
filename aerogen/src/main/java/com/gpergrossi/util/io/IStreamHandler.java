@@ -4,6 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * <p>A stream handler provides handles for reading and writing
+ * objects of a specific class to and from a stream.</p>
+ *
+ * @param <T> - class of objects to be handled
+ */
 public interface IStreamHandler<T> {
 	
 	@FunctionalInterface
@@ -14,10 +20,6 @@ public interface IStreamHandler<T> {
 	@FunctionalInterface
 	public static interface Reader<T> {
 		public T read(InputStream is) throws IOException;
-	}
-	
-	public static interface FixedSize<T> extends IStreamHandler<T> {
-		public int getStreamedSize();
 	}
 	
 	public Writer<T> getWriter();

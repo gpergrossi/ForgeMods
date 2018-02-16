@@ -1,18 +1,26 @@
 package com.gpergrossi.util.io.ndmf;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
 import com.gpergrossi.util.io.IStreamHandler;
+import com.gpergrossi.util.io.IStreamHandlerFixedSize;
+import com.gpergrossi.util.io.MD5Hash;
 import com.gpergrossi.util.io.IStreamHandler.Reader;
 import com.gpergrossi.util.io.IStreamHandler.Writer;
 
@@ -60,6 +68,10 @@ import com.gpergrossi.util.io.IStreamHandler.Writer;
  * file will always be the start of the first index segment.</p>
  * 
  * <p>The body of a 'data' segment is written directly by the Data IStreamHandler's Writer.<p>
+ * 
+ * @param <Name> - This type parameter will be used as the key in a TreeMap. The class used for this type parameter 
+ * 		should implement hashCode() and all objects intended to equal should return the same hashCode().
+ * @param <Data> - This is the class that represents the data of each "file" stored in this map.
  */
 public class NamedDataMapFile<Name, Data> {
 
@@ -81,6 +93,7 @@ public class NamedDataMapFile<Name, Data> {
 	protected final int SIZE_INDEX_SEGMENT;
 	
 	protected final int SIZE_SEGMENT_HEADER = 4;
+	protected final int SIZE_DATA_HEADER = 1;
 	protected final int SIZE_BLOCK_ID = 4;
 	protected final int BUFFER_SIZE = 8192;
 	protected final int SIZE_INDEX_ENTRY;
@@ -93,18 +106,24 @@ public class NamedDataMapFile<Name, Data> {
 	private Reader<Data> dataReader;
 	private Writer<Data> dataWriter;
 	
-	public Map<Name, Integer> storedNames;
-	public TreeSet<Integer> freeBlocks;
+	private Map<Name, Integer> storedNames;
+	private Map<Name, DataSegment<Name, Data>> storedData;
+	private TreeSet<Integer> freeBlocks;
 	
 	private RandomAccessFile randomAccessFile;
+	private boolean isOpen;
+
+	public boolean debug = false;
+	public int debugVerbosity = 1; // Currently goes up to 3
+	public boolean debugVerifyOnLoad = false;
 	
-	public NamedDataMapFile(IStreamHandler.FixedSize<Name> nameStreamHandler, IStreamHandler<Data> dataStreamHandler, int blockSize) {
+	public NamedDataMapFile(IStreamHandlerFixedSize<Name> nameStreamHandler, IStreamHandler<Data> dataStreamHandler, int blockSize) {
 		this.nameReader = nameStreamHandler.getReader();
 		this.nameWriter = nameStreamHandler.getWriter();
 		this.dataReader = dataStreamHandler.getReader();
 		this.dataWriter = dataStreamHandler.getWriter();
 				
-		this.SIZE_NAME = nameStreamHandler.getStreamedSize();
+		this.SIZE_NAME = nameStreamHandler.getMaxSize();
 		this.SIZE_BLOCK = blockSize;
 		this.SIZE_INDEX_SEGMENT = blockSize;
 		
@@ -114,7 +133,13 @@ public class NamedDataMapFile<Name, Data> {
 		this.buffer = new byte[BUFFER_SIZE];
 	}
 
-	public void open(File file) throws IOException {
+	public boolean isOpen() {
+		return isOpen;
+	}
+	
+	public synchronized void open(File file) throws IOException {
+		if (isOpen) throw new IllegalStateException("NamedDataMapFile is already open!");
+		
 		if (!file.exists()) {
 			DataOutputStream dos = new DataOutputStream(new FileOutputStream(file));
 			dos.writeInt(SIZE_BLOCK);
@@ -125,15 +150,21 @@ public class NamedDataMapFile<Name, Data> {
 			randomAccessFile = new RandomAccessFile(file, "rws");
 		}
 		load();
+		this.isOpen = true;
 	}
 	
-	private void load() throws IOException {		
+	private void load() throws IOException {
+		if (debugVerifyOnLoad) {
+			boolean success = NDMFVerifier.verifyFormat(this, false);
+			if (!success) throw new IOException("Bad format!");
+		}
+		
 		IndexSegment<Name, Data> indexSegment = new IndexSegment<>(this, 0);
-		indexSegment.read();
+		indexSegment.readIndex();
 		
 		this.storedNames = indexSegment;
 		
-		freeBlocks = new TreeSet<>();
+		this.freeBlocks = new TreeSet<>();
 		int block = 0;
 		while (true) {
 			final long pos = blockOffset(block);
@@ -146,25 +177,99 @@ public class NamedDataMapFile<Name, Data> {
 				block += numBlocks(size);
 			} else if (size <= 0) {
 				freeBlocks.add(block);
+				block++;
 			} else {
 				throw new RuntimeException("Invalid block size: "+size);
 			}
 		}
+		
+		this.storedData = new HashMap<>();
 	}
 	
-	public void close() throws IOException {
-		unload();
-		randomAccessFile.close();
-		randomAccessFile = null;
-		storedNames = null;
-		freeBlocks = null;
-	}
-	
-	private void unload() throws IOException {
+	public synchronized void close() throws IOException {
 		this.storedNames = null;
+		this.storedData = null;
 		this.freeBlocks = null;
+		if (randomAccessFile != null) randomAccessFile.close();
+		randomAccessFile = null;
+		this.isOpen = false;
+	}
+
+	private synchronized DataSegment<Name, Data> internalGetDataSegment(Name name, boolean readDataBody) {		
+		DataSegment<Name, Data> stored = storedData.get(name);
+		if (stored != null) return stored;
+	
+		Integer blockID = storedNames.get(name);
+		if (blockID == null) return null;
+		
+		DataSegment<Name, Data> newSeg = new DataSegment<>(this, blockID);
+		if (readDataBody) {
+			newSeg.readData(); // Read full data body
+			storedData.put(name, newSeg);
+		} else {
+			newSeg.readSegment(); // Read only size information
+		}
+		return newSeg;
 	}
 	
+	private synchronized Data internalPut(Name name, Data data, boolean returnOldValue) {
+		DataSegment<Name, Data> seg = internalGetDataSegment(name, returnOldValue);
+
+		// No action needed: null->null
+		if (seg == null && data == null) return null;
+		
+		// Create new
+		if (seg == null) {
+			seg = new DataSegment<>(this, Segment.UNALLOCATED);
+			seg.dataObject = data;
+			seg.writeData(); // Will assign a new block ID
+			storedNames.put(name, seg.blockIDStart);
+			storedData.put(name, seg);
+			return null;
+		}
+		
+		Data oldData = seg.dataObject;
+
+		if (data == null) {
+			// Remove existing
+			seg.free();
+			storedNames.remove(name);
+			storedData.remove(name);
+		} else {
+			// Edit existing
+			seg.dataObject = data;
+			seg.writeData();
+			storedNames.put(name, seg.blockIDStart);
+			storedData.put(name, seg);
+		}
+		
+		if (returnOldValue)	return oldData;
+		else return null;
+	}
+	
+	public boolean has(Name name) {
+		DataSegment<Name, Data> seg = internalGetDataSegment(name, false);
+		return seg != null;
+	}
+	
+	public Data get(Name name) {
+		DataSegment<Name, Data> seg = internalGetDataSegment(name, true);
+		if (seg == null) return null;
+		return seg.dataObject;
+	}
+	
+	public Data put(Name name, Data data) {
+		return internalPut(name, data, true);
+	}
+	
+	public void set(Name name, Data data) {
+		internalPut(name, data, false);
+	}
+	
+	public Map<Name, Integer> debugGetStoredNames() {
+		return storedNames;
+	}
+
 	protected long seekBlock(int blockID, int offset) throws IOException {
 		final long pos = blockOffset(blockID) + offset;
 	
@@ -172,8 +277,15 @@ public class NamedDataMapFile<Name, Data> {
 		final long old = randomAccessFile.getFilePointer();
 		if (pos == old) return old;
 
-		if (pos > randomAccessFile.length()) System.out.println("WARNING: seek beyond file length!");
-		System.out.println("Seek "+pos+"["+Long.toHexString(pos)+"] (block="+blockID+" offset="+offset+")");
+		if (pos > randomAccessFile.length()) {
+			throw new RuntimeException("WARNING: seek beyond file length!");
+//			System.out.println("WARNING: seek beyond file length!");
+//			StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+//			for (int i = 1; i < elements.length; i++) {
+//				System.out.println("   at "+elements[i]);
+//			}
+		}
+		//System.out.println("Seek "+pos+"["+Long.toHexString(pos)+"] (block="+blockID+" offset="+offset+")");
 		
 		// Regular seek
 		randomAccessFile.seek(pos);
@@ -221,7 +333,7 @@ public class NamedDataMapFile<Name, Data> {
 	protected void writeName(Name name) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(SIZE_NAME);
 		nameWriter.write(baos, name);
-		if (baos.size() > SIZE_NAME) throw new RuntimeException("nameWriter wrote name that is larger than SIZE_NAME!");
+		if (baos.size() > SIZE_NAME) throw new RuntimeException("nameWriter wrote name that is larger than SIZE_NAME! ("+name+" -> "+Arrays.toString(baos.toByteArray())+")");
 		randomAccessFile.write(baos.toByteArray(), 0, baos.size());
 	}
 
@@ -246,8 +358,65 @@ public class NamedDataMapFile<Name, Data> {
 	protected void writeBlockID(int size) throws IOException {
 		randomAccessFile.writeInt(size);
 	}
+	
+	protected void writeDataHeader(byte b) throws IOException {
+		randomAccessFile.writeByte(b);
+	}
+
+	public byte readDataHeader() throws IOException {
+		return randomAccessFile.readByte();
+	}
+
+	protected byte[] getDataArray(Data data, CompressionMethod compression) throws IOException {
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream(SIZE_BLOCK);
+		final OutputStream compressed = compression.getCompressionStream(baos);
+		final BufferedOutputStream bos = new BufferedOutputStream(compressed);
+		
+		dataWriter.write(bos, data);
+		bos.close();
+		
+		final byte[] bytes = baos.toByteArray();
+		if (debug && debugVerbosity >= 2) {
+			final String md5 = MD5Hash.hash(bytes);
+			System.out.println("Wrote "+bytes.length+" bytes of data (MD5="+md5+")");
+		}
+		
+		return bytes;
+	}
+
+	public void writeDataArray(byte[] bytes) throws IOException {
+		randomAccessFile.write(bytes, 0, bytes.length);
+	}
+
+	protected Data readData(int size, CompressionMethod compression) throws IOException {
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream(size);
+		
+		int copied = 0;
+		while (copied < size) {
+			int copySize = Math.min(BUFFER_SIZE, size - copied);
+			randomAccessFile.read(buffer, 0, copySize);
+			baos.write(buffer, 0, copySize);
+			copied += copySize;
+		}
+
+		final byte[] bytes = baos.toByteArray();
+		if (debug && debugVerbosity >= 2) {
+			final String md5 = MD5Hash.hash(bytes);
+			System.out.println("Read "+bytes.length+" bytes of data (MD5="+md5+")");
+		}
+		
+		final ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+		final InputStream decompressed = compression.getDecompressionStream(bais);
+		final BufferedInputStream bis = new BufferedInputStream(decompressed);
+		
+		return dataReader.read(bis);
+	}
 
 	protected void markBlocksFree(int startBlocksFreed, int endBlocksFreed) throws IOException {
+		if (debug) {
+			System.out.println("Freed blocks "+startBlocksFreed+"-"+endBlocksFreed);
+		}
+		
 		for (int block = startBlocksFreed; block <= endBlocksFreed; block++) {
 			seekBlock(block, 0);
 			randomAccessFile.writeInt(0);
@@ -269,6 +438,7 @@ public class NamedDataMapFile<Name, Data> {
 	protected boolean tryClaim(int start, int end) throws IOException {
 		if (freeBlocks == null) {
 			grow(blockOffset(end) + SIZE_BLOCK);
+			if (debug && debugVerbosity >= 0) System.out.println("Claimed blocks "+start+"-"+end);
 			return true;
 		}
 		
@@ -278,6 +448,7 @@ public class NamedDataMapFile<Name, Data> {
 		if (start > lastBlock) {
 			if (start > lastBlock+1) throw new RuntimeException("Attempted claim is more than one SIZE_BLOCK past the end of the file!");
 			grow(blockOffset(end) + SIZE_BLOCK);
+			if (debug && debugVerbosity >= 0) System.out.println("Claimed blocks "+start+"-"+end);
 			return true; // Padding will allow writing starting at block 'start'
 		}
 
@@ -287,6 +458,7 @@ public class NamedDataMapFile<Name, Data> {
 		if (subset.size() < searchEnd-start+1) return false;
 		subset.clear();
 		grow(blockOffset(end) + SIZE_BLOCK);
+		if (debug && debugVerbosity >= 0) System.out.println("Claimed blocks "+start+"-"+end);
 		return true;
 	}
 
@@ -302,6 +474,8 @@ public class NamedDataMapFile<Name, Data> {
 	 * @throws IOException 
 	 */
 	protected int getClaim(int blockCount) throws IOException {
+		if (debug && debugVerbosity >= 0) System.out.println("Asking for claim of "+blockCount+" blocks");
+		
 		if (freeBlocks == null) {
 			tryClaim(0, blockCount-1);
 			return 0;
@@ -325,12 +499,14 @@ public class NamedDataMapFile<Name, Data> {
 			if (rangeLength >= blockCount) break;
 		}
 		
-		if (rangeLength == -1) {
+		if (rangeLength < blockCount) {
 			// If there were no free blocks, rangeStart is at end of file
 			rangeStart = numBlocks(randomAccessFile.length());
+			if (debug && debugVerbosity >= 0) System.out.println("Allocated at end of file");
 		}
 
-		tryClaim(rangeStart, rangeStart+blockCount-1);
+		boolean success = tryClaim(rangeStart, rangeStart+blockCount-1);
+		if (!success) throw new RuntimeException("Could not claim allocated region: "+rangeStart+"-"+(rangeStart+blockCount-1));
 		return rangeStart;
 		
 	}
@@ -341,7 +517,7 @@ public class NamedDataMapFile<Name, Data> {
 	 * @param size
 	 * @throws IOException 
 	 */
-	protected void copyData(int blockFrom, int blockTo, int size) throws IOException {
+	protected void copyBlock(int blockFrom, int blockTo, int size) throws IOException {
 		int copied = 0;
 		while (copied < size) {
 			final int copySize = Math.min(BUFFER_SIZE, size-copied);
@@ -351,6 +527,10 @@ public class NamedDataMapFile<Name, Data> {
 			randomAccessFile.write(buffer, 0, copySize);
 			copied += copySize;
 		}
+	}
+
+	public long getFileLength() throws IOException {
+		return randomAccessFile.length();
 	}
 	
 }

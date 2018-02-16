@@ -86,7 +86,7 @@ public class ChunkPrimerExt extends ChunkPrimer {
 			final int xi = (x << 12);
 			
 			for (int z = 0; z < 16; z++) {
-				final int zi = xi | (z << 8) + minY;
+				final int zi = xi | (z << 8) | minY;
 				
 				for (int y = 0; y < 16; y++) {
 					final char block = this.data[zi + y];
@@ -112,6 +112,28 @@ public class ChunkPrimerExt extends ChunkPrimer {
 		return DataResult.NONE;		
 	}
 
+	private void putSection(int sectionY, byte[] idsLow, NibbleArray data, NibbleArray idsHigh) {
+		final int minY = sectionY << 4; // * 16
+		int sectionIndex = 0;
+		
+		for (int x = 0; x < 16; x++) {
+			final int xi = (x << 12);
+			
+			for (int z = 0; z < 16; z++) {
+				final int zi = xi | (z << 8) | minY;
+				
+				for (int y = 0; y < 16; y++) {
+					char block = (char) (idsLow[sectionIndex] << 4);
+					block |= data.getFromIndex(sectionIndex);
+					if (idsHigh != null) block |= idsHigh.getFromIndex(sectionIndex) << 12;
+					sectionIndex++;
+					
+					this.data[zi + y] = block;
+				}
+			}
+		}
+	}
+	
 	// Save block data in up to 16 sections of 16x16x16 blocks
 	public NBTTagList getSectionsNBT() {
 		NBTTagList sectionListTag = new NBTTagList();
@@ -140,6 +162,36 @@ public class ChunkPrimerExt extends ChunkPrimer {
 		}
 		
 		return sectionListTag;
+	}
+
+	public static ChunkPrimerExt fromNBT(final NBTTagList tagList) {
+		final ChunkPrimerExt result = new ChunkPrimerExt();
+		
+		for (int i = 0; i < tagList.tagCount(); i++) {
+			final NBTTagCompound sectionNBT = tagList.getCompoundTagAt(i);
+			
+			final int sectionY = sectionNBT.getInteger("Y");
+			final byte[] idsLow = sectionNBT.getByteArray("Blocks");
+			final NibbleArray data = new NibbleArray(sectionNBT.getByteArray("Data"));
+			
+			final NibbleArray idsHigh;
+			final byte[] idsHighBytes = sectionNBT.getByteArray("Add");
+			if (idsHighBytes.length == 2048) {
+				idsHigh = new NibbleArray(idsHighBytes);
+			} else {
+				idsHigh = null;
+			}
+			
+			result.putSection(sectionY, idsLow, data, idsHigh);
+		}
+		
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 16; j++) {
+				result.setBlockState(i, 250, j, Blocks.GLASS.getDefaultState());
+			}	
+		}
+		
+		return result;
 	}
 	
 }

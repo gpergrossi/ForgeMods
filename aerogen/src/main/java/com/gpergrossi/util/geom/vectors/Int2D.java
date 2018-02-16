@@ -167,6 +167,20 @@ public class Int2D implements IVector2D<Int2D> {
 		return (x * 397) ^ y;
 	}
 	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Int2D)) return false;
+		Int2D other = (Int2D) obj;
+		if (other.x != this.x) return false;
+		if (other.y != this.y) return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "Int2D[x="+x+", y="+y+"]";
+	}
+	
 	public static class WithIndex extends Mutable {
 		public final Int2DRange range;
 		public int index;

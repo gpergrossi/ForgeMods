@@ -31,19 +31,62 @@ public class WorldPrimer extends World {
 		this.generator = generator;
 		this.chunks = new Large2DArray<>();
 		
-		this.chunkStore = WorldPrimerChunkLoader.forWorld(generator.getWorld());
-		chunkStore.setPrimer(this);
+		this.chunkStore = new WorldPrimerChunkLoader(this);
+	}
+	
+	private WorldPrimerChunk getPrimerChunkInternal(int chunkX, int chunkZ, boolean canLoad, boolean allowProxy) {
+		WorldPrimerChunk chunk = chunks.get(chunkX, chunkZ);
+		
+		if (chunk == null && canLoad && chunkStore.hasChunk(chunkX, chunkZ)) {
+			chunk = chunkStore.loadChunk(chunkX, chunkZ);
+			chunks.set(chunkX, chunkZ, chunk);
+		}
+				
+		if (chunk == null && allowProxy && generator.getWorld().isChunkGeneratedAt(chunkX, chunkZ)) {
+			WorldPrimerChunk proxy = WorldPrimerChunk.proxy(this, chunkX, chunkZ);
+			chunks.set(chunkX, chunkZ, proxy);
+			return proxy;
+		}
+		
+		return chunk;
 	}
 
+	public void save(WorldPrimerChunk chunk) {
+		chunkStore.saveChunk(chunk);
+	}
+	
+	public void saveAll() {
+		for (WorldPrimerChunk chunk : chunks) {
+			if (!chunk.isSaved() && chunk.isCompleted()) chunkStore.saveChunk(chunk);
+		}
+		for (WorldPrimerChunk chunk : chunks) {
+			if (!chunk.isSaved() && !chunk.isCompleted()) chunkStore.saveChunk(chunk);
+		}
+	}
+	
+	public void flush() {
+		chunkStore.flush();
+	}
+
+	public void close() {
+		chunkStore.close();
+	}
+	
+	public WorldPrimerChunk peakPrimerChunk(int chunkX, int chunkZ) {
+		synchronized (chunks) {
+			return getPrimerChunkInternal(chunkX, chunkZ, false, false);
+		}
+	}
+	
 	public WorldPrimerChunk getPrimerChunk(int chunkX, int chunkZ) {
 		synchronized (chunks) {
-			return chunks.get(chunkX, chunkZ);
+			return getPrimerChunkInternal(chunkX, chunkZ, true, true);
 		}
 	}
 	
 	public WorldPrimerChunk getOrCreatePrimerChunk(int chunkX, int chunkZ) {
 		synchronized (chunks) {
-			WorldPrimerChunk chunk = chunks.get(chunkX, chunkZ);
+			WorldPrimerChunk chunk = getPrimerChunkInternal(chunkX, chunkZ, true, true);
 			if (chunk == null) {
 				chunk = new WorldPrimerChunk(this, chunkX, chunkZ);
 				chunks.set(chunkX, chunkZ, chunk);
@@ -86,8 +129,10 @@ public class WorldPrimer extends World {
 				
 				Int2DRange chunkRange = new Int2DRange(chunkMinX, chunkMinZ, chunkMinX+15, chunkMinZ+15);
 				Int2DRange overlap = chunkRange.intersect(returnIntsRange);
+				
+				byte[] chunkBiomes = chunk.getBiomes();
 				for (Int2D.Mutable tile : overlap.getAllMutable()) {
-					data[returnIntsRange.indexFor(tile)] = Biome.getIdForBiome(chunk.getBiome(tile.x() & 15, tile.y() & 15));
+					data[returnIntsRange.indexFor(tile)] = chunkBiomes[tile.x() & 15 | ((tile.y() & 15) << 4)];
 				}
 			}
 		}
@@ -106,14 +151,13 @@ public class WorldPrimer extends World {
 	@Override
 	protected boolean isChunkLoaded(int chunkX, int chunkZ, boolean allowEmpty) {
 		synchronized (chunks) {
-			WorldPrimerChunk chunk = chunks.get(chunkX, chunkZ);
-			return (chunk != null);
+			return getPrimerChunkInternal(chunkX, chunkZ, false, true) != null;
 		}
 	}
 	
 	@Override
     public Biome getBiome(final BlockPos pos) {
-		return getOrCreatePrimerChunkForBlockPos(pos).getBiome(pos.getX() & 15, pos.getZ() & 15);
+		return Biome.getBiomeForId(getOrCreatePrimerChunkForBlockPos(pos).getBiome(pos.getX() & 15, pos.getZ() & 15));
     }
 	
 	@Override
@@ -173,6 +217,9 @@ public class WorldPrimer extends World {
 	@Override
 	public int getHeight(int x, int z) {
         if (x < -30000000 || z < -30000000 || x >= 30000000 || z >= 30000000) return 0;
+        if (generator.getWorld().isChunkGeneratedAt(x >> 4, z >> 4)) {
+        	return generator.getWorld().getChunkFromChunkCoords(x >> 4, z >> 4).getHeightValue(x & 15, z & 15);
+        }
         if (!this.isChunkLoaded(x >> 4, z >> 4, true)) return 0;
         return getPrimerChunk(x >> 4, z >> 4).getHeight(x & 15, z & 15);
 	}
