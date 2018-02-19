@@ -112,7 +112,7 @@ public class Int2DRange {
 		return indexFor(pt.x(), pt.y());
 	}
 	
-	private int indexFor(int x, int y) {
+	public int indexFor(int x, int y) {
 		return (y-minY)*width+(x-minX);
 	}
 
@@ -319,7 +319,7 @@ public class Int2DRange {
 			return this.get(x, y);
 		}
 
-		public Int2DRange getTrimRange(Predicate<Float> predicateRemovable) {
+		public Int2DRange getTrimmedRange(Predicate<Float> predicateRemovable) {
 			int trimMinY = -1, trimMaxY = -1;
 			for (int y = 0; y < height; y++) {
 				if (trimMinY == -1)	for (int x = 0; x < width; x++) {

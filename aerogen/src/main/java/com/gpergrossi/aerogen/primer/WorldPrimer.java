@@ -1,8 +1,11 @@
 package com.gpergrossi.aerogen.primer;
 
 import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 import com.gpergrossi.aerogen.AeroGenerator;
+import com.gpergrossi.util.data.Tuple2;
 import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.spacial.Large2DArray;
@@ -21,15 +24,28 @@ public class WorldPrimer extends World {
 		public DimensionType getDimensionType() { return null; }
 		public net.minecraft.world.border.WorldBorder createWorldBorder() { return null; };
 	};
+
+	/**
+	 * If set to true, the console will be positively SPAMMED with information about
+	 * how chunks were loaded/constructed and then generated/populated/finished.
+	 */
+	public static final boolean DEBUG_PRINT_CHUNK_LOG = false;
+
+	/**
+	 * Minimum time in milliseconds after the last time a chunk was modified before it is saved
+	 */
+	private static final long MIN_SAVE_AGE = 10000;
 	
 	protected final AeroGenerator generator;
 	protected final Large2DArray<WorldPrimerChunk> chunks;
+	protected Queue<Tuple2<Long, WorldPrimerChunk>> saveQueue;
 	protected final WorldPrimerChunkLoader chunkStore;
 	
 	public WorldPrimer(AeroGenerator generator) {
 		super(null, null, NULL_WORLD_PROVIDER, null, false);
 		this.generator = generator;
 		this.chunks = new Large2DArray<>();
+		this.saveQueue = new PriorityQueue<>((a, b) -> Long.compare(a.first, b.first)); // Lowest value (earliest) timestamp first
 		
 		this.chunkStore = new WorldPrimerChunkLoader(this);
 	}
@@ -43,24 +59,46 @@ public class WorldPrimer extends World {
 		}
 				
 		if (chunk == null && allowProxy && generator.getWorld().isChunkGeneratedAt(chunkX, chunkZ)) {
-			WorldPrimerChunk proxy = WorldPrimerChunk.proxy(this, chunkX, chunkZ);
-			chunks.set(chunkX, chunkZ, proxy);
+			WorldPrimerChunk proxy = WorldPrimerChunk.createProxy(this, chunkX, chunkZ);
 			return proxy;
 		}
 		
 		return chunk;
 	}
 
+	public void doSaveTick() {
+		if (saveQueue.isEmpty()) return;
+		
+		final long now = System.currentTimeMillis();		
+		final Tuple2<Long, WorldPrimerChunk> saveEntry = saveQueue.peek();
+		final long timestamp = saveEntry.first;
+		
+		if (now - timestamp < MIN_SAVE_AGE) return;
+		
+		saveQueue.poll(); // Remove save entry
+		final WorldPrimerChunk chunk = saveEntry.second;
+		
+		if (chunk.needsSave()) {
+			if (now - chunk.timestamp < MIN_SAVE_AGE) {
+				saveQueue.offer(new Tuple2<>(chunk.timestamp, chunk));
+				return;
+			}
+			save(chunk);
+		}
+		chunk.inSaveQueue = false;
+	}
+	
 	public void save(WorldPrimerChunk chunk) {
 		chunkStore.saveChunk(chunk);
+		chunk.markDirty(false);
 	}
 	
 	public void saveAll() {
 		for (WorldPrimerChunk chunk : chunks) {
-			if (!chunk.isSaved() && chunk.isCompleted()) chunkStore.saveChunk(chunk);
+			if (chunk.needsSave() && chunk.isCompleted()) save(chunk);
 		}
 		for (WorldPrimerChunk chunk : chunks) {
-			if (!chunk.isSaved() && !chunk.isCompleted()) chunkStore.saveChunk(chunk);
+			if (chunk.needsSave() && !chunk.isCompleted()) save(chunk);
 		}
 	}
 	

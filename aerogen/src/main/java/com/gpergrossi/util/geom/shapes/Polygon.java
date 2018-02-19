@@ -317,6 +317,8 @@ public abstract class Polygon implements IShape {
 		throw new UnsupportedOperationException();
 	}
 
+	public abstract Polygon reflect(Line line);
+	
 	public abstract int getNumSides();
 	public abstract LineSeg getSide(int i);
 	

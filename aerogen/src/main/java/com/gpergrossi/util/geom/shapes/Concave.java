@@ -40,7 +40,7 @@ public class Concave extends Polygon implements IShape {
 	 * Creates a minimum list of convex polygons that equal the area of this concave polygon
 	 */
 	private void decomposeToConvex() {
-		
+		//TODO
 	}
 
 	
@@ -166,6 +166,19 @@ public class Concave extends Polygon implements IShape {
 			this.centroid = new Double2D(cx, cy);
 		}
 		return this.centroid;
+	}
+	
+	@Override
+	public Concave reflect(Line line) {
+		Double2D[] reflectedVertices = new Double2D[vertices.length];
+		for (int i = 0; i < vertices.length; i++) {
+			reflectedVertices[i] = line.reflect(vertices[i]);
+		}
+		Convex[] reflectedConvexes = new Convex[convexes.length];
+		for (int i = 0; i < convexes.length; i++) {
+			reflectedConvexes[i] = convexes[i].reflect(line);
+		}
+		return new Concave(reflectedVertices, reflectedConvexes);
 	}
 	
 	@Override

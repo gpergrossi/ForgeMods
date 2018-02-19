@@ -228,7 +228,7 @@ public class Region {
 	private void createFeatures() {
 		this.features = new ArrayList<>();
 		
-		List<IRegionFeature> features = biome.getFeatures(this, random);
+		this.features = biome.getFeatures(this, random);
 		if (features == null) return;
 		
 		for (IRegionFeature feature : features) {

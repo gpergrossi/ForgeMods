@@ -50,7 +50,7 @@ public class WorldPrimerChunkLoader implements IThreadedFileIO {
 			
 			Int2D chunkPos = new Int2D(chunkX, chunkZ);
 			NBTTagCompound chunkCompoundTag = readChunkData(chunkPos);
-			return readChunkFromNBT(world, chunkCompoundTag);
+			return WorldPrimerChunk.readFromNBT(world, chunkCompoundTag);
 		} catch (MinecraftException exception) {
 			AeroGenMod.log.error("Failed to load primer chunk", exception);
 		}
@@ -63,7 +63,7 @@ public class WorldPrimerChunkLoader implements IThreadedFileIO {
 
 			Int2D pos = new Int2D(chunk.chunkX, chunk.chunkZ);
 			
-			NBTTagCompound chunkCompoundTag = writeChunkToNBT(chunk);
+			NBTTagCompound chunkCompoundTag = chunk.writeToNBT();
 			this.addChunkToPending(pos, chunkCompoundTag);
 			
 		} catch (Exception exception) {
@@ -107,6 +107,7 @@ public class WorldPrimerChunkLoader implements IThreadedFileIO {
 		if (!saveFile.isOpen()) throw new RuntimeException("Could not save chunk because AerogenPrimerChunks file is not open!");
 		if (nbtTagCompound.hasNoTags()) {
 			saveFile.set(chunkPos, null);
+			world.chunks.set(chunkPos.x(), chunkPos.y(), null);
 		} else {
 			saveFile.set(chunkPos, nbtTagCompound);
 		}
@@ -117,68 +118,9 @@ public class WorldPrimerChunkLoader implements IThreadedFileIO {
 		final NBTTagCompound nbt = saveFile.get(chunkPos);
 		return nbt;
 	}
-	
-	private static final int NBT_TAG_BYTE_ARRAY = 7;
-	private static final int NBT_TAG_LIST = 9;
-	private static final int NBT_TAG_COMPOUND = 10;
-	
-	private static NBTTagCompound writeChunkToNBT(WorldPrimerChunk chunk) {
-		if (chunk.isCompleted()) {
-			chunk.isSaved = true;
-			return new NBTTagCompound();
-		}
-		
-		final NBTTagCompound chunkCompoundTag = new NBTTagCompound();
-		chunkCompoundTag.setInteger("DataVersion", 1);
-		
-		final NBTTagCompound levelCompoundTag = new NBTTagCompound();
-		chunkCompoundTag.setTag("Level", levelCompoundTag);
-		
-		levelCompoundTag.setInteger("xPos", chunk.chunkX);
-		levelCompoundTag.setInteger("zPos", chunk.chunkZ);
-		levelCompoundTag.setBoolean("TerrainPopulated", chunk.isPopulated());
-		if (chunk.hasBiomes()) levelCompoundTag.setByteArray("Biomes", chunk.getBiomes());
-		
-		if (chunk.isGenerated()) {
-			levelCompoundTag.setIntArray("HeightMap", chunk.heightMap);
-			levelCompoundTag.setTag("Sections", chunk.getBlocks().getSectionsNBT());
-		}
-		
-		chunk.isSaved = true;
-		return chunkCompoundTag;
-	}
-	
-	private static WorldPrimerChunk readChunkFromNBT(WorldPrimer world, NBTTagCompound nbt) {
-		if (nbt == null) return null;
-		
-		final NBTTagCompound levelNBT = nbt.getCompoundTag("Level");
-		final int chunkX = levelNBT.getInteger("xPos");
-		final int chunkZ = levelNBT.getInteger("zPos");
-		
-		final WorldPrimerChunk chunk = new WorldPrimerChunk(world, chunkX, chunkZ);
-		chunk.isPopulated = levelNBT.getBoolean("TerrainPopulated");
-		if (chunk.isPopulated) chunk.loadedStatus |= WorldPrimerChunk.LOADED_POPULATED;
-		
-		if (levelNBT.hasKey("Biomes", NBT_TAG_BYTE_ARRAY)) {
-			chunk.hasBiomes = true;
-			chunk.biomes = levelNBT.getByteArray("Biomes");
-			chunk.loadedStatus |= WorldPrimerChunk.LOADED_WITH_BIOMES;
-		}
-		
-		if (levelNBT.hasKey("Sections", NBT_TAG_LIST)) {
-			chunk.isGenerated = true;
-			chunk.blocks = ChunkPrimerExt.fromNBT(levelNBT.getTagList("Sections", NBT_TAG_COMPOUND));
-			chunk.heightMap = levelNBT.getIntArray("HeightMap");
-			chunk.loadedStatus |= WorldPrimerChunk.LOADED_GENERATED;
-		} else {
-			System.out.println("Chunk "+chunkX+", "+chunkZ+" had no Sections");
-		}
-		
-		chunk.isSaved = true;
-		return chunk;
-	}
 
 	public void close() {
+		this.flush();
 		try {
 			saveFile.close();
 		} catch (IOException e) {

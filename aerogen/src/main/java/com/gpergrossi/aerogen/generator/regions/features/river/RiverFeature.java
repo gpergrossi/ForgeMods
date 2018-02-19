@@ -13,6 +13,7 @@ import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
 import com.gpergrossi.constraints.integer.IntegerConstraint;
 import com.gpergrossi.util.data.WeightedList;
+import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.voronoi.Edge;
 import com.gpergrossi.voronoi.Site;
@@ -90,6 +91,11 @@ public class RiverFeature implements IRegionFeature {
 			currentIsland = currentCell.getIsland();
 			Edge previousEdge = cellExplorer.previousEdge();
 			
+			if (currentIsland == null) {
+				river.addWaterfall(previousEdge.toLineSeg(), currentCell);
+				break;
+			}
+			
 			consume(currentCell);
 			
 			// First cell only
@@ -118,12 +124,13 @@ public class RiverFeature implements IRegionFeature {
 	}
 	
 	public class RandomCellExplorer implements Iterator<IslandCell> {
-
+		
 		Random random;
 		Double2D previousMove;
 		Edge currentEdge;
 		Edge nextEdge;
 		IslandCell nextCell;
+		boolean offTheEdge = false;
 		
 		public RandomCellExplorer(Random random, IslandCell startingCell, Double2D startingDirection) {
 			this.random = random;
@@ -141,15 +148,30 @@ public class RiverFeature implements IRegionFeature {
 			IslandCell currentCell = nextCell;
 			currentEdge = nextEdge;
 
+			if (offTheEdge) {
+				offTheEdge = false;
+				nextCell = null;
+				return currentCell;
+			}
+			
 			nextEdge = chooseNextEdge();
 			if (nextEdge != null) {
-				Site nextSite = nextEdge.getNeighbor(nextCell.getVoronoiSite());
+				Site nextSite = nextEdge.getNeighbor(currentCell.getVoronoiSite());
+				
+				if (nextSite == null) {
+					offTheEdge = true;
+					Convex reflected = currentCell.getPolygon().reflect(nextEdge.toLineSeg());
+					System.out.println("off the edge: "+currentCell.getPolygon()+" --> "+reflected);
+					nextCell = new IslandCell(null, reflected);
+					return currentCell;
+				}
 				
 				previousMove = nextSite.getPolygon().getCentroid();
-				previousMove = previousMove.subtract(nextCell.getPolygon().getCentroid());
+				previousMove = previousMove.subtract(currentCell.getPolygon().getCentroid());
 				previousMove = previousMove.normalize();
 				
 				nextCell = (IslandCell) nextSite.data;
+				
 			} else {
 				nextCell = null;
 			}
@@ -166,15 +188,23 @@ public class RiverFeature implements IRegionFeature {
 			Site currentSite = nextCell.getVoronoiSite();
 			for (Edge e : currentSite.getEdges()) {
 				Site n = e.getNeighbor(currentSite);
-				if (n == null || consumed((IslandCell) n.data)) continue;
+				if (n != null && consumed((IslandCell) n.data)) continue;
 				
 				double edgeLength = e.toLineSeg().length();
 				if (edgeLength < minWaterfallWidth) continue;
-				
-				Double2D nVector = n.getPolygon().getCentroid();
-				nVector = nVector.subtract(nextCell.getPolygon().getCentroid());
-				nVector = nVector.normalize();
-				double dotProduct = nVector.dot(previousMove);
+
+				double dotProduct = -1;
+				if (n != null) {
+					Double2D nVector = n.getPolygon().getCentroid();
+					nVector = nVector.subtract(nextCell.getPolygon().getCentroid());
+					nVector = nVector.normalize();
+					dotProduct = nVector.dot(previousMove);
+				} else {
+					Double2D nVector = e.getCenter();
+					nVector = nVector.subtract(nextCell.getPolygon().getCentroid());
+					nVector = nVector.normalize();
+					dotProduct = nVector.dot(previousMove);
+				}
 				
 				double weightD = edgeLength/region.getAverageCellRadius() + (1+dotProduct);
 				int weight = (int) (weightD*1000.0);

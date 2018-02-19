@@ -19,6 +19,7 @@ import com.gpergrossi.util.geom.shapes.LineSeg;
 import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.shapes.Spline;
 import com.gpergrossi.util.geom.shapes.Convex;
+import com.gpergrossi.util.geom.shapes.Line;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.viewframe.View;
 import com.gpergrossi.viewframe.ViewerFrame;
@@ -63,7 +64,7 @@ public class GUIVoronoiTestView extends View {
 		g2d.setBackground(new Color(0,0,0,255));
 	}
 	
-	boolean useChunkLoader = true;
+	boolean useChunkLoader = false;
 	
 	VoronoiBuilder voronoiBuilder;
 	VoronoiWorker voronoiWorker;
@@ -194,6 +195,16 @@ public class GUIVoronoiTestView extends View {
 			for (Double2D pt : spline.getGuidePoints()) {
 				g2d.fill(new Ellipse2D.Double(pt.x()-10, pt.y()-10, 20, 20));
 			}
+			
+			Double2D dir = mouse.perpendicular().normalize();
+			Line line = new LineSeg(mouse.x(), mouse.y(), mouse.x()+dir.x(), mouse.y()+dir.y());
+			LineSeg mirror = line.toSegment(100, 1000);
+			Convex refl = poly.reflect(mirror);
+			Double2D reflC = refl.getCentroid();
+			
+			g2d.draw(mirror.asAWTShape());
+			g2d.drawOval((int)reflC.x()-20, (int)reflC.y()-20, 40, 40);
+			g2d.draw(refl.asAWTShape());		
 			
 		}
 		

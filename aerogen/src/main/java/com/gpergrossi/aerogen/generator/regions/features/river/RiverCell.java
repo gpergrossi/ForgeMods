@@ -60,9 +60,17 @@ public class RiverCell {
 		RiverCell cell4 = cell3 == null ? null : cell3.getRiverCellNext();
 		
 		Spline spline = new Spline();
+		spline.setCatmullRomAlpha(0);
 		
 		if (cell0 != null) spline.addGuidePoint(-2, cell0.getPolygon().getCentroid());
-		if (cell1 != null) spline.addGuidePoint(-1, cell1.getPolygon().getCentroid());
+		if (cell1 != null) {
+			if (cell1.waterfallIn != null) {
+				Double2D.Mutable midpoint = new Double2D.Mutable();
+				cell1.waterfallIn.getEdge().getMidpoint(midpoint);
+				spline.addGuidePoint(-1.5, midpoint);
+			}
+			spline.addGuidePoint(-1, cell1.getPolygon().getCentroid());
+		}
 		if (this.waterfallIn != null) {
 			Double2D.Mutable midpoint = new Double2D.Mutable();
 			this.waterfallIn.getEdge().getMidpoint(midpoint);
@@ -74,7 +82,14 @@ public class RiverCell {
 			this.waterfallOut.getEdge().getMidpoint(midpoint);
 			spline.addGuidePoint(0.5, midpoint);
 		}
-		if (cell3 != null) spline.addGuidePoint(1, cell3.getPolygon().getCentroid());
+		if (cell3 != null) {
+			spline.addGuidePoint(1, cell3.getPolygon().getCentroid());
+			if (cell3.waterfallOut != null) {
+				Double2D.Mutable midpoint = new Double2D.Mutable();
+				cell3.waterfallOut.getEdge().getMidpoint(midpoint);
+				spline.addGuidePoint(1.5, midpoint);
+			}
+		}
 		if (cell4 != null) spline.addGuidePoint(2, cell4.getPolygon().getCentroid());
 
 		riverCurve = new ArrayList<>();

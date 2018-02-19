@@ -105,7 +105,7 @@ public class SandDunes extends InfiniteFeatureGrid {
 //			if (tile.x() == details.minX || tile.x() == details.maxX || tile.y() == details.minY || tile.y() == details.maxY) tile.setValue(1);
 		}
 		
-		Int2DRange range = details.getTrimRange(v -> v <= 0.0f);
+		Int2DRange range = details.getTrimmedRange(v -> v <= 0.0f);
 		details = range.copyFloats(details, 0, 0);
 		
 //		for (Int2D.StoredFloat tile : details.getAllFloatsMutable()) {			

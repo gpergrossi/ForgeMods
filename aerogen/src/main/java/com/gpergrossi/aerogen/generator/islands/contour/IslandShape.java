@@ -129,7 +129,7 @@ public class IslandShape {
 		
 		// If the smallScale representation is full size, we just need to fix the padding
 		if (smallScale == 1) {
-			Int2DRange trimRange = smallDist.getTrimRange(v -> (v <= 0));
+			Int2DRange trimRange = smallDist.getTrimmedRange(v -> (v <= 0));
 			int originalMinX = range.minX;
 			int originalMinY = range.minY;
 			this.range = trimRange.offset(originalMinX, originalMinY);
@@ -139,13 +139,14 @@ public class IslandShape {
 		}
 		
 		// Otherwise, we need to do a bit of magic to up-scale the values
-		Int2DRange trimRange = smallDist.getTrimRange(v -> (v <= 0)).grow(0, 0, 2, 2);
+		Int2DRange trimmmedRange = smallDist.getTrimmedRange(v -> (v <= 0)).grow(0, 0, 2, 2);
 		int originalMinX = range.minX;
 		int originalMinY = range.minY;
-		this.range = trimRange.scale(smallScale).offset(range.minX, range.minY);
-		Int2DRange.Floats fullSize = new Int2DRange.Floats(this.range);
+		this.range = trimmmedRange.scale(smallScale).offset(range.minX, range.minY);
+		this.edgeDistance = new Int2DRange.Floats(this.range);
+		this.maxEdgeDistance = maxDistance;
 		
-		for (Int2D.StoredFloat tile : fullSize.getAllFloats()) {
+		for (Int2D.StoredFloat tile : edgeDistance.getAllFloats()) {
 			if (tile.index % 200 == 0) Thread.yield();
 			float x = (float) (tile.x() - originalMinX) / (float) (smallScale);
 			float y = (float) (tile.y() - originalMinY) / (float) (smallScale);
@@ -191,8 +192,6 @@ public class IslandShape {
 			
 			tile.setValue(edgeDist);
 		}
-		this.edgeDistance = fullSize;
-		this.maxEdgeDistance = maxDistance;
 	}
 	
 	/**
@@ -272,11 +271,6 @@ public class IslandShape {
 	}
 	
 	public float getEdgeDistance(int x, int z) {
-		if (edgeDistance == null) {
-			System.out.println("Island coord: "+this.island.getRegion().getCoord() +":"+this.island.regionIndex);
-			System.out.println("Island biome: "+this.island.getBiome());
-			System.out.println("Island range: "+this.range);
-		}
 		return edgeDistance.getSafe(x, z, 0);
 	}
 	
@@ -347,6 +341,5 @@ public class IslandShape {
 	public List<IslandCell> getCells() {
 		return cells;
 	}
-
 	
 }

@@ -55,13 +55,27 @@ public class ChunkPrimerExt extends ChunkPrimer {
 		if (y > highestY) y = highestY;
 		
         int xz = (x << 12 | z << 8);
-        for (int yi = y; yi > 0; yi--) {
+        for (int yi = y; yi >= lowestY; yi--) {
             char block = this.data[xz | yi];
             if (block != 0 && block != DEFAULT_STATE_CHAR) {
-                return y;
+                return yi;
             }
         }
         return 0;
+	}
+	
+	public int findFirstBlockAbove(int x, int y, int z) {
+		if (y > highestY) return 255;
+		if (y < lowestY) y = lowestY;
+		
+        int xz = (x << 12 | z << 8);
+        for (int yi = y; yi <= highestY; yi++) {
+            char block = this.data[xz | yi];
+            if (block != 0 && block != DEFAULT_STATE_CHAR) {
+                return yi;
+            }
+        }
+        return 255;
 	}
 	
 	public static enum DataResult {
@@ -123,12 +137,13 @@ public class ChunkPrimerExt extends ChunkPrimer {
 				final int zi = xi | (z << 8) | minY;
 				
 				for (int y = 0; y < 16; y++) {
-					char block = (char) (idsLow[sectionIndex] << 4);
-					block |= data.getFromIndex(sectionIndex);
-					if (idsHigh != null) block |= idsHigh.getFromIndex(sectionIndex) << 12;
-					sectionIndex++;
+		            final int blockID = idsLow[sectionIndex];
+		            final int dataNibble = data.getFromIndex(sectionIndex);
+		            final int blockIDExt = (idsHigh == null ? 0 : idsHigh.getFromIndex(sectionIndex));
+		            final char block = (char) (blockIDExt << 12 | (blockID & 255) << 4 | dataNibble);
 					
 					this.data[zi + y] = block;
+					sectionIndex++;
 				}
 			}
 		}
@@ -183,12 +198,6 @@ public class ChunkPrimerExt extends ChunkPrimer {
 			}
 			
 			result.putSection(sectionY, idsLow, data, idsHigh);
-		}
-		
-		for (int i = 0; i < 16; i++) {
-			for (int j = 0; j < 16; j++) {
-				result.setBlockState(i, 250, j, Blocks.GLASS.getDefaultState());
-			}	
 		}
 		
 		return result;

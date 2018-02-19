@@ -339,5 +339,15 @@ public class Line implements IShape {
 	public Shape asAWTShape() {
 		throw new UnsupportedOperationException();
 	}
+
+	public Double2D reflect(Double2D pt) {		
+		final double dot = this.dot(pt);
+		final double cross = -this.cross(pt);
+				
+		double x = this.x + this.dx * dot - this.dy * cross;
+		double y = this.y + this.dy * dot + this.dx * cross;
+		
+		return pt.redefine(x, y);
+	}
 	
 }

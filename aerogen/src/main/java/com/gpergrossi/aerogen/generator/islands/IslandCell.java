@@ -25,6 +25,13 @@ public class IslandCell {
 		this.riverCells = new ArrayList<>();
 	}
 	
+	public IslandCell(Island island, Convex polygon) {
+		this.island = island;
+		this.voronoiSite = null;
+		this.polygon = polygon;
+		this.riverCells = new ArrayList<>();
+	}
+	
 	public void addRiverCell(RiverCell riverCell) {
 		this.riverCells.add(riverCell);
 	}

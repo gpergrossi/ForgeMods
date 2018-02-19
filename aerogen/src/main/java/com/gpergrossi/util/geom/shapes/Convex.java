@@ -162,6 +162,15 @@ public class Convex extends Polygon {
 	}
 	
 	@Override
+	public Convex reflect(Line line) {
+		Double2D[] reflectedVertices = new Double2D[vertices.length];
+		for (int i = 0; i < vertices.length; i++) {
+			reflectedVertices[vertices.length - 1 - i] = line.reflect(vertices[i]);
+		}
+		return new Convex(reflectedVertices);
+	}
+	
+	@Override
 	public Polygon outset(double amount) {
 		return inset(-amount);
 	}

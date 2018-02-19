@@ -264,7 +264,7 @@ public class AeroGenerator {
 	
 	/**
 	 * Minecraft's standard populate phase. Every block placed in this phase can cause a lighting update.
-	 * This is okay (maybe not) for normal MineCraft worlds, but the floating islands have a lot of air
+	 * This is okay (maybe not) for normal Minecraft worlds, but the floating islands have a lot of air
 	 * below them and lighting updates can be quite expensive.
 	 */
 	public void postPopulate(World world, int chunkX, int chunkZ) {		
@@ -356,7 +356,7 @@ public class AeroGenerator {
 	 * associated with this AeroGenerator is saved.
 	 */
 	public void onWorldSave(Save event) {
-		
+		this.worldPrimer.saveAll();
 	}
 	
 	/**
@@ -373,7 +373,7 @@ public class AeroGenerator {
 	 * associated with this AeroGenerator ticks.
 	 */
 	public void onWorldTick(WorldTickEvent event) {
-		
+		this.worldPrimer.doSaveTick();
 	}
 
 	/**
@@ -382,10 +382,8 @@ public class AeroGenerator {
 	 */
 	public void shutdown() {
 		setGUIEnabled(false);
-		if (worldPrimer != null) {
-			worldPrimer.close();
-			worldPrimer = null;
-		}
+		worldPrimer.close();
+		worldPrimer = null;
 	}
 
 }

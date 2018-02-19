@@ -1,3 +1,9 @@
+Releasing JAR:
+1. (optional) run "./gradlew.bat clean"
+2. run "./gradlew.bat build"
+
+ 
+
 Updating versions: 
 reference: https://bedrockminer.jimdo.com/modding-tutorials/basic-modding-1-7/updating-forge-gradle/
 

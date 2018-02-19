@@ -13,10 +13,12 @@ import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.river.River;
+import com.gpergrossi.aerogen.generator.regions.features.river.RiverCell;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverFeature;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
 import com.gpergrossi.aerogen.primer.WorldPrimerChunk;
 import com.gpergrossi.util.geom.shapes.Convex;
+import com.gpergrossi.util.geom.shapes.LineSeg;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.BlockPos;
@@ -93,11 +95,16 @@ public class AeroGeneratorView extends View {
 				}
 
 			}
-			
+
 			g2d.setColor(Color.LIGHT_GRAY);
 			RiverFeature riverFeature = region.getFeature(RiverFeature.class);
 			if (riverFeature != null) {
-				for (River river : riverFeature.getRivers()) {					
+				for (River river : riverFeature.getRivers()) {
+					for (RiverCell cell : river.getCells()) {
+						List<LineSeg> segs = cell.getRiverCurve();
+						for (LineSeg seg : segs) g2d.draw(seg.asAWTShape());
+						g2d.draw(cell.getIslandCell().getInsetPolygon().asAWTShape());
+					}
 					for (RiverWaterfall waterfall : river.getWaterfalls()) {
 						g2d.draw(waterfall.getEdge().asAWTShape());
 						g2d.draw(waterfall.getLocation().toSegment(6).asAWTShape());
@@ -124,17 +131,20 @@ public class AeroGeneratorView extends View {
 				if (chunk.isPopulated()) blue = 255;
 				g2d.setColor(new Color(red, green, blue));
 				
-				if (!chunk.isSaved()) {
-					g2d.drawLine(chunkMinX+4, chunkMinZ+4, chunkMinX+12, chunkMinZ+12);
-					g2d.drawLine(chunkMinX+4, chunkMinZ+12, chunkMinX+12, chunkMinZ+4);
+				if (chunk.needsSave()) {
+					g2d.drawLine(chunkMinX+5, chunkMinZ+5, chunkMinX+11, chunkMinZ+11);
+					g2d.drawLine(chunkMinX+5, chunkMinZ+11, chunkMinX+11, chunkMinZ+5);
 				}
 				
-				// Line on right = generated
-				// Line on bottom = populated
-				// Line on left = biomes
-				if (chunk.wasLoadedWithBiomes()) g2d.drawLine(chunkMinX+2, chunkMinZ+2, chunkMinX+2, chunkMinZ+6);
-				if (chunk.wasLoadedPopulated()) g2d.drawLine(chunkMinX+2, chunkMinZ+6, chunkMinX+6, chunkMinZ+6);
-				if (chunk.wasLoadedGenerated()) g2d.drawLine(chunkMinX+6, chunkMinZ+2, chunkMinX+6, chunkMinZ+6);
+				if (chunk.getLoadedStatus() != 0) { 
+					red = 64; green = 64; blue = 64;
+					if (chunk.hadBiomesOnLoad()) red = 255;
+					if (chunk.wasGeneratedOnLoad()) green = 255;
+					if (chunk.wasPopulatedOnLoad()) blue = 255;
+					g2d.setColor(new Color(red, green, blue));
+					g2d.drawLine(chunkMinX+2, chunkMinZ+2, chunkMinX+2, chunkMinZ+6);
+					g2d.drawLine(chunkMinX+2, chunkMinZ+6, chunkMinX+4, chunkMinZ+6);
+				}
 				
 				if (!chunk.isNeighborSameStatus(-1, 0)) g2d.drawLine(chunkMinX, chunkMinZ, chunkMinX, chunkMinZ+15);
 				if (!chunk.isNeighborSameStatus(1, 0))  g2d.drawLine(chunkMinX+15, chunkMinZ, chunkMinX+15, chunkMinZ+15);

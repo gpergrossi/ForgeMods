@@ -8,7 +8,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.IChunkGenerator;
 
 /**
@@ -28,16 +27,10 @@ public class ChunkGeneratorSky implements IChunkGenerator {
 
 	@Override
 	public Chunk generateChunk(int chunkX, int chunkZ) {
-		if (generator == null) {
-			ChunkPrimer primer = new ChunkPrimer();
-			Chunk mcChunk = new Chunk(world, primer, chunkX, chunkZ);
-			return mcChunk;
-		}
 		return generator.generateChunk(chunkX, chunkZ);
 	}
 
 	public void populate(int chunkX, int chunkZ) {
-		if (generator == null) return;
 		generator.postPopulate(world, chunkX, chunkZ);
 	}
 
