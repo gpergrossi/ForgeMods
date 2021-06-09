@@ -3,7 +3,6 @@ package com.gpergrossi.test.tools;
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Graphics2D;
-import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
@@ -12,14 +11,11 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
-import java.util.Random;
-
 import com.gpergrossi.util.geom.shapes.Circle;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 import com.gpergrossi.util.geom.shapes.Ray;
 import com.gpergrossi.util.geom.shapes.Spline;
 import com.gpergrossi.util.geom.shapes.Convex;
-import com.gpergrossi.util.geom.shapes.Line;
 import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.viewframe.View;
 import com.gpergrossi.viewframe.ViewerFrame;
@@ -41,6 +37,7 @@ public class GUIVoronoiTestView extends View {
 	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					System.setProperty("sun.java2d.opengl", "true");
@@ -167,15 +164,16 @@ public class GUIVoronoiTestView extends View {
 			else g2d.setColor(Color.WHITE);
 			g2d.fill(poly.asAWTShape());
 			
+			// Extended clockhand intersect
 			g2d.setColor(Color.BLUE);
 			double a = seconds*(Math.PI / 30.0);
 			Ray ray = new Ray(0, 0, Math.cos(a), Math.sin(a));
 			LineSeg seg = poly.clip(ray);
 			if (seg != null) g2d.draw(seg.asAWTShape());
 			
+			// Draw spline
 			g2d.setColor(Color.WHITE);
 			
-			// Draw spline
 			Double2D.Mutable current = new Double2D.Mutable();
 			Double2D.Mutable previous = new Double2D.Mutable();
 			spline.getPoint(previous, 0);
@@ -196,15 +194,16 @@ public class GUIVoronoiTestView extends View {
 				g2d.fill(new Ellipse2D.Double(pt.x()-10, pt.y()-10, 20, 20));
 			}
 			
-			Double2D dir = mouse.perpendicular().normalize();
-			Line line = new LineSeg(mouse.x(), mouse.y(), mouse.x()+dir.x(), mouse.y()+dir.y());
-			LineSeg mirror = line.toSegment(100, 1000);
-			Convex refl = poly.reflect(mirror);
-			Double2D reflC = refl.getCentroid();
-			
-			g2d.draw(mirror.asAWTShape());
-			g2d.drawOval((int)reflC.x()-20, (int)reflC.y()-20, 40, 40);
-			g2d.draw(refl.asAWTShape());		
+//			// Reflection
+//			Double2D dir = mouse.perpendicular().normalize();
+//			Line line = new LineSeg(mouse.x(), mouse.y(), mouse.x()+dir.x(), mouse.y()+dir.y());
+//			LineSeg mirror = line.toSegment(100, 1000);
+//			Convex refl = poly.reflect(mirror);
+//			Double2D reflC = refl.getCentroid();
+//			
+//			g2d.draw(mirror.asAWTShape());
+//			g2d.drawOval((int)reflC.x()-20, (int)reflC.y()-20, 40, 40);
+//			g2d.draw(refl.asAWTShape());	
 			
 		}
 		
@@ -216,18 +215,12 @@ public class GUIVoronoiTestView extends View {
 		}
 		
 		if (voronoiWorker != null) {
+			voronoiWorker.debugDraw(g2d);
+			
 			if (voronoiWorker.isDone()) {
-//				voronoiWorker.debugDraw(g2d);
 				Voronoi v = voronoiWorker.getResult();
-				Random r = new Random(0);
 				
-				for (Site site : v.getSites()) {					
-					// Draw shape
-					g2d.setColor(Color.getHSBColor(r.nextFloat(), 1.0f, 0.5f + r.nextFloat()*0.5f));
-					Convex poly = site.getPolygon();
-					Shape polyShape = poly.asAWTShape();
-					if (polyShape != null) g2d.fill(polyShape);
-					
+				for (Site site : v.getSites()) {
 					// Draw original point
 					g2d.setColor(Color.WHITE);
 					Ellipse2D sitePt = new Ellipse2D.Double(site.getX()-1, site.getY()-1, 2, 2);
@@ -239,8 +232,6 @@ public class GUIVoronoiTestView extends View {
 					Ellipse2D siteCentroid = new Ellipse2D.Double(centroid.x()-1, centroid.y()-1, 2, 2);
 					g2d.fill(siteCentroid);
 				}
-			} else {
-				voronoiWorker.debugDraw(g2d);
 			}
 		} else {
 			for (Double2D site : voronoiBuilder.getSites()) {
@@ -334,7 +325,7 @@ public class GUIVoronoiTestView extends View {
 			double mx = getMouseScreenX();
 			double screenX = getViewWidth();
 			double alpha = mx / screenX;
-			System.out.println("catmull rom alpha = "+alpha);
+			//System.out.println("catmull rom alpha = "+alpha);
 			spline.setCatmullRomAlpha(alpha);
 		}
 	}

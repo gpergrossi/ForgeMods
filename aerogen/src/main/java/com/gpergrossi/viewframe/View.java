@@ -97,7 +97,7 @@ public abstract class View {
 	public double getViewZoom() { return viewZoom; }
 	protected double getMinZoom() { return 0.01; }
 	protected double getMaxZoom() { return 100; }
-	protected double getZoomMultiplier() { return 1.2; }
+	protected double getZoomPerClick() { return 1.2; }
 	
 	public abstract void init();
 	public abstract void start();
@@ -116,7 +116,10 @@ public abstract class View {
 	public abstract void keyReleased();
 	public abstract void keyTyped();
 	
-	
+
+	public Color getBackgroundColor() {
+		return Color.BLACK;
+	}
 	
 	protected void renderSettings(Graphics2D g2d) {
 		// Anti-aliasing on
@@ -143,7 +146,6 @@ public abstract class View {
 	
 	void setViewerPane(ViewerPane viewerPane) {
 		this.viewerPane = viewerPane;
-		this.init();
 		if (viewerPane != null) viewerPane.needsViewUpdate = true;
 	}
 	
@@ -283,7 +285,7 @@ public abstract class View {
 
 	void internalMouseScrolled(double clicks) {
 		if (!panning) {
-			double multiply = Math.pow(getZoomMultiplier(), -clicks);
+			double multiply = Math.pow(getZoomPerClick(), -clicks);
 			viewZoom *= multiply;
 			if (viewZoom > getMaxZoom()) viewZoom = getMaxZoom();
 			if (viewZoom < getMinZoom()) viewZoom = getMinZoom();
@@ -308,4 +310,5 @@ public abstract class View {
 		keyEvent = e;
 		this.keyTyped();
 	}
+
 }

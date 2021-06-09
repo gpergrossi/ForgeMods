@@ -8,39 +8,88 @@ import com.gpergrossi.util.geom.ranges.Int3DRange;
 import com.gpergrossi.util.geom.vectors.Double3D;
 import com.gpergrossi.util.spacial.Octree.IEntry;
 
+/**
+ * <p>This class implements an Octree which can store and query IEntry objects.
+ * The IEntry interface is an internal interface of this class.</p>
+ * 
+ * <p>The octree is implemented as a binary tree with each node in the tree 
+ * dividing its sub-space in half on the largest of the X, Y or Z dimensions.</p>
+ * 
+ * @author Gregary
+ *
+ * @param <T> The class objects to be stored in this Octree
+ */
 public class Octree<T extends IEntry> {
 	
+	/**
+	 * An Octree.IEntry requires a minimal description of objects
+	 * which will be inserted into the Octree. This includes a
+	 * 3D bounding box and a getDistanceTo() method.
+	 *
+	 */
 	public static interface IEntry {
+		
+		/**
+		 * Get the bounding box of this Octree.IEntry
+		 */
 		public Int3DRange getRange();
+		
+		/**
+		 * <p>Get the distance from an arbitrary 3D point
+		 * to the nearest point in this Octree.IEntry.</p>
+		 * 
+		 * <p>This value is allowed to be inexact, but will
+		 * result in an inexact result for any of the Octree</p>
+		 * query methods.
+		 * 
+		 * @param pt
+		 * @return
+		 */
 		public double getDistanceTo(Double3D pt);
+		
 	}
 	
-	public static enum NodeType {
+	
+	
+	/**
+	 * The NodeType of an Octree object defines how the node's children
+	 * are partitioned compared to itself. Possible values are LEAF node (no children),
+	 * X_SPLIT (divided equally in half along the X dimension), Y_SPLIT, and Z_SPLIT.
+	 */
+	protected static enum NodeType {
 		LEAF {
+			@Override
 			public int getSplitValue(Int3DRange range) {
 				return 0;
 			}
+			@Override
 			public int compare(Double3D elem, int splitValue) {
 				return 0;
 			}
+			@Override
 			public int compare(Int3DRange elem, int splitValue) {
 				return 0;
 			}
+			@Override
 			public Int3DRange chop(Int3DRange range, boolean greater) {
 				return null;
 			}
 		}, 
 		
 		X_SPLIT {
+			@Override
 			public int getSplitValue(Int3DRange range) {
 				return Math.floorDiv(range.minX + range.maxX, 2);
 			}
+			@Override
 			public int compare(Double3D elem, int splitValue) {
 				return (int) Math.signum(elem.x() - splitValue);
 			}
+			@Override
 			public int compare(Int3DRange elem, int splitValue) {
 				return (elem.maxX <= splitValue) ? -1 : ((elem.minX > splitValue) ? 1 : 0);
 			}
+			@Override
 			public Int3DRange chop(Int3DRange range, boolean greater) {
 				int splitValue = this.getSplitValue(range);
 				if (greater) {
@@ -52,15 +101,19 @@ public class Octree<T extends IEntry> {
 		}, 
 		
 		Y_SPLIT {
+			@Override
 			public int getSplitValue(Int3DRange range) {
 				return Math.floorDiv(range.minY + range.maxY, 2);
 			}
+			@Override
 			public int compare(Double3D elem, int splitValue) {
 				return (int) Math.signum(elem.y() - splitValue);
 			}
+			@Override
 			public int compare(Int3DRange elem, int splitValue) {
 				return (elem.maxY <= splitValue) ? -1 : ((elem.minY > splitValue) ? 1 : 0);
 			}
+			@Override
 			public Int3DRange chop(Int3DRange range, boolean greater) {
 				int splitValue = this.getSplitValue(range);
 				if (greater) {
@@ -72,15 +125,19 @@ public class Octree<T extends IEntry> {
 		},  
 		
 		Z_SPLIT {
+			@Override
 			public int getSplitValue(Int3DRange range) {
 				return Math.floorDiv(range.minZ + range.maxZ, 2);
 			}
+			@Override
 			public int compare(Double3D elem, int splitValue) {
 				return (int) Math.signum(elem.z() - splitValue);
 			}
+			@Override
 			public int compare(Int3DRange elem, int splitValue) {
 				return (elem.maxZ <= splitValue) ? -1 : ((elem.minZ > splitValue) ? 1 : 0);
 			}
+			@Override
 			public Int3DRange chop(Int3DRange range, boolean greater) {
 				int splitValue = this.getSplitValue(range);
 				if (greater) {
@@ -91,12 +148,71 @@ public class Octree<T extends IEntry> {
 			}
 		};
 
+		/**
+		 * Chooses the splitting dimension for given Int3DRange.
+		 * The split dimension will be whichever dimension (X, Y, or Z) has the largest size.
+		 * If the given range is 1 by 1 by 1 then the NodeType returned will be LEAF,
+		 * indicating that this range cannot be divided any further.
+		 * 
+		 * @param range - Int3DRange to be considered
+		 * @return NodeType selected for the given range
+		 */
+		public static NodeType choose(Int3DRange range) {
+			if (range.width == 1 && range.height == 1 && range.depth == 1) return NodeType.LEAF;
+			if (range.width > range.height) {
+				if (range.width > range.depth) {
+					return NodeType.X_SPLIT;
+				} else {
+					return NodeType.Z_SPLIT;
+				}
+			} else {
+				if (range.height > range.depth) {
+					return NodeType.Y_SPLIT;
+				} else {
+					return NodeType.Z_SPLIT;
+				}
+			}
+		}
+		
+		/**
+		 * Returns the X, Y, or Z value of the middle of the range provided, depending on this NodeType's division dimension.
+		 * @param range the range to be divided
+		 * @return the center of this NodeType's division dimension (X, Y, or Z)
+		 */
 		public abstract int getSplitValue(Int3DRange range);
+		
+		/**
+		 * Compares a 3D point to this NodeType's partitioning plane.
+		 * @param elem - 3D coordinate of the element being considered
+		 * @param splitValue - the "Split Value" for the node being considered
+		 * @return A value of -1 if this element is less than the given splitValue
+		 *   or 1 if it is greater on whichever dimension this NodeType uses
+		 */
 		public abstract int compare(Double3D elem, int splitValue);
+		
+		/**
+		 * Compares a 3D point to this NodeType's partitioning plane.
+		 * @param elem - 3D coordinate of the element being considered
+		 * @param splitValue - the "Split Value" for the node being considered
+		 * @return A value of -1 if this element is less than the given splitValue
+		 *   or 1 if it is greater on whichever dimension this NodeType uses
+		 */
 		public abstract int compare(Int3DRange elem, int splitValue);
+		
+		/**
+		 * Divide the given range in half according to this NodeType's preferential dimension.
+		 * @param range - range to be chopped in half
+		 * @param greater - whether to return the greater side (else lesser side)
+		 * @return half the range, depending on the {@code greater} parameter
+		 */
 		public abstract Int3DRange chop(Int3DRange range, boolean greater);
+		
 	}
 
+	
+	
+	
+	
 	protected Octree<T> parent = null;
 	
 	protected Int3DRange range;
@@ -107,35 +223,30 @@ public class Octree<T extends IEntry> {
 	protected Octree<T> lesserChild;
 	protected Octree<T> greaterChild;
 	
+	/**
+	 * Construct an integer Octree with bounds defined by the provided Int3DRange.
+	 */
 	public Octree(Int3DRange range) {
 		this.range = range.copy();
 		this.items = new ArrayList<T>();
-		this.split = getSplitType();
-		this.splitValue = split.getSplitValue(range);
+		this.split = NodeType.choose(this.range);
+		this.splitValue = split.getSplitValue(this.range);
 	}
 	
+	/**
+	 * Construct an integer Octree child with bounds defined by the 
+	 * provided Int3DRange and a parent Octree
+	 */
 	protected Octree(Octree<T> parent, Int3DRange range) {
 		this(range);
 		this.parent = parent;
 	}
 	
-	protected NodeType getSplitType() {
-		if (range.width == 1 && range.height == 1 && range.depth == 1) return NodeType.LEAF;
-		if (range.width > range.height) {
-			if (range.width > range.depth) {
-				return NodeType.X_SPLIT;
-			} else {
-				return NodeType.Z_SPLIT;
-			}
-		} else {
-			if (range.height > range.depth) {
-				return NodeType.Y_SPLIT;
-			} else {
-				return NodeType.Z_SPLIT;
-			}
-		}
-	}
-	
+	/**
+	 * Computes the number of items stored in this Octree
+	 * Only considers this node and all descendants (children, grand children, etc.)
+	 * @return
+	 */
 	public int size() {
 		int size = this.items.size();
 		if (hasLesserChild()) size += getLesserChild().size();
@@ -143,27 +254,44 @@ public class Octree<T extends IEntry> {
 		return size;
 	}
 	
+	/**
+	 * Computes the number of nodes in this Octree.
+	 * Only considers this node and all descendants (children, grand children, etc.)
+	 * @return
+	 */
 	public int numNodes() {
-		int size = 1;
-		if (hasLesserChild()) size += getLesserChild().numNodes();
-		if (hasGreaterChild()) size += getGreaterChild().numNodes();
-		return size;
+		int numNodes = 1;
+		if (hasLesserChild()) numNodes += getLesserChild().numNodes();
+		if (hasGreaterChild()) numNodes += getGreaterChild().numNodes();
+		return numNodes;
 	}
 	
-	public void insert(T obj) {
-		Int3DRange objRange = obj.getRange();
+	/**
+	 * Inserts a compatible object into this Octree.
+	 * The object will be added to the deepest child node
+	 * that fully contains the object's range.
+	 * @param object
+	 */
+	public void insert(T object) {
+		Int3DRange objRange = object.getRange();
 		int compare = split.compare(objRange, splitValue);
 		
 		if (compare == 0) {
-			items.add(obj);
+			items.add(object);
 		} else if (compare > 0) {
-			getGreaterChild().insert(obj);
+			getGreaterChild().insert(object);
 		} else if (compare < 0) {
-			getLesserChild().insert(obj);
+			getLesserChild().insert(object);
 		}
 	}
 
 	public static int DEBUG_NODES_SEARCHED = 0;
+
+	public Tuple2<T, Double> getClosest(Double3D point) {
+		DEBUG_NODES_SEARCHED = 0;
+		Tuple2<T, Double> result = this.getClosest(point, new Tuple2<>(null, Double.POSITIVE_INFINITY));
+		return result;
+	}
 	
 	protected Tuple2<T, Double> getClosest(Double3D point, Tuple2<T, Double> currentBest) {
 		DEBUG_NODES_SEARCHED++;
@@ -192,12 +320,6 @@ public class Octree<T extends IEntry> {
 		return currentBest;
 	}
 
-	public Tuple2<T, Double> getClosest(Double3D point) {
-		DEBUG_NODES_SEARCHED = 0;
-		Tuple2<T, Double> result = this.getClosest(point, new Tuple2<>(null, Double.POSITIVE_INFINITY));
-		return result;
-	}
-
 	/**
 	 * Get the objects in the OctTree that intersect with the given input point.
 	 * @param point - point on which to check for intersects
@@ -207,7 +329,7 @@ public class Octree<T extends IEntry> {
 	public List<Tuple2<T, Double>> getIntersects(Double3D point) {
 		DEBUG_NODES_SEARCHED = 0;
 		List<Tuple2<T, Double>> intersects = new ArrayList<>();
-		this.getIntersects(point, intersects);
+		this.getIntersectsInternal(point, intersects);
 		return intersects;
 	}
 	
@@ -218,6 +340,11 @@ public class Octree<T extends IEntry> {
 	 * @return true if there was an intersect, false otherwise
 	 */
 	public boolean getIntersects(Double3D point, List<Tuple2<T, Double>> output) {
+		DEBUG_NODES_SEARCHED = 0;
+		return getIntersectsInternal(point, output);
+	}
+	
+	public boolean getIntersectsInternal(Double3D point, List<Tuple2<T, Double>> output) {
 		DEBUG_NODES_SEARCHED++;
 		boolean added = false;
 		

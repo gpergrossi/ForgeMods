@@ -11,9 +11,9 @@ public class StableArrayListTest {
 	public static void main(String[] args) {
 		
 		System.out.println("Press enter to continue");
-		Scanner sc = new Scanner(System.in);
-		sc.nextLine();
-		sc.close();
+		try (Scanner sc = new Scanner(System.in)) {
+			sc.nextLine();
+		}
 
 		IntFunction<String[]> allocator = (size -> { return new String[size]; });
 		

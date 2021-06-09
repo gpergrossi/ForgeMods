@@ -16,7 +16,7 @@ import java.awt.image.*;
 import java.io.*;
 import java.util.Iterator;
 
-public class GifSequenceWriter {
+public class GifSequenceWriter implements Closeable {
 		
 	protected ImageWriter gifWriter;
 	protected ImageWriteParam imageWriteParam;
@@ -82,6 +82,7 @@ public class GifSequenceWriter {
 	 * Close this GifSequenceWriter object. This does not close the underlying
 	 * stream, just finishes off the GIF.
 	 */
+	@Override
 	public void close() throws IOException {
 		gifWriter.endWriteSequence();
 	}
@@ -137,26 +138,26 @@ public class GifSequenceWriter {
 
 		File file = new File("recording/animation.gif");
 		if (file.exists()) file.delete();
-		ImageOutputStream gifOutput = new FileImageOutputStream(file);
-		GifSequenceWriter gifWriter = new GifSequenceWriter(gifOutput, BufferedImage.TYPE_INT_ARGB, 1000, false);
-		
-		// write out the first image to our sequence...
-		for (int i = 56; i <= 85; i++) {
-			String num = "0000" + Integer.toString(i);
-			num = num.substring(num.length()-4);
+		try (ImageOutputStream gifOutput = new FileImageOutputStream(file);
+			GifSequenceWriter gifWriter = new GifSequenceWriter(gifOutput, BufferedImage.TYPE_INT_ARGB, 1000, false);
+		) {
 			
-			String filename = "recording/frame."+num+".png";
-			System.out.println("writing '"+filename+"' to gif");
-			
-			File check = new File(filename);
-			if (!check.exists()) continue;
-			
-			BufferedImage image = ImageIO.read(new File(filename));
-			gifWriter.writeToSequence(image);
-		}
+			// write out the first image to our sequence...
+			for (int i = 56; i <= 85; i++) {
+				String num = "0000" + Integer.toString(i);
+				num = num.substring(num.length()-4);
+				
+				String filename = "recording/frame."+num+".png";
+				System.out.println("writing '"+filename+"' to gif");
+				
+				File check = new File(filename);
+				if (!check.exists()) continue;
+				
+				BufferedImage image = ImageIO.read(new File(filename));
+				gifWriter.writeToSequence(image);
+			}
 
-		gifWriter.close();
-		gifOutput.close();
+		}
 
 	}
 }

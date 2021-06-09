@@ -39,6 +39,7 @@ public class Undefined extends Function {
 		return new double[0];
 	}
 	
+	@Override
 	public String toString() {
 		return "Undefined";
 	}

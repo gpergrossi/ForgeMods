@@ -56,6 +56,7 @@ public interface IVector<T extends IVector<T>> extends Comparable<T> {
 	public double distanceTo(T vector);
 	public double distanceSquaredTo(T vector);
 	
+	@Override
 	public int compareTo(T other);
 	public boolean equals(T other);
 	

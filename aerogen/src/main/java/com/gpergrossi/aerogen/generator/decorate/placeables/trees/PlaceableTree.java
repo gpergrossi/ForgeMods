@@ -5,6 +5,7 @@ import java.util.Random;
 import com.gpergrossi.aerogen.generator.decorate.placeables.IPlaceable;
 
 import net.minecraft.block.BlockCocoa;
+import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.BlockVine;
 import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.IBlockState;
@@ -130,7 +131,7 @@ public class PlaceableTree extends AbstractPlaceableTree {
 	
 	protected boolean placeCocoa(World world, int age, BlockPos pos, EnumFacing facing) {
 		if (!world.isAirBlock(pos)) return false;
-		return world.setBlockState(pos, Blocks.COCOA.getDefaultState().withProperty(BlockCocoa.AGE, age).withProperty(BlockCocoa.FACING, facing), 2);		
+		return world.setBlockState(pos, Blocks.COCOA.getDefaultState().withProperty(BlockCocoa.AGE, age).withProperty(BlockHorizontal.FACING, facing), 2);		
 	}
 
 	protected boolean addVine(World world, BlockPos pos, PropertyBool face) {

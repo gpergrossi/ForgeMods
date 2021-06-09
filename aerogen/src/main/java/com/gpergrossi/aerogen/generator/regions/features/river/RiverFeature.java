@@ -55,6 +55,7 @@ public class RiverFeature implements IRegionFeature {
 		consumedCells.add(cell);
 	}
 	
+	@Override
 	public void create(Region region, Random random) {
 		this.region = region;
 		this.rivers = new ArrayList<>(numRivers);
@@ -161,7 +162,6 @@ public class RiverFeature implements IRegionFeature {
 				if (nextSite == null) {
 					offTheEdge = true;
 					Convex reflected = currentCell.getPolygon().reflect(nextEdge.toLineSeg());
-					System.out.println("off the edge: "+currentCell.getPolygon()+" --> "+reflected);
 					nextCell = new IslandCell(null, reflected);
 					return currentCell;
 				}

@@ -89,6 +89,7 @@ public final class Quadratic extends Function {
 		return null;
 	}
 
+	@Override
 	public String toString() {
 		return "Quadratic[equation=" + a + "x^2 + " + b + "x + " + c + "]";
 	}

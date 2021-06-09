@@ -116,6 +116,7 @@ public class Quaternion implements IVector<Quaternion> {
 		return dw*dw + dx*dx + dy*dy + dz*dz;
 	}
 
+	@Override
 	public int compareTo(Quaternion other) {
 		int dw = (int) Math.signum(this.w - other.w);
 		if (dw != 0) return dw;
@@ -133,6 +134,7 @@ public class Quaternion implements IVector<Quaternion> {
 		//return Integer.compare(this.hashCode(), other.hashCode());
 	}
 
+	@Override
 	public boolean equals(Quaternion other) {
 		return this.distanceSquaredTo(other) < Double2D.EPSILON2;
 	}
@@ -195,6 +197,7 @@ public class Quaternion implements IVector<Quaternion> {
 			this.z = z;
 		}
 		
+		@Override
 		public Mutable redefine(double w, double x, double y, double z) {
 			this.w = w;
 			this.x = x;
@@ -268,6 +271,7 @@ public class Quaternion implements IVector<Quaternion> {
 			return this.divide(length);
 		}
 		
+		@Override
 		public Mutable multiply(Quaternion vector) {
 			final Quaternion a = this;
 			final Quaternion b = vector;
@@ -280,10 +284,12 @@ public class Quaternion implements IVector<Quaternion> {
 			return this.redefine(w, x, y, z);
 		}
 
+		@Override
 		public Mutable conjugate() {
 			return this.redefine(w, -x, -y, -z);
 		}
 
+		@Override
 		public Mutable inverse() {
 			double lengthSquared = this.lengthSquared();
 			if (lengthSquared != 0.0) {

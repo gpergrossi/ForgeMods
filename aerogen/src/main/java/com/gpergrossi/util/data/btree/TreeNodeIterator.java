@@ -25,10 +25,12 @@ public class TreeNodeIterator<T extends IBinaryNode<T>> implements Iterator<T> {
 																		// last descendant may be defined if more nodes exist outside of this localRoot's subtree
 	}
 	
+	@Override
 	public boolean hasNext() {
 		return nextElem != null && nextElem != lastElem;
 	}
 
+	@Override
 	public T next() {
 		if (!hasNext()) throw new NoSuchElementException();
 		T result = nextElem;

@@ -32,7 +32,7 @@ public class Int3D implements IVector3D<Int3D> {
 	public String toString() {
 		return "("+x+", "+y+", "+z+")";
 	}
-	
+
 	public Int3D redefine(int x, int y, int z) {
 		return new Int3D(x, y, z);
 	}
@@ -183,6 +183,7 @@ public class Int3D implements IVector3D<Int3D> {
 			this.z = z;
 		}
 		
+		@Override
 		public Mutable redefine(int x, int y, int z) {
 			this.x = x;
 			this.y = y;
@@ -212,6 +213,7 @@ public class Int3D implements IVector3D<Int3D> {
 			return copy();
 		}
 
+		@Override
 		public Double3D.Mutable toDouble() {
 			return new Double3D.Mutable(x, y, z);
 		}

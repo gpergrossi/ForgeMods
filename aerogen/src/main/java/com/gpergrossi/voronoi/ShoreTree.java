@@ -37,7 +37,7 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 		
 		root.rootParent = null;
 		if (node != null) node.rootParent = this;
-		this.root = (ShoreTreeNode) node;
+		this.root = node;
 	}
 	
 	public void initialize(Site site) {
@@ -70,7 +70,7 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 		Voronoi.DEBUG = debug;
 	}
 
-	private void drawCircleEvents(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
+	private static void drawCircleEvents(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
 		g.setColor(Color.BLUE);
 		
 		while (nodes.hasNext()) {
@@ -85,8 +85,8 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 				continue;
 			}
 
-			ShoreBreakpoint leftBP = (ShoreBreakpoint) arc.getPredecessor();
-			ShoreBreakpoint rightBP = (ShoreBreakpoint) arc.getSuccessor();
+			ShoreBreakpoint leftBP = arc.getPredecessor();
+			ShoreBreakpoint rightBP = arc.getSuccessor();
 			
 			Double2D intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
 			if (intersection != null) {
@@ -113,7 +113,7 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 		}
 	}
 
-	private void drawParabolas(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
+	private static void drawParabolas(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
 		while (nodes.hasNext()) {
 			ShoreTreeNode n = nodes.next();
 			
@@ -175,7 +175,7 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 		}
 	}
 	
-	private void drawBreakpoints(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
+	private static void drawBreakpoints(BuildState state, Graphics2D g, Iterator<ShoreTreeNode> nodes) {
 		AffineTransform transform = g.getTransform();
 		AffineTransform identity = new AffineTransform();
 		
@@ -208,7 +208,7 @@ public class ShoreTree implements Iterable<ShoreTreeNode> {
 		}
 	}
 
-	private void drawPartialEdge(Graphics2D g, ShoreBreakpoint bp, BuildState state) {
+	private static void drawPartialEdge(Graphics2D g, ShoreBreakpoint bp, BuildState state) {
 		Edge edge = bp.getEdge();
 		if (edge != null) {
 			Vertex start = edge.getStart();

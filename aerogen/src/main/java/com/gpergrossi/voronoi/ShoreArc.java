@@ -96,8 +96,8 @@ public class ShoreArc extends ShoreTreeNode {
 		if (leftNeighbor.site == rightNeighbor.site) return null;
 		
 		// Check for a collision point, fail if none exists
-		ShoreBreakpoint leftBP = (ShoreBreakpoint) getPredecessor();
-		ShoreBreakpoint rightBP = (ShoreBreakpoint) getSuccessor();
+		ShoreBreakpoint leftBP = getPredecessor();
+		ShoreBreakpoint rightBP = getSuccessor();
 		Double2D intersection = ShoreBreakpoint.getIntersection(state, leftBP, rightBP);
 		if (intersection == null) return null;
 		

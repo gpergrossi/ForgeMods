@@ -141,7 +141,7 @@ public class Spline {
 			this.tmax = e2.getKey();
 		}
 		
-		private double adjustedT(double t, Double2D p0, Double2D p1, double alpha) {
+		private static double adjustedT(double t, Double2D p0, Double2D p1, double alpha) {
 			double dx = p1.x() - p0.x(); 
 			double dy = p1.y() - p0.y();
 			double dist = Math.sqrt(dx*dx + dy*dy);
@@ -179,14 +179,14 @@ public class Spline {
 		/**
 		 * Linear interpolation from v0 to v1 on the range 0 to 1
 		 */
-		private final double lerp(double t, double v0, double v1) {			
+		private final static double lerp(double t, double v0, double v1) {			
 			return v0*(1-t) + v1*t;
 		}
 		
 		/**
 		 * Normalize t from (t0, t1) to (0 to 1)
 		 */
-		private final double normalize(double t, double t0, double t1) {
+		private final static double normalize(double t, double t0, double t1) {
 			return (t-t0)/(t1-t0);
 		}
 	}

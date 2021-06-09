@@ -51,9 +51,10 @@ public class VoronoiAnimationGenerator {
 		System.out.println(":<ms> - time between frames in ms, can only be set once! (default is ':41', ~24 fps)");
 		System.out.println();
 		
-		Scanner s = new Scanner(System.in);
-		String line = s.nextLine();
-		s.close();
+		String line = "";
+		try (Scanner s = new Scanner(System.in)) {
+			line = s.nextLine();
+		}
 		
 		int frameTime = 41;
 		if (line.contains(":")) {
@@ -356,10 +357,13 @@ public class VoronoiAnimationGenerator {
 	}
 	
 	public static DiagramColoring RANDOM_COLORING = new DiagramColoring() {
+		@Override
 		public Color getColor(Site s) {
 			return Color.getHSBColor(random.nextFloat(), 1.0f, 0.5f + random.nextFloat()*0.5f);
 		}
+		@Override
 		public boolean drawPoints() { return true; }
+		@Override
 		public boolean drawCentroids() { return true; }
 	};
 	
@@ -386,6 +390,7 @@ public class VoronoiAnimationGenerator {
 				}
 			}
 			
+			@Override
 			public Color getColor(Site s) {
 				float norm = (float) (double) sizeNorm.get(s);
 				
@@ -415,7 +420,9 @@ public class VoronoiAnimationGenerator {
 				return Color.getHSBColor(hue, sat, bri);
 			}
 			
+			@Override
 			public boolean drawPoints() { return false; }
+			@Override
 			public boolean drawCentroids() { return false; }
 		};
 	}

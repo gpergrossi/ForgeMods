@@ -24,6 +24,7 @@ public class Vertical extends Undefined {
 		return new double[] { verticalX };
 	}
 
+	@Override
 	public String toString() {
 		return "Vertical[x="+verticalX+"]";
 	}

@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.gpergrossi.aerogen.commands.CommandAeroMap;
 import com.gpergrossi.aerogen.commands.CommandTest;
+import com.gpergrossi.aerogen.generator.AeroGenerator;
 
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.world.DimensionType;
@@ -11,6 +12,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldProviderSurface;
 import net.minecraft.world.WorldType;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -32,17 +35,39 @@ public class AeroGenMod {
     public static WorldType WORLD_TYPE_SKY;
 	public static Logger log;
     
-    
     public static boolean REGISTER_DIMENSION = false;
     public static int SKY_DIMENSION_ID;
 	public static DimensionType SKY_DIMENSION_TYPE;
-    
+	
+	public static Configuration config;
+	public static int numThreads;
+	
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		log = event.getModLog();
+		
+		config = new Configuration(event.getSuggestedConfigurationFile());
+		syncConfig();
+		
+		// DEBUG
+		numThreads = 1;
+		// DEBUG
 	}
 	
-    @EventHandler
+    private static void syncConfig() {
+		try {
+			config.load();
+			
+			Property numThreadsProperty = config.get(Configuration.CATEGORY_GENERAL, "multithreadingMaxThreads", "0",
+					"Number of threads to use in generation. 0 means all generation tasks are done by the main thread.");
+
+			numThreads = numThreadsProperty.getInt();
+		} finally {
+			if (config.hasChanged()) config.save();
+		}
+	}
+
+	@EventHandler
     public void init(FMLInitializationEvent event) {
         log.info("Loading "+MODID+" version "+VERSION);
         
@@ -70,7 +95,7 @@ public class AeroGenMod {
 		event.registerServerCommand(new CommandTest());
 		event.registerServerCommand(new CommandAeroMap());
 	}
-
+	
 	@EventHandler
 	public void serverStop(FMLServerStoppedEvent event) {
 		for (AeroGenerator gen : AeroGenerator.getGenerators()) {

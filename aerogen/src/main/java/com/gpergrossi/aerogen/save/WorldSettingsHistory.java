@@ -3,7 +3,7 @@ package com.gpergrossi.aerogen.save;
 import java.util.Map;
 import java.util.TreeMap;
 import com.gpergrossi.aerogen.AeroGenMod;
-import com.gpergrossi.aerogen.AeroGeneratorSettings;
+import com.gpergrossi.aerogen.generator.AeroGeneratorSettings;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;

@@ -4,6 +4,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
+import javax.swing.WindowConstants;
 
 public class ViewerFrame extends JFrame {
 
@@ -17,7 +18,7 @@ public class ViewerFrame extends JFrame {
 	public ViewerFrame(View view) {
 		setTitle("Viewer");
 		setVisible(true);
-		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		
 		viewerPane = new ViewerPane(view);
 		view.setViewerPane(viewerPane);
@@ -27,11 +28,13 @@ public class ViewerFrame extends JFrame {
 		pack();
 		
 		addWindowListener(new WindowAdapter() {
+			@Override
 			public void windowClosing(WindowEvent e) {
 				ViewerFrame.this.close();
 			}
 		});
 		
+		viewerPane.requestFocus(false);
 		viewerPane.start();
 	}
 

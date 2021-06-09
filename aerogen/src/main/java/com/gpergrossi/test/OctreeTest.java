@@ -21,10 +21,12 @@ public class OctreeTest {
 			this.range = new Int3DRange(point, point);
 		}
 		
+		@Override
 		public Int3DRange getRange() {
 			return range;
 		}
 
+		@Override
 		public double getDistanceTo(Double3D pt) {
 			double dx = point.x() - pt.x();
 			double dy = point.y() - pt.y();

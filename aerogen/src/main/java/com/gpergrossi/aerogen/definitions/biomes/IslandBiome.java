@@ -12,9 +12,9 @@ import com.gpergrossi.aerogen.generator.decorate.placement.PlacementHighestBlock
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementIslandInterior;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementWaterSurface;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.islands.contour.IslandErosion;
-import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
-import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
+import com.gpergrossi.aerogen.generator.islands.IslandErosion;
+import com.gpergrossi.aerogen.generator.islands.IslandHeightmap;
+import com.gpergrossi.aerogen.generator.islands.IslandShape;
 import com.gpergrossi.util.geom.ranges.Int2DRange;
 
 import net.minecraft.block.Block;
@@ -73,7 +73,7 @@ public abstract class IslandBiome {
 		shape.erode(new IslandErosion(), random);
 	}
 	
-	public IslandHeightmap getHeightMap(Island island) {
+	public IslandHeightmap createHeightMap(Island island) {
 		return new IslandHeightmap(island);
 	}
 	

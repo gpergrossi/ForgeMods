@@ -331,12 +331,15 @@ public abstract class Polygon implements IShape {
 	
 	public Iterable<LineSeg> getSides() {
 		return new Iterable<LineSeg>() {
+			@Override
 			public Iterator<LineSeg> iterator() {
 				return new Iterator<LineSeg>() {
 					int index = 0;
+					@Override
 					public boolean hasNext() {
 						return index < getNumSides();
 					}
+					@Override
 					public LineSeg next() {
 						if (index >= getNumSides()) throw new NoSuchElementException();
 						return getSide(index++);
@@ -348,15 +351,18 @@ public abstract class Polygon implements IShape {
 	
 	public Iterable<Double2D> getVertices() {
 		return new Iterable<Double2D>() {
+			@Override
 			public Iterator<Double2D> iterator() {
 				return new Iterator<Double2D>() {
 					int index = 0;
+					@Override
 					public boolean hasNext() {
 						return index < getNumVertices();
 					}
+					@Override
 					public Double2D next() {
 						if (index >= getNumVertices()) throw new NoSuchElementException();
-						return getVertex(index);
+						return getVertex(index++);
 					}
 				};
 			}
@@ -365,12 +371,15 @@ public abstract class Polygon implements IShape {
 	
 	public Iterable<Convex> getConvexParts() {
 		return new Iterable<Convex>() {
+			@Override
 			public Iterator<Convex> iterator() {
 				return new Iterator<Convex>() {
 					int index = 0;
+					@Override
 					public boolean hasNext() {
 						return index < getNumConvexParts();
 					}
+					@Override
 					public Convex next() {
 						if (index >= getNumConvexParts()) throw new NoSuchElementException();
 						return getConvexPart(index);

@@ -3,9 +3,7 @@ package com.gpergrossi.viewframe.chunks;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-
-import com.gpergrossi.util.math.func2d.Function2D;
-import com.gpergrossi.util.math.func2d.SandDunes;
+import com.gpergrossi.test.tools.GUINoiseViewer;
 
 public class NoiseViewerChunk extends View2DChunk<NoiseViewerChunk> {
 
@@ -21,9 +19,6 @@ public class NoiseViewerChunk extends View2DChunk<NoiseViewerChunk> {
 		chunkSize = (float) loader.getChunkSize();
 		chunkSizeI = (int) chunkSize;
 	}
-
-	static Function2D noise = new SandDunes(9809414L); 
-//	static Function2D noise = new RemapOperation(new FractalNoise2D(1.0/256.0, 4), t->t*0.5+0.5);
 	
 	BufferedImage image;
 
@@ -38,7 +33,7 @@ public class NoiseViewerChunk extends View2DChunk<NoiseViewerChunk> {
 			for (int x = 0; x < chunkSizeI; x++) {
 				double px = x + chunkX*chunkSize;
 				double py = y + chunkY*chunkSize;
-				float val = (float) noise.getValue(px, py);
+				float val = (float) GUINoiseViewer.noise.getValue(px, py);
 							
 				rgba[y*chunkSizeI+x] = new Color(val, val, val).getRGB();
 			}

@@ -17,14 +17,17 @@ public class LineSeg extends Line {
 		this.length = Double2D.distance(x0, y0, x1, y1);
 	}
 	
+	@Override
 	public LineSeg toSegment(double maxExtent) {
 		return this.copy();
 	}
-	
+
+	@Override
 	public double tmin() {
 		return 0;
 	}
 	
+	@Override
 	public double tmax() {
 		return length;
 	}
@@ -35,6 +38,7 @@ public class LineSeg extends Line {
 		ptr.y(getY(t));
 	}
 	
+	@Override
 	public double length() {
 		return length;
 	}

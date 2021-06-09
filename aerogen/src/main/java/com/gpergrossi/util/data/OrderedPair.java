@@ -37,6 +37,7 @@ public class OrderedPair<T> extends Tuple2<T,T> implements Iterable<T> {
 			boolean started = false;
 			boolean finished = false;
 			
+			@Override
 			public boolean hasNext() {
 				if (!started) {
 					if (first != null) return true;
@@ -49,6 +50,7 @@ public class OrderedPair<T> extends Tuple2<T,T> implements Iterable<T> {
 				return false;
 			}
 			
+			@Override
 			public T next() {
 				if (!started) {
 					started = true;
@@ -60,6 +62,7 @@ public class OrderedPair<T> extends Tuple2<T,T> implements Iterable<T> {
 		};
 	}
 
+	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Pair[first="+first+", second="+second+"]");

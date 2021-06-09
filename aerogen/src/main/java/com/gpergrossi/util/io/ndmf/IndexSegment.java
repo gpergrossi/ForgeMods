@@ -15,7 +15,7 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 
-import com.gpergrossi.util.data.IteratorCaster;
+import com.gpergrossi.util.data.Iterators;
 
 public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map<Name, Integer> {
 	
@@ -312,7 +312,7 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 			
 			@Override
 			public Iterator<Name> iterator() {
-				return new IteratorCaster<>(IndexSegment.this.entrySet().iterator(), entry -> entry.getKey());
+				return Iterators.cast(IndexSegment.this.entrySet().iterator(), entry -> entry.getKey());
 			}
 			
 			@Override
@@ -335,7 +335,7 @@ public class IndexSegment<Name, Data> extends Segment<Name, Data> implements Map
 			
 			@Override
 			public Iterator<Integer> iterator() {
-				return new IteratorCaster<>(IndexSegment.this.entrySet().iterator(), entry -> entry.getValue());
+				return Iterators.cast(IndexSegment.this.entrySet().iterator(), entry -> entry.getValue());
 			}
 		};
 	}

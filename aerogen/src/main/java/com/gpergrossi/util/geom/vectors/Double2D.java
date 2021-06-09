@@ -216,6 +216,7 @@ public class Double2D implements IVector2D<Double2D> {
 			this.y = y;
 		}
 		
+		@Override
 		public Mutable redefine(double x, double y) {
 			this.x = x;
 			this.y = y;
@@ -230,10 +231,12 @@ public class Double2D implements IVector2D<Double2D> {
 			this.y = y;
 		}
 		
+		@Override
 		public Double2D immutable() {
 			return new Double2D(x, y);
 		}
 		
+		@Override
 		public Mutable mutable() {
 			return this.copy();
 		}

@@ -16,6 +16,7 @@ public final class Ray extends Line {
 		this.reversed = reverse;
 	}
 
+	@Override
 	public LineSeg toSegment(double maxExtent) {
 		LineSeg seg = null;
 		if (reversed) {
@@ -30,11 +31,13 @@ public final class Ray extends Line {
 		d = (reversed ? -d : d);
 		return new Ray(x + dx*d, y + dy*d, dx, dy);
 	}
-	
+
+	@Override
 	public double tmin() {
 		return (reversed ? Double.NEGATIVE_INFINITY : 0);
 	}
-	
+
+	@Override
 	public double tmax() {
 		return (reversed ? 0 : Double.POSITIVE_INFINITY);
 	}
@@ -43,10 +46,12 @@ public final class Ray extends Line {
 		return new Ray(x, y, dx, dy, !reversed);
 	}
 
+	@Override
 	public double getStartX() {
 		return x;
 	}
 	
+	@Override
 	public double getStartY() {
 		return y;
 	}

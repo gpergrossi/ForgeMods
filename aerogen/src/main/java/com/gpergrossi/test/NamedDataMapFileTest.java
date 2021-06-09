@@ -293,7 +293,7 @@ public class NamedDataMapFileTest {
 		}
 	}
 
-	private void simulateWork(ReentrantLock lock, NamedDataMapFile<String, BufferedImage> ndmf, Random random, BufferedImage[] images, String[] md5s, Map<String, BufferedImage> checkResults) {
+	private static void simulateWork(ReentrantLock lock, NamedDataMapFile<String, BufferedImage> ndmf, Random random, BufferedImage[] images, String[] md5s, Map<String, BufferedImage> checkResults) {
 		final byte OP_WRITE = 1;
 		final byte OP_OVERWRITE = 2;
 		final byte OP_CLEAR = 3;
@@ -402,13 +402,11 @@ public class NamedDataMapFileTest {
 	private static String getImageMD5(BufferedImage image) {
 		if (image == null) return "null";
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(image.getWidth()*image.getHeight()*4);
-		DataOutputStream dos = new DataOutputStream(baos);
-		try {
+		try (DataOutputStream dos = new DataOutputStream(baos)) {
 			int[] rgba = getImageRGBA(image);
 			for (int i = 0; i < rgba.length; i++) {
 				dos.writeInt(rgba[i]);
 			}
-			dos.close();
 			return "MD5:"+MD5Hash.hash(baos.toByteArray());
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -478,7 +476,7 @@ public class NamedDataMapFileTest {
 		for (int i = 0; i < numStrs; i++) {
 			float hue = random.nextFloat();
 			float sat = 0.5f + 0.5f * random.nextFloat();
-			float bri = (float) ((1.0f+i) / numStrs);
+			float bri = (1.0f+i) / numStrs;
 			Color colorLight = new Color(Color.HSBtoRGB(hue, sat, bri*0.4f+0.6f));
 			Color colorDark = new Color(Color.HSBtoRGB(hue, sat, bri*0.2f));
 			colorDark = new Color(colorDark.getRed(), colorDark.getGreen(), colorDark.getBlue(), 196);

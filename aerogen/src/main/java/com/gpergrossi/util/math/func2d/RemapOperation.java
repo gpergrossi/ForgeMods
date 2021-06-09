@@ -1,15 +1,16 @@
 package com.gpergrossi.util.math.func2d;
 
-public class RemapOperation implements Function2D {
+public class RemapOperation implements IFunction2D {
 
+	@FunctionalInterface
 	public static interface Operation {
 		public double remap(double a);
 	}
 	
-	Function2D noiseA;
+	IFunction2D noiseA;
 	Operation operation;
 	
-	public RemapOperation(Function2D a, Operation op) {
+	public RemapOperation(IFunction2D a, Operation op) {
 		this.noiseA = a;
 		this.operation = op;
 	}

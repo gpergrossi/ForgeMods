@@ -1,15 +1,15 @@
 package com.gpergrossi.util.math.func2d;
 
-public class CombineOperation implements Function2D {
+public class CombineOperation implements IFunction2D {
 
 	public static interface Operation {
 		public double combine(double a, double b);
 	}
 	
-	Function2D noiseA, noiseB;
+	IFunction2D noiseA, noiseB;
 	Operation operation;
 	
-	public CombineOperation(Function2D a, Function2D b, Operation op) {
+	public CombineOperation(IFunction2D a, IFunction2D b, Operation op) {
 		this.noiseA = a;
 		this.noiseB = b;
 		this.operation = op;

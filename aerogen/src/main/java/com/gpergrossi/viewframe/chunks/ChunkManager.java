@@ -11,12 +11,14 @@ import java.util.concurrent.locks.ReentrantLock;
 public abstract class ChunkManager<T extends Chunk<T>> {
 
 	protected final Comparator<T> OLDEST_CHUNK_FIRST = new Comparator<T>() {
+		@Override
 		public int compare(T o1, T o2) {
 			return (int) (o1.lastSeen - o2.lastSeen);
 		}
 	};
 	
 	protected final Comparator<T> CLOSEST_CHUNK_FIRST = new Comparator<T>() {
+		@Override
 		public int compare(T o1, T o2) {
 			Point pt1 = new Point(o1.chunkX, o1.chunkY);
 			Point pt2 = new Point(o2.chunkX, o2.chunkY);
@@ -27,6 +29,7 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 	};
 	
 	protected final Comparator<T> FARTHEST_CHUNK_FIRST = new Comparator<T>() {
+		@Override
 		public int compare(T o1, T o2) {
 			Point pt1 = new Point(o1.chunkX, o1.chunkY);
 			Point pt2 = new Point(o2.chunkX, o2.chunkY);
@@ -332,13 +335,14 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 			myJob = new Job<T>(manager);
 		}
 		
+		@Override
 		public void run() {
 			while (manager.workersRunning) {
 			    doWork();
 			}
 		}
 		
-		private void debug(String msg) {
+		private static void debug(String msg) {
 			ChunkManager.debug(msg);
 		}
 		
@@ -363,9 +367,7 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 			acquire("unloadingQueue", manager.unloadingQueueLock);
 			job.chunk = manager.unloadingQueue.poll();
 			if (job.chunk != null) {
-				acquire("chunk.lock", job.chunk.lock);
 				job.type = Job.Type.UNLOAD;
-				debug(Thread.currentThread().getName()+" locking "+job.chunk);
 				release("unloadingQueue", manager.unloadingQueueLock);
 				debug(Thread.currentThread().getName()+" unlocked unloading queue");
 				return job;
@@ -378,8 +380,6 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 			acquire("loadingQueue", manager.loadingQueueLock);
 			job.chunk = manager.loadingQueue.poll();
 			if (job.chunk != null) {
-				debug(Thread.currentThread().getName()+" locking "+job.chunk);
-				acquire("chunk.lock", job.chunk.lock);
 				job.type = Job.Type.LOAD;
 				release("loadingQueue", manager.loadingQueueLock);
 				debug(Thread.currentThread().getName()+" unlocked loading queue");
@@ -413,7 +413,7 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 			return type != Type.UNASSIGNED;
 		}
 		
-		private void debug(String msg) {
+		private static void debug(String msg) {
 			ChunkManager.debug(msg);
 		}
 		
@@ -422,6 +422,9 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 				debug("Error: Job does not refer to a chunk");
 				return;
 			}
+			
+			acquire(chunk.toString(), chunk.lock);
+			debug(Thread.currentThread().getName()+" locking "+chunk);
 			
 			// Do job
 			switch (type) {
@@ -436,6 +439,8 @@ public abstract class ChunkManager<T extends Chunk<T>> {
 					break;
 				default: 
 					debug("Error: Job type is UNASSIGNED");
+					debug(Thread.currentThread().getName()+" unlocking "+chunk);
+					release(chunk.toString(), chunk.lock);
 					return;
 			}
 

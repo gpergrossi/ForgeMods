@@ -13,10 +13,9 @@ import com.gpergrossi.aerogen.generator.decorate.features.FeatureTrees;
 import com.gpergrossi.aerogen.generator.decorate.placeables.Placeables;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementHighestBlock;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
+import com.gpergrossi.aerogen.generator.islands.IslandHeightmap;
 import com.gpergrossi.util.math.func2d.FractalNoise2D;
-import com.gpergrossi.util.math.func2d.Function2D;
-import com.gpergrossi.util.math.func2d.RemapOperation;
+import com.gpergrossi.util.math.func2d.IFunction2D;
 
 public class IslandBiomeSavannah extends IslandBiome {
 
@@ -33,7 +32,7 @@ public class IslandBiomeSavannah extends IslandBiome {
 	}
 
 	@Override
-	public IslandHeightmap getHeightMap(Island island) {
+	public IslandHeightmap createHeightMap(Island island) {
 		return new IslandHeightmap(island) {
 			@Override
 			public void initialize(Random random) {
@@ -41,9 +40,8 @@ public class IslandBiomeSavannah extends IslandBiome {
 				maxCliffTier = 1;
 			}
 			@Override
-			protected Function2D createSurfaceNoise(Random random) {
-				Function2D func = new FractalNoise2D(random.nextLong(), 1.0f/256.0f, 4, 0.4f);
-				return new RemapOperation(func, v -> v*0.5f+0.5f);
+			protected IFunction2D createSurfaceNoise(Random random) {
+				return FractalNoise2D.builder().withSeed(random.nextLong()).withPeriod(256).withOctaves(4, 0.4).withRange(0, 1).build();
 			}
 		};
 	}

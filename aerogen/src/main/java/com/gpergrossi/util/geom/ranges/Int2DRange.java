@@ -3,9 +3,9 @@ package com.gpergrossi.util.geom.ranges;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.gpergrossi.util.data.Iterators;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.util.geom.vectors.Int2D.StoredBit;
@@ -65,7 +65,7 @@ public class Int2DRange {
 	}
 	
 	public boolean onBorder(int x, int y, int borderPadding) {
-		return contains(x, y) && (x < minX+borderPadding && y < minY + borderPadding && x > maxX-borderPadding && y > maxY-borderPadding);
+		return contains(x, y) && (x < minX+borderPadding || y < minY + borderPadding || x > maxX-borderPadding || y > maxY-borderPadding);
 	}
 	
 	public boolean onBorder(Int2D pt, int borderPadding) {
@@ -128,6 +128,7 @@ public class Int2DRange {
 		return new Int2D(randomX(random), randomY(random));
 	}
 	
+	@Override
 	public String toString() {
 		return "("+minX+", "+minY+") to ("+maxX+", "+maxY+")";
 	}
@@ -193,19 +194,6 @@ public class Int2DRange {
 		};
 	}
 
-	protected <S, T> Iterable<T> castIterable(Iterable<S> iterable, Function<S, T> caster) {
-		return new Iterable<T>() {
-			public Iterator<T> iterator() {
-				return new Iterator<T>() {
-					Iterator<S> iter = iterable.iterator();
-					public boolean hasNext() { return iter.hasNext(); }
-					public T next() { return caster.apply(iter.next()); }
-				};
-			}
-		};
-	}
-
-
 	public Floats createFloats() {
 		return new Floats(this);
 	}
@@ -222,6 +210,10 @@ public class Int2DRange {
 	
 	public Integers createIntegers(int[] intArray) {
 		return new Integers(this.minX, this.minY, this.maxX, this.maxY, intArray);
+	}
+
+	public Bits createBits() {
+		return new Bits(this);
 	}
 	
 	
@@ -307,7 +299,7 @@ public class Int2DRange {
 		}
 		
 		public Iterable<StoredFloat> getAllFloats() {
-			return castIterable(Floats.super.getAllMutable(), t -> new Int2D.StoredFloat(Floats.this, t.x(), t.y(), t.index));
+			return Iterators.cast(Floats.super.getAllMutable(), t -> new Int2D.StoredFloat(Floats.this, t.x(), t.y(), t.index));
 		}
 
 		public Int2DRange asRange() {
@@ -484,7 +476,7 @@ public class Int2DRange {
 		}
 		
 		public Iterable<StoredByte> getAllBytes() {
-			return castIterable(Bytes.super.getAllMutable(), t -> new Int2D.StoredByte(Bytes.this, t.x(), t.y(), t.index));
+			return Iterators.cast(Bytes.super.getAllMutable(), t -> new Int2D.StoredByte(Bytes.this, t.x(), t.y(), t.index));
 		}
 
 		public Int2DRange asRange() {
@@ -590,7 +582,7 @@ public class Int2DRange {
 		}
 		
 		public Iterable<StoredInteger> getAllIntegers() {
-			return castIterable(Integers.super.getAllMutable(), t -> new Int2D.StoredInteger(Integers.this, t.x(), t.y(), t.index));
+			return Iterators.cast(Integers.super.getAllMutable(), t -> new Int2D.StoredInteger(Integers.this, t.x(), t.y(), t.index));
 		}
 
 		public Int2DRange asRange() {
@@ -701,7 +693,7 @@ public class Int2DRange {
 		}
 		
 		public Iterable<StoredBit> getAllBits() {
-			return castIterable(Bits.super.getAllMutable(), t -> new Int2D.StoredBit(Bits.this, t.x(), t.y(), t.index));
+			return Iterators.cast(Bits.super.getAllMutable(), t -> new Int2D.StoredBit(Bits.this, t.x(), t.y(), t.index));
 		}
 
 		public Int2DRange asRange() {

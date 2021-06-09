@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -141,9 +140,9 @@ public class NamedDataMapFile<Name, Data> {
 		if (isOpen) throw new IllegalStateException("NamedDataMapFile is already open!");
 		
 		if (!file.exists()) {
-			DataOutputStream dos = new DataOutputStream(new FileOutputStream(file));
-			dos.writeInt(SIZE_BLOCK);
-			dos.close();
+			try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(file))) {
+				dos.writeInt(SIZE_BLOCK);
+			}
 			randomAccessFile = new RandomAccessFile(file, "rws");
 			randomAccessFile.setLength(SIZE_BLOCK);
 		} else {
@@ -292,7 +291,7 @@ public class NamedDataMapFile<Name, Data> {
 		return old;
 	}
 	
-	public void fillArray(byte[] array, byte value, int length) {
+	public static void fillArray(byte[] array, byte value, int length) {
 		if (length <= 0) return;
 		if (length > array.length) length = array.length;
 		
@@ -369,11 +368,9 @@ public class NamedDataMapFile<Name, Data> {
 
 	protected byte[] getDataArray(Data data, CompressionMethod compression) throws IOException {
 		final ByteArrayOutputStream baos = new ByteArrayOutputStream(SIZE_BLOCK);
-		final OutputStream compressed = compression.getCompressionStream(baos);
-		final BufferedOutputStream bos = new BufferedOutputStream(compressed);
-		
-		dataWriter.write(bos, data);
-		bos.close();
+		try (final BufferedOutputStream bos = new BufferedOutputStream(compression.getCompressionStream(baos))) {
+			dataWriter.write(bos, data);
+		}
 		
 		final byte[] bytes = baos.toByteArray();
 		if (debug && debugVerbosity >= 2) {

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGeneratorSettings;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.Region;
@@ -18,20 +17,6 @@ import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
 public abstract class IslandProvider {
-	
-	boolean seedInitialized = false;
-	long seed, seedX, seedY;
-	
-	public long getChunkSeed(int chunkX, int chunkZ) {
-		final AeroGeneratorSettings settings = this.getSettings();
-		if (!this.seedInitialized) {
-			this.seed = settings.seed;
-			final Random random = new Random(seed);
-			this.seedX = random.nextLong() | 1; // "| 1" makes sure the number
-			this.seedY = random.nextLong() | 1; // is not Long.MIN_VALUE again
-		}
-		return (long) chunkX * seedX + (long) chunkZ * seedY ^ seed;
-	}
 
 	public abstract AeroGeneratorSettings getSettings();
 	
@@ -102,8 +87,6 @@ public abstract class IslandProvider {
 
 		return Optional.empty();
 	}
-
-	public abstract Island getSpawnIsland();
 	
 	/**
 	 * Get a list of all loaded regions
@@ -131,13 +114,13 @@ public abstract class IslandProvider {
 
 		@Override
 		protected void getRegions(List<Region> output, Int2DRange minecraftBlockRangeXZ) {
-			regionManager.getAll(output, minecraftBlockRangeXZ);
+			regionManager.getRegions(output, minecraftBlockRangeXZ);
 		}
 		
 		@Override
 		public void debugGetLoadedRegions(List<Region> output) {
 			try {
-				Iterator<Region> iter = regionManager.getLoadedRegions().iterator();
+				Iterator<Region> iter = regionManager.debugGetLoadedRegions().iterator();
 				while (iter.hasNext()) {
 					Region region = iter.next();
 					output.add(region);
@@ -148,26 +131,6 @@ public abstract class IslandProvider {
 		@Override
 		protected boolean hasIsland(Island island) {
 			return true;
-		}
-
-		@Override
-		public Island getSpawnIsland() {
-			Island spawnIsland = null;
-			float idealSpawnIslandSize = 2.1f; // 2 better than 3 better than 1... 
-			
-			// Find island closest to ideal size
-			int spawnIslandSize = -1;
-			List<Island> islands = new ArrayList<>();
-			getIslandsInRegion(islands, regionManager.getSpawnRegion());
-			for (Island island : islands) {
-				int islandSize = island.getShape().getCells().size();
-				if (spawnIslandSize == -1 || Math.abs(idealSpawnIslandSize-islandSize) < Math.abs(idealSpawnIslandSize-spawnIslandSize)) {
-					spawnIslandSize = islandSize;
-					spawnIsland = island;
-				}
-			}
-			
-			return spawnIsland;
 		}
 
 	}

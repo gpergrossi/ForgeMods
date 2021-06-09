@@ -17,7 +17,7 @@ public class Int1D implements IVector<Int1D> {
 	public int x() {
 		return x;
 	}
-	
+
 	public Int1D redefine(int x) {
 		return new Int1D(x);
 	}
@@ -130,6 +130,7 @@ public class Int1D implements IVector<Int1D> {
 			this.x = x;
 		}
 		
+		@Override
 		public Mutable redefine(int x) {
 			this.x = x;
 			return this;

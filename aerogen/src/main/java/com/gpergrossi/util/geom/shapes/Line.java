@@ -14,8 +14,13 @@ public class Line implements IShape {
 		this.x = x;
 		this.y = y;
 		double length = Double2D.distance(0, 0, dx, dy);
-		this.dx = dx / length;
-		this.dy = dy / length;
+		if (length == 0) {
+			this.dx = 0;
+			this.dy = 0;
+		} else {
+			this.dx = dx / length;
+			this.dy = dy / length;
+		}
 	}
 	
 	public LineSeg toSegment(double tEnd) {
@@ -93,18 +98,25 @@ public class Line implements IShape {
 		return true;
 	}
 	
-	
+	/**
+	 * @param canFail - If the operation can fail based on each line's start/end t-values. 
+	 * Even if true, null may still be returned for parallel lines or lines with no direction.
+	 */
 	private static OrderedPair<Double> getIntersectTValues(Line first, Line second, boolean canFail) {
 		double deltaX = second.x - first.x;
 		double deltaY = second.y - first.y;
 		
+		// Does either line have a 0 length direction vector?
+		if (Double.isNaN(first.dx) || Double.isNaN(first.dy)) return null;
+		if (Double.isNaN(second.dx) || Double.isNaN(second.dy)) return null;
+		
 		double det = Double2D.cross(second.dx, second.dy, first.dx, first.dy);
-		if (Math.abs(det) < Double2D.EPSILON) return null; // the rays are parallel or one ray has a 0 length direction vector
-
+		if (Math.abs(det) < Double2D.EPSILON) return null; // The rays are parallel
+		
 		double u = Double2D.cross(second.dx, second.dy, deltaX, deltaY) / det;
 		double v = Double2D.cross(first.dx,  first.dy,  deltaX, deltaY) / det;
 		
-		// No collision if t values outside of [tmin(), tmax()]. However we use EPISLON to resolve rounding issues
+		// No collision if t values outside of [tmin(), tmax()]. However we use EPSILON to resolve rounding issues
 		if (canFail) {
 			if (u+Double2D.EPSILON < first.tmin()  || u-Double2D.EPSILON > first.tmax() ) return null;
 			if (v+Double2D.EPSILON < second.tmin() || v-Double2D.EPSILON > second.tmax()) return null;
@@ -135,7 +147,6 @@ public class Line implements IShape {
 		}
 	}
 	
-
 	public double tmin() {
 		return Double.NEGATIVE_INFINITY;
 	}
@@ -224,6 +235,7 @@ public class Line implements IShape {
 		return new Line(x, y, dx, dy);
 	}
 	
+	@Override
 	public double getArea() {
 		throw new UnsupportedOperationException();
 	}

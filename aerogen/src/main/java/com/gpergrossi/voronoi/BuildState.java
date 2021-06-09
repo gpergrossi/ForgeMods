@@ -10,8 +10,10 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Random;
 import java.util.function.Predicate;
 
@@ -181,7 +183,7 @@ public final class BuildState {
 		System.out.println();
 	}
 	
-	private void printSome(Iterable<?> list, int num) {
+	private static void printSome(Iterable<?> list, int num) {
 		int i = 0;
 		Iterator<?> iterator = list.iterator();
 		while (iterator.hasNext()) {
@@ -270,7 +272,7 @@ public final class BuildState {
 				g.drawString(""+s.index, (int) pt.getX(), (int) pt.getY());
 				g.setTransform(transform);
 			}
-		} else {
+		} else if (this.initialized) {
 			AffineTransform transform = g.getTransform();
 			AffineTransform identity = new AffineTransform();
 			
@@ -281,16 +283,30 @@ public final class BuildState {
 				g.draw(line);
 				
 				Double2D center = edge.getCenter();
+				
 				int firstID = -1;
-				if (edge.sites.first != null) firstID = edge.sites.first.index;
+				boolean firstBoundary = false;
+				if (edge.sites.first != null) {
+					firstID = edge.sites.first.index;
+					if (edge.vertices.first.isBoundary) firstBoundary = true;
+				}
+				
 				int secondID = -1;
-				if (edge.sites.second != null) secondID = edge.sites.second.index;
+				boolean secondBoundary = false;
+				if (edge.sites.second != null) {
+					secondID = edge.sites.second.index;
+					if (edge.vertices.second.isBoundary) secondBoundary = true;
+				}
+				
+				String edgeDescription = (firstBoundary ? "*" : "") + firstID+" : "+secondID + (secondBoundary ? "*" : "");
 				
 				g.setTransform(identity);
 				Point2D pt = new Point2D.Double(center.x(), center.y());
 				transform.transform(pt, pt);
+				
 				g.setColor(new Color(0,128,0));
-				g.drawString(firstID+" : "+secondID, (int) pt.getX(), (int) pt.getY());
+				g.drawString(edgeDescription, (int) pt.getX(), (int) pt.getY());
+				
 				g.setTransform(transform);
 			}
 			
@@ -341,6 +357,11 @@ public final class BuildState {
 				g.drawString("("+s.numVertices+")", (int) pt.getX(), (int) pt.getY()+10);
 				g.setTransform(transform);
 			}
+		} else {
+			g.draw(bounds.asAWTShape());
+			
+			Double2D center = bounds.getCentroid();
+			g.drawString("Not initialized", (int) center.x(), (int) center.y());
 		}
 	}
 	
@@ -459,7 +480,7 @@ public final class BuildState {
 		// Step 1. Finish the edges of each breakpoint
 		Double2D predPos = predecessor.getPosition(this);
 		Vertex sharedVertex = new Vertex(predPos.x(), predPos.y());
-		addVertex(sharedVertex);
+		vertices.add(sharedVertex);
 		for (ShoreBreakpoint bp : arc.getBreakpoints()) {
 			if (bp.edge == null) throw new RuntimeException("Circle event expected non-null edge");
 			if (bp.edge.isFinished()) throw new RuntimeException("Circle even expected unfinished edge");
@@ -628,7 +649,7 @@ public final class BuildState {
 			}
 			
 			Vertex vert = new Vertex(endPoint.x(), endPoint.y(), true);
-			addVertex(vert);
+			vertices.add(vert);
 			edge.finish(vert);
 			addEdge(edge);
 			bp.edge = null;
@@ -665,6 +686,7 @@ public final class BuildState {
 	}
 
 	private Iterator<Edge> clipEdgesIterator;
+	private Queue<Edge> clipEdgesFixes;
 	
 	/**
 	 * Clip edges to bounding polygon
@@ -672,11 +694,12 @@ public final class BuildState {
 	private boolean clipEdges() {
 		if (clipEdgesIterator == null) {
 			clipEdgesIterator = edges.iterator();
+			clipEdgesFixes = new LinkedList<>();
 		}
 		
 		boolean atLeastOne = false;
 		
-		while(clipEdgesIterator.hasNext()) {
+		while (clipEdgesIterator.hasNext()) {
 			// Return to working thread and indicate that we are not yet finished
 			if (atLeastOne && System.currentTimeMillis() - iterationStartTime > 0) return false;
 			atLeastOne = true;
@@ -688,45 +711,106 @@ public final class BuildState {
 			Vertex end = edge.getEnd();
 			
 			LineSeg seg = edge.toLineSeg();
-			if (!bounds.intersects(seg)) {
-				// Edge is outside of bounds, both vertices and the edge should be removed from the diagram
-				removeVertex(start);
-				removeVertex(end);
+			
+			boolean shouldRemove = false;
+			
+			if (bounds.intersects(seg)) {
+				seg = bounds.clip(seg);
+				if (seg.length() < Double2D.EPSILON) shouldRemove = true;
+			} else {
+				shouldRemove = true;
+			}
+			
+			if (shouldRemove) {
+				// Edge is outside of bounds and should be removed from the diagram
 				clipEdgesIterator.remove();
+				
+				// Remove start vertex
+				if (start.numEdges > 0) {
+					for (Edge e : start.edges) {
+						if (e == null) break;
+						clipEdgesFixes.add(e);
+					}
+				}
+				vertices.remove(start);
+
+				// Remove end vertex
+				if (end.numEdges > 0) {
+					for (Edge e : end.edges) {
+						if (e == null) break;
+						clipEdgesFixes.add(e);
+					}
+				}
+				vertices.remove(end);
+				
 				if (Voronoi.DEBUG_FINISH) {
-					System.out.println("edge discarded because it is outside the clipping bounds");
+					int siteLeft = edge.getSiteLeft() == null ? -1 : edge.getSiteLeft().getID();
+					int siteRight = edge.getSiteRight() == null ? -1 : edge.getSiteRight().getID();
+					
+					System.out.println("Edge "+siteLeft+":"+siteRight+" discarded because it is outside the clipping bounds");
 					return false;
 				}
 				continue;
 			}
-
-			// Clip the bounds
-			seg = bounds.clip(seg);
 			
 			boolean sameStart = Double2D.equals(seg.getStartX(), seg.getStartY(), start.x, start.y);
 			boolean sameEnd = Double2D.equals(seg.getEndX(), seg.getEndY(), end.x, end.y);
-			if (sameStart && sameEnd) {
-				continue;
-			}
-
-			if (Voronoi.DEBUG_FINISH) {
-				System.out.println("Edge clipped from ("+start.x+","+start.y+")-("+end.x+","+end.y+")   to   ("+seg.getStartX()+","+seg.getStartY()+")-("+seg.getEndX()+","+seg.getEndY()+")");
-			}
 			
-			if (!sameStart) {
-				removeVertex(start);
-				start = new Vertex(seg.getStartX(), seg.getStartY(), true);
-				addVertex(start);
-			}
+			if (!vertices.contains(start)) sameStart = false;
+			if (!vertices.contains(end)) sameEnd = false;
 			
-			if (!sameEnd) {
-				removeVertex(end);
-				end = new Vertex(seg.getEndX(), seg.getEndY(), true);
-				addVertex(end);
+			if (!sameStart || !sameEnd) {
+				if (Voronoi.DEBUG_FINISH) {
+					System.out.println("Edge clipped from ("+start.x+","+start.y+")-("+end.x+","+end.y+")   to   ("+seg.getStartX()+","+seg.getStartY()+")-("+seg.getEndX()+","+seg.getEndY()+")");
+					System.out.println();
+				}
+				
+				if (!sameStart) {
+					vertices.remove(start);
+					start = new Vertex(seg.getStartX(), seg.getStartY(), true);
+					vertices.add(start);
+				}
+				
+				if (!sameEnd) {
+					vertices.remove(end);
+					end = new Vertex(seg.getEndX(), seg.getEndY(), true);
+					vertices.add(end);
+				}
+				
+				edge.redefine(start, end);
 			}
+			start.addEdge(edge);
+			end.addEdge(edge);
+		}
+		
+		// Cleanup edges whose vertices got removed
+		while (!clipEdgesFixes.isEmpty()) {
+			if (atLeastOne && System.currentTimeMillis() - iterationStartTime > 0) return false;
+			atLeastOne = true;
 			
-			edge.redefine(start, end);
-			return false;
+			Edge edge = clipEdgesFixes.poll();
+			
+			Vertex start = edge.getStart();
+			Vertex end = edge.getEnd();
+			
+			boolean sameStart = vertices.contains(start);
+			boolean sameEnd = vertices.contains(end);
+			
+			if (!sameStart || !sameEnd) {
+				if (!vertices.contains(start)) {
+					start = new Vertex(start.x, start.y, true);
+					vertices.add(start);
+				}
+					
+				if (!vertices.contains(end)) {
+					end = new Vertex(end.x, end.y, true);
+					vertices.add(end);
+				}
+				
+				edge.redefine(start, end);
+			}
+			start.addEdge(edge);
+			end.addEdge(edge);
 		}
 		
 		return true; // Step completed
@@ -737,6 +821,13 @@ public final class BuildState {
 	 * references already defined in edges
 	 */
 	private boolean createLinks() {
+		Iterator<Vertex> verts = vertices.iterator();
+		while (verts.hasNext()) {
+			Vertex vertex = verts.next();
+			if (vertex.numEdges == 0) verts.remove();
+			vertex.numEdges = 0;
+		}
+		
 		for (Edge edge : edges) {
 			if (edge == null) break;
 			for (Vertex vertex : edge.vertices) {
@@ -761,7 +852,7 @@ public final class BuildState {
 		return true; // Step completed
 	}
 	
-	private void sortSiteLists(Site s) {
+	private static void sortSiteLists(Site s) {
 		final double[] vertexAngles = new double[s.numVertices];
 		for (int i = 0; i < s.numVertices; i++) {
 			Vertex vert = s.vertices[i];
@@ -790,7 +881,7 @@ public final class BuildState {
 		
 		// Assign corner vertices to appropriate sites
 		for (Vertex corner : corners) {
-			addVertex(corner);
+			vertices.add(corner);
 			Site closest = null;
 			double distance2 = Double.MAX_VALUE;
 			for (Site s : sites) {
@@ -857,14 +948,6 @@ public final class BuildState {
 		if (!edge.isFinished()) throw new RuntimeException("Cannot add unfinished edge");
 		this.edges.add(edge);
 	}
-	
-	private void addVertex(Vertex v) {
-		this.vertices.add(v);
-	}
-	
-	private void removeVertex(Vertex v) {
-		this.vertices.remove(v);
-	}
 
 	private void addEvent(Event e) {
 		if (e == null) throw new RuntimeException("Cannot add null event");
@@ -874,7 +957,7 @@ public final class BuildState {
 		} else throw new RuntimeException("Site events are only added in BuildState.initSiteEvents");
 	}
 	
-	private void invalidateEvent(Event e) {
+	private static void invalidateEvent(Event e) {
 		if (e == null) return;
 		e.valid = false;
 	}

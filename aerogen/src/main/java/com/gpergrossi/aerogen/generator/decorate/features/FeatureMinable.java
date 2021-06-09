@@ -2,7 +2,6 @@ package com.gpergrossi.aerogen.generator.decorate.features;
 
 import java.util.Random;
 
-import com.google.common.base.Predicate;
 import com.gpergrossi.aerogen.generator.islands.Island;
 
 import net.minecraft.block.BlockStone;
@@ -46,18 +45,19 @@ public class FeatureMinable extends AbstractFeature {
 		return this;
 	}
 	
+	@Override
 	public boolean generate(World worldIn, Island island, BlockPos position, Random rand) {
 		if (maxVeinSize == 0 || oreBlock == null) return false; 
 		boolean allowUndersideVisible = rand.nextDouble() < chanceAllowUnderside;
 		
 		float angle = rand.nextFloat() * (float) Math.PI;
-		float radius = (float) this.maxVeinSize / 8.0F;
+		float radius = this.maxVeinSize / 8.0F;
 
-		float clumpMinX = (float) position.getX() - MathHelper.sin(angle) * radius;
-		float clumpMaxX = (float) position.getX() + MathHelper.sin(angle) * radius;
+		float clumpMinX = position.getX() - MathHelper.sin(angle) * radius;
+		float clumpMaxX = position.getX() + MathHelper.sin(angle) * radius;
 
-		float clumpMinZ = (float) position.getZ() - MathHelper.cos(angle) * radius;
-		float clumpMaxZ = (float) position.getZ() + MathHelper.cos(angle) * radius;
+		float clumpMinZ = position.getZ() - MathHelper.cos(angle) * radius;
+		float clumpMaxZ = position.getZ() + MathHelper.cos(angle) * radius;
 
 		float clumpMinY = position.getY() + rand.nextInt(3) - 2;
 		float clumpMaxY = position.getY() + rand.nextInt(3) - 2;
@@ -121,7 +121,7 @@ public class FeatureMinable extends AbstractFeature {
 		private StonePredicate() {}
 		public boolean apply(IBlockState blockState) {
 			if (blockState != null && blockState.getBlock() == Blocks.STONE) {
-				BlockStone.EnumType blockType = (BlockStone.EnumType) blockState.getValue(BlockStone.VARIANT);
+				BlockStone.EnumType blockType = blockState.getValue(BlockStone.VARIANT);
 				return blockType.isNatural();
 			} else {
 				return false;

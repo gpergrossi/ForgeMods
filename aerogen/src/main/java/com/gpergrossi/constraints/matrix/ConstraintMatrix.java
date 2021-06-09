@@ -113,7 +113,7 @@ public class ConstraintMatrix<ConstraintClass extends IConstraint<ConstraintClas
 		iterate(MatrixEntry::restore);
 	}
 	
-	private String extend(String str, int length) {
+	private static String extend(String str, int length) {
 		String out = "";
 		while (out.length() < length) {
 			out += str;

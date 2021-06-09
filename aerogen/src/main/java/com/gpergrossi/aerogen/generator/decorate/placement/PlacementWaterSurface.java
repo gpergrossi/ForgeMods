@@ -10,11 +10,13 @@ import net.minecraft.world.World;
 
 public class PlacementWaterSurface extends AbstractPlacement {
 	
+	@Override
 	public PlacementWaterSurface withDesiredCount(int num) {
 		super.withDesiredCount(num);
 		return this;
 	}
 	
+	@Override
 	public PlacementWaterSurface withChanceForExtra(float chance) {
 		super.withChanceForExtra(chance);
 		return this;

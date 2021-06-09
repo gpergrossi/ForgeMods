@@ -1,20 +1,30 @@
 package com.gpergrossi.aerogen.generator.regions;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import com.gpergrossi.aerogen.AeroGenMod;
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
 import com.gpergrossi.aerogen.definitions.regions.RegionBiome;
 import com.gpergrossi.aerogen.definitions.regions.RegionBiomes;
-import com.gpergrossi.aerogen.generator.IslandProvider;
+import com.gpergrossi.aerogen.generator.AeroGeneratorSettings;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
 import com.gpergrossi.aerogen.generator.regions.features.IRegionFeature;
 import com.gpergrossi.constraints.integer.IntegerConstraint;
 import com.gpergrossi.constraints.matrix.ConstraintMatrix;
+import com.gpergrossi.tasks.Task;
+import com.gpergrossi.tasks.Task.Priority;
+import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Convex;
+import com.gpergrossi.util.geom.shapes.Rect;
+import com.gpergrossi.util.geom.vectors.Double2D;
 import com.gpergrossi.util.geom.vectors.Int2D;
 import com.gpergrossi.voronoi.Edge;
 import com.gpergrossi.voronoi.Site;
@@ -24,41 +34,114 @@ import com.gpergrossi.voronoi.infinite.InfiniteCell;
 
 public class Region {
 	
-	// Region details
+	private static class RegionLock extends ReentrantLock {
+		private static final long serialVersionUID = 4289340853851954461L;
+		
+		private final Region region;
+		private Thread owner;
+		private String ownerReason;
+		
+		public RegionLock(Region region) {
+			super();
+			this.region = region;
+		}
+		
+		public void lock(String reason) {
+			boolean success = super.tryLock();
+			if (success) return;
+			
+			if (owner != null) {
+				if (reason == null) reason = "null";
+				System.err.println(Thread.currentThread().getName()+": Locking for \""+reason+"\" had to wait on lock for "
+						+ "region[x="+region.getRegionX()+", z="+region.getRegionZ()+", revision="+region.getSettings().getRevision()+"]. "
+						+ "Owned by "+owner.getName()+" for \""+ownerReason+"\"");
+			}
+			super.lock();
+			
+			owner = Thread.currentThread();
+			ownerReason = reason;
+		}
+	}
+	
+	private static final Task<Void> FINISHED_TASK = Task.createFinished("<COMPLETE>", null);
+	
+	
+	
+	// Initialization Details
 	private final RegionManager manager;
 	private final InfiniteCell regionCell;
-	private final IslandProvider provider;
+	private final AeroGeneratorSettings settings;
 	
+	// Task Details
+	private final RegionLock taskLock;
+	private final RegionLock modifyLock;
+
+	private volatile boolean isGenerated;
+	
+	private Task<Void> generateTask;
+	
+	// Region Details
 	private Random random;
 	private RegionBiome biome;
 
-	List<Island> islands;
-	List<IslandCell> islandCells;
-	double averageCellRadius;
+	private List<Island> islands;
+	private List<IslandCell> islandCells;
+	private double averageCellRadius;
 	
-	ConstraintMatrix<IntegerConstraint> islandAltitudeConstraints;
-	List<IRegionFeature> features;
+	private ConstraintMatrix<IntegerConstraint> islandAltitudeConstraints;
+	private List<IRegionFeature> features;
 	
 	private int minIslandAltitude = 32;
 	private int maxIslandAltitude = 128;
 	
-	public Region(RegionManager manager, InfiniteCell boundaryCell) {
+	
+	
+	public Region(RegionManager manager, InfiniteCell boundaryCell, AeroGeneratorSettings settings) {
 		this.manager = manager;
-		this.provider = manager.getProvider();
-				
 		this.regionCell = boundaryCell;
-		if (boundaryCell != null) {
-			boundaryCell.reserve();	
-			this.random = new Random(boundaryCell.getSeed());
-			init();
-		}
+		this.settings = settings;
+		
+		this.taskLock = new RegionLock(this);
+		this.modifyLock = new RegionLock(this);
+		
+		regionCell.reserve();
 	}
-
+	
 	public void release() {
 		regionCell.release();
 	}
 	
-	public void init() {		
+	
+	
+	public RegionLock getTaskLock() {
+		return taskLock;
+	}
+	
+	public RegionLock getModifyLock() {
+		return modifyLock;
+	}
+	
+	public Task<Void> getGenerateTask() {		
+		Lock taskLock = this.getTaskLock();
+		taskLock.lock();
+		try {
+			if (this.generateTask != null) return this.generateTask;
+			if (this.isGenerated) return (this.generateTask = FINISHED_TASK);
+			
+			this.generateTask = new GenerateTask(this, Priority.NORMAL);
+		} finally {
+			taskLock.unlock();
+		}
+		
+		manager.getGenerator().getTaskManager().submit(generateTask);
+		return generateTask;
+	}
+	
+	
+	
+	private void generate() {
+		random = new Random(regionCell.getSeed());
+		
 		if (regionCell.cellX == 0 && regionCell.cellY == 0) {
 			// Region (0, 0) is the spawn region and is always of type START_AREA
 			biome = RegionBiomes.START_AREA;
@@ -66,7 +149,7 @@ public class Region {
 			biome = RegionBiomes.randomBiome(random);
 		}
 		
-		double cellSize = provider.getSettings().islandCellSize * biome.getCellSizeMultiplier();
+		double cellSize = settings.islandCellSize * biome.getCellSizeMultiplier();
 		List<Site> subCells = createSubCells(cellSize, 4);
 		
 		this.averageCellRadius = Math.sqrt(cellSize)/2.0;
@@ -88,7 +171,7 @@ public class Region {
 		
 		int num = (int) Math.ceil(area / avgCellArea);
 		
-		// Build a voronoi diagram with desire average cell area, relaxed
+		// Build a voronoi diagram with desired average cell area, relaxed
 		VoronoiBuilder builder = new VoronoiBuilder();
 		builder.setBounds(bounds.toPolygon(4));
 		for (int i = 0; i < num; i++) {
@@ -96,7 +179,21 @@ public class Region {
 			while (success == -1) success = builder.addSiteSafe(bounds.getBounds().getRandomPoint(random), 1);
 		}
 		Voronoi voronoi = builder.build();
-		for (int i = 0; i < relax; i++) voronoi = voronoi.relax(builder);
+		try {
+			for (int i = 0; i < relax; i++) voronoi = voronoi.relax(builder);
+		} catch (Exception e) {
+			AeroGenMod.log.error(e);
+			builder.clearSites(true);
+			for (Site s : voronoi.getSites()) {
+				builder.addSite(new Double2D(s.getX(), s.getY()));
+			}
+			try {
+				builder.savePoints();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			AeroGenMod.log.error("Cause geometry dumped");
+		}
 		
 		// Create a list of cells that are completely inside the region polygon
 		List<Site> subCellList = new ArrayList<>();
@@ -278,7 +375,7 @@ public class Region {
 		}
 	}
 
-	private double calculateSharedPerimeterLength(Site siteInQuestion, List<Site> otherSites) {
+	private static double calculateSharedPerimeterLength(Site siteInQuestion, List<Site> otherSites) {
 		double sharedPerimeter = 0;
 		for (Edge e : siteInQuestion.getEdges()) {
 			Site neighbor = e.getNeighbor(siteInQuestion);
@@ -312,6 +409,25 @@ public class Region {
 		return islands.get(index);
 	}
 	
+	public void getIslands(List<Island> output, Int2DRange minecraftBlockRangeXZ) {
+		Rect queryRange = new Rect(minecraftBlockRangeXZ.minX, minecraftBlockRangeXZ.minY, minecraftBlockRangeXZ.width+1, minecraftBlockRangeXZ.height+1);
+		
+		for (Island island : islands) {
+			Rect islandBounds = null;
+			for (IslandCell cell : island.getCells()) {
+				Rect cellBounds = cell.getPolygon().getBounds();
+				if (islandBounds == null) islandBounds = cellBounds;
+				else {
+					islandBounds.union(cellBounds);
+				}
+			}
+			
+			if (islandBounds.intersects(queryRange)) {
+				if (!output.contains(island)) output.add(island);
+			}
+		}
+	}
+	
 	public List<Island> getIslands() {
 		return islands;
 	}
@@ -330,15 +446,11 @@ public class Region {
 	
 	@Override
 	public String toString() {
-		return "Region ("+regionCell.cellX+", "+regionCell.cellY+")";
+		return "Region[x="+getRegionX()+", z="+getRegionZ()+", revision="+settings.getRevision()+")";
 	}
 
 	public RegionManager getManager() {
 		return manager;
-	}
-	
-	public IslandProvider getProvider() {
-		return provider;
 	}
 	
 	public Convex getRegionPolygon() {
@@ -359,6 +471,43 @@ public class Region {
 
 	public IslandBiome getIslandBiome(Island island, Random random) {
 		return biome.getRandomIslandBiome(random);
+	}
+	
+	public int getRegionX() {
+		return regionCell.cellX;
+	}
+
+	public int getRegionZ() {
+		return regionCell.cellY;
+	}
+	
+	public AeroGeneratorSettings getSettings() {
+		return settings;
+	}
+	
+	
+	
+	private static class GenerateTask extends Task<Void> {
+		protected final Region self;
+		
+		public GenerateTask(Region region, Priority priority) {
+			super("Generate "+region.toString(), priority);
+			self = region;
+		}
+		
+		@Override
+		public final void work() {
+			RegionLock lock = self.getModifyLock();
+			lock.lock("Generate");
+			try {
+				self.generate();
+			} finally {
+				lock.unlock();
+			}
+			
+			self.isGenerated = true;
+			setResult(null);
+		}
 	}
 	
 }

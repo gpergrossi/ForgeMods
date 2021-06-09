@@ -2,7 +2,7 @@ package com.gpergrossi.aerogen;
 
 import java.util.Random;
 
-import com.gpergrossi.aerogen.ui.GuiAerogenWorldSettingsScreen;
+import com.gpergrossi.aerogen.gui.GuiAerogenWorldSettingsScreen;
 
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
@@ -20,7 +20,8 @@ public class WorldTypeSky extends WorldType {
     /**
      * Gets the translation key for the name of this world type.
      */
-    @SideOnly(Side.CLIENT)
+    @Override
+	@SideOnly(Side.CLIENT)
     public String getTranslationKey() {
     	// TODO change this back to generator.AEROGEN_SKY and add
     	// the translation to an actual localization file somewhere
@@ -74,7 +75,8 @@ public class WorldTypeSky extends WorldType {
      * @param mc The Minecraft instance
      * @param guiCreateWorld the createworld GUI
      */
-    @SideOnly(Side.CLIENT)
+    @Override
+	@SideOnly(Side.CLIENT)
     public void onCustomizeButton(net.minecraft.client.Minecraft mc, net.minecraft.client.gui.GuiCreateWorld guiCreateWorld) {
     	mc.displayGuiScreen(new GuiAerogenWorldSettingsScreen(guiCreateWorld, guiCreateWorld.chunkProviderSettingsJson));
     }
@@ -83,7 +85,8 @@ public class WorldTypeSky extends WorldType {
      * Should world creation GUI show 'Customize' button for this world type?
      * @return if this world type has customization parameters
      */
-    public boolean isCustomizable() {
+    @Override
+	public boolean isCustomizable() {
         return true;
     }
     

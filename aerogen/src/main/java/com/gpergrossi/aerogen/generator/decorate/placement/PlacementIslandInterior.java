@@ -15,11 +15,13 @@ public class PlacementIslandInterior extends AbstractPlacement {
 	boolean scaleWithChunkMass = false;
 	double averageChunkMass = 16*16*32;
 	
+	@Override
 	public PlacementIslandInterior withDesiredCount(int num) {
 		super.withDesiredCount(num);
 		return this;
 	}
 	
+	@Override
 	public PlacementIslandInterior withChanceForExtra(float chance) {
 		super.withChanceForExtra(chance);
 		return this;

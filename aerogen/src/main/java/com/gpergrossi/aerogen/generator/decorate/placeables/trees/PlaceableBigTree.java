@@ -88,18 +88,18 @@ public class PlaceableBigTree extends AbstractPlaceableTree {
 
 			if (f >= 0.0F) {
 				for (int l = 0; l < i; ++l) {
-					double d0 = this.scaleWidth * (double) f * ((double) rand.nextFloat() + 0.328D);
-					double d1 = (double) (rand.nextFloat() * 2.0F) * Math.PI;
+					double d0 = this.scaleWidth * f * (rand.nextFloat() + 0.328D);
+					double d1 = rand.nextFloat() * 2.0F * Math.PI;
 					double d2 = d0 * Math.sin(d1) + 0.5D;
 					double d3 = d0 * Math.cos(d1) + 0.5D;
-					BlockPos blockpos = pos.add(d2, (double) (k - 1), d3);
+					BlockPos blockpos = pos.add(d2, k - 1, d3);
 					BlockPos blockpos1 = blockpos.up(this.leafDistanceLimit);
 
 					if (this.checkBlockLine(world, blockpos, blockpos1) == -1) {
 						int i1 = pos.getX() - blockpos.getX();
 						int j1 = pos.getZ() - blockpos.getZ();
-						double d4 = (double) blockpos.getY() - Math.sqrt((double) (i1 * i1 + j1 * j1)) * this.branchSlope;
-						int k1 = d4 > (double) branchBaseY ? branchBaseY : (int) d4;
+						double d4 = blockpos.getY() - Math.sqrt(i1 * i1 + j1 * j1) * this.branchSlope;
+						int k1 = d4 > branchBaseY ? branchBaseY : (int) d4;
 						BlockPos blockpos2 = new BlockPos(pos.getX(), k1, pos.getZ());
 
 						if (this.checkBlockLine(world, blockpos2, blockpos) == -1) {
@@ -141,8 +141,8 @@ public class PlaceableBigTree extends AbstractPlaceableTree {
 		if (y < this.heightLimit * 0.3f) {
 			return -1.0f;
 		} else {
-			float f = (float) this.heightLimit / 2.0F;
-			float f1 = f - (float) y;
+			float f = this.heightLimit / 2.0F;
+			float f1 = f - y;
 			float f2 = MathHelper.sqrt(f * f - f1 * f1);
 
 			if (f1 == 0.0F) {
@@ -180,7 +180,7 @@ public class PlaceableBigTree extends AbstractPlaceableTree {
 		float dz = (float) difference.getZ() / (float) numSteps;
 
 		for (int step = 0; step <= numSteps; step++) {
-			BlockPos workPos = start.add((double) (0.5F + (float) step * dx), (double) (0.5F + (float) step * dy), (double) (0.5F + (float) step * dz));
+			BlockPos workPos = start.add(0.5F + step * dx, 0.5F + step * dy, 0.5F + step * dz);
 			BlockLog.EnumAxis enumAxis = getLogAxis(start, workPos);
 			world.setBlockState(workPos, logBlock.getDefaultState().withProperty(BlockLog.LOG_AXIS, enumAxis), 2);
 		}

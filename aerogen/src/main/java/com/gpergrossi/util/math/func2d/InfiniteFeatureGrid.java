@@ -6,7 +6,7 @@ import java.util.Random;
 
 import net.minecraft.util.math.MathHelper;
 
-public class InfiniteFeatureGrid implements Function2D {
+public class InfiniteFeatureGrid implements IFunction2D {
 
 	List<FiniteFeature> features;
 	List<Integer> weights;

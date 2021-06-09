@@ -220,6 +220,7 @@ public class Convex extends Polygon {
 		return true;
 	}
 
+	@Override
 	public boolean contains(double x, double y) {
 		return contains(new Double2D(x, y));
 	}

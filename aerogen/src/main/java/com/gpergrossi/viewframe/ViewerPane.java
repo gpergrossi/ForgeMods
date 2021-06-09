@@ -57,6 +57,7 @@ public class ViewerPane extends JPanel implements Runnable {
 	private Thread thread;
 	
 	private ComponentListener componentListener = new ComponentAdapter() {
+		@Override
 		public void componentResized(ComponentEvent e) {
 			ViewerPane.this.onResize(e.getComponent().getSize());
 		}
@@ -64,23 +65,27 @@ public class ViewerPane extends JPanel implements Runnable {
 	
 	private MouseAdapter mouseListener = new MouseAdapter() {
 		int mouseClick = 0;
+		@Override
 		public void mousePressed(MouseEvent e) {
 			updateViewTransform(false);
 			Point2D pt = screenToWorld(e.getX(), e.getY());
 			mouseClick |= (1 << (e.getButton()-1));
 			view.internalMousePressed(mouseClick, pt.getX(), pt.getY(), e.getX(), e.getY());
 		}
+		@Override
 		public void mouseDragged(MouseEvent e) {
 			updateViewTransform(false);
 			Point2D pt = screenToWorld(e.getX(), e.getY());
 			view.internalMouseDragged(mouseClick, pt.getX(), pt.getY(), e.getX(), e.getY());
 		}
+		@Override
 		public void mouseReleased(MouseEvent e) {
 			updateViewTransform(false);
 			Point2D pt = screenToWorld(e.getX(), e.getY());
 			view.internalMouseReleased(mouseClick, pt.getX(), pt.getY(), e.getX(), e.getY());
 			mouseClick &= ~(1 << (e.getButton()-1));
 		}
+		@Override
 		public void mouseMoved(MouseEvent e) {
 			updateViewTransform(false);
 			Point2D pt = screenToWorld(e.getX(), e.getY());
@@ -90,18 +95,22 @@ public class ViewerPane extends JPanel implements Runnable {
 	};
 	
 	private MouseWheelListener mouseWheelListener = new MouseWheelListener() {
+		@Override
 		public void mouseWheelMoved(MouseWheelEvent e) {
 			view.internalMouseScrolled(e.getPreciseWheelRotation());			
 		}
 	};
 	
 	private KeyAdapter keyListener = new KeyAdapter() {
+		@Override
 		public void keyPressed(KeyEvent e) {
 			view.internalKeyPressed(e);
 		}
+		@Override
 		public void keyReleased(KeyEvent e) {
 			view.internalKeyReleased(e);
 		}
+		@Override
 		public void keyTyped(KeyEvent e) {
 			view.internalKeyTyped(e);
 		}
@@ -225,7 +234,7 @@ public class ViewerPane extends JPanel implements Runnable {
 	}
 	
 	public void stop() {
-		if (running = false) return;
+		if (running == false) return;
 		running = false;
 		try {
 			thread.join();
@@ -258,6 +267,7 @@ public class ViewerPane extends JPanel implements Runnable {
 		lastLoop = currentLoop;
 	}
 	
+	@Override
 	public void run() {
 		while (running) {			
 			double updateDelta = (double) delta/nanosPerSecond;
@@ -282,7 +292,8 @@ public class ViewerPane extends JPanel implements Runnable {
 	private void drawFrame(Graphics2D g2d) {
 		// Clear frame
 		resetTransform(g2d);
-		g2d.clearRect(0, 0, getWidth(), getHeight());
+		g2d.setColor(view.getBackgroundColor());
+		g2d.fillRect(0, 0, getWidth(), getHeight());
 
 		// Request draw from view object
 		updateViewTransform(false);

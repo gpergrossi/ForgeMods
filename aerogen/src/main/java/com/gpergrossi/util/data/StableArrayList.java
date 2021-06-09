@@ -154,21 +154,25 @@ public class StableArrayList<T> implements List<T> {
 		return new Iterator<T>() {
 			int cursorIndex = getFirstIndex();
 			
+			@Override
 			public boolean hasNext() {
 				if (cursorIndex > lastIndexUsed) return false;
 				return true;
 			}
 			
+			@Override
 			public T next() {
 				T elem = elements[cursorIndex];
 				cursorIndex = getNextIndex(cursorIndex);
 				return elem;
 			}
 			
+			@Override
 			public void remove() {
 				StableArrayList.this.remove(cursorIndex);
 			}
 			
+			@Override
 			public void forEachRemaining(Consumer<? super T> action) {
 				while (hasNext()) action.accept(next());
 			}
@@ -179,11 +183,13 @@ public class StableArrayList<T> implements List<T> {
 		return new Iterator<Tuple2<Integer, T>>() {
 			int cursorIndex = getFirstIndex();
 			
+			@Override
 			public boolean hasNext() {
 				if (cursorIndex > lastIndexUsed) return false;
 				return true;
 			}
 			
+			@Override
 			public Tuple2<Integer, T> next() {
 				int index = cursorIndex;
 				T elem = elements[cursorIndex];
@@ -191,10 +197,12 @@ public class StableArrayList<T> implements List<T> {
 				return new Tuple2<>(index, elem);
 			}
 			
+			@Override
 			public void remove() {
 				StableArrayList.this.remove(cursorIndex);
 			}
 			
+			@Override
 			public void forEachRemaining(Consumer<? super Tuple2<Integer, T>> action) {
 				while (hasNext()) action.accept(next());
 			}

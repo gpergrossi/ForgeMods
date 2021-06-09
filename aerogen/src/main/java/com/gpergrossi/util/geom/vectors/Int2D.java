@@ -25,7 +25,7 @@ public class Int2D implements IVector2D<Int2D> {
 	public int y() {
 		return y;
 	}
-	
+
 	public Int2D redefine(int x, int y) {
 		return new Int2D(x, y);
 	}
@@ -293,6 +293,7 @@ public class Int2D implements IVector2D<Int2D> {
 			this.y = y;
 		}
 		
+		@Override
 		public Mutable redefine(int x, int y) {
 			this.x = x;
 			this.y = y;

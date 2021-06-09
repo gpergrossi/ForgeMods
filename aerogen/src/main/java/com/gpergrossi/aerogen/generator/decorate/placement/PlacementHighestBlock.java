@@ -10,11 +10,13 @@ import net.minecraft.world.World;
 
 public class PlacementHighestBlock extends AbstractPlacement {
 	
+	@Override
 	public PlacementHighestBlock withDesiredCount(int num) {
 		super.withDesiredCount(num);
 		return this;
 	}
 	
+	@Override
 	public PlacementHighestBlock withChanceForExtra(float chance) {
 		super.withChanceForExtra(chance);
 		return this;

@@ -25,7 +25,7 @@ public final class InfiniteCell {
 	int refCount;
 	
 	// Attaching data
-	public Object data;
+	public volatile Object data;
 	
 	public InfiniteCell(InfiniteVoronoi container, int x, int y) {
 		this.container = container;

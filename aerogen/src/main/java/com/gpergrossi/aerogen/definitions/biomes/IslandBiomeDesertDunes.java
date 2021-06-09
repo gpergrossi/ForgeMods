@@ -12,8 +12,8 @@ import com.gpergrossi.aerogen.generator.decorate.features.FeatureSurfaceCluster;
 import com.gpergrossi.aerogen.generator.decorate.placeables.Placeables;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementDesertCluster;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
-import com.gpergrossi.util.math.func2d.Function2D;
+import com.gpergrossi.aerogen.generator.islands.IslandHeightmap;
+import com.gpergrossi.util.math.func2d.IFunction2D;
 import com.gpergrossi.util.math.func2d.SandDunes;
 
 public class IslandBiomeDesertDunes extends IslandBiome {
@@ -26,7 +26,7 @@ public class IslandBiomeDesertDunes extends IslandBiome {
 	}
 	
 	@Override
-	public IslandHeightmap getHeightMap(Island island) {
+	public IslandHeightmap createHeightMap(Island island) {
 		return new IslandHeightmap(island) {
 			@Override
 			public void initialize(Random random) {
@@ -35,7 +35,7 @@ public class IslandBiomeDesertDunes extends IslandBiome {
 				this.surfaceHeightMax = 16;
 			}
 			@Override
-			protected Function2D createSurfaceNoise(Random random) {
+			protected IFunction2D createSurfaceNoise(Random random) {
 				return new SandDunes(island.getSeed());
 			}
 		};

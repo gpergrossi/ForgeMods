@@ -2,34 +2,73 @@ package com.gpergrossi.util.math.func2d;
 
 import java.util.Random;
 
-public class FractalNoise2D implements Function2D {
+public class FractalNoise2D implements IFunction2D {
 
-	private long seed;
-	private double persistence;
-	private double frequency;
-	private int octaves;
-	private SimplexNoise2D[] generators;
+	public static Builder builder() {
+		return new Builder();
+	};
 	
-	public FractalNoise2D(long seed, double frequency, int octaves, double persistence) {
+	public static class Builder {
+		private long seed = 0L;
+		private double persistence = 0.5;
+		private double frequency = 1;
+		private double min = -1, max = 1;
+		private int octaves = 1;
+		
+		public Builder() {}
+		
+		public Builder withSeed(long seed) { this.seed = seed; return this; }
+		public Builder withFrequency(double frequency) { this.frequency = frequency; return this; }
+		public Builder withPeriod(double period) { this.frequency = 1.0/period; return this; }
+		public Builder withMin(double min) { this.min = min; return this; }
+		public Builder withMax(double max) { this.max = max; return this; }
+		public Builder withRange(double min, double max) { this.min = min; this.max = max; return this; }
+		public Builder withOctaves(int numOctaves) { this.octaves = numOctaves; return this; }
+		public Builder withPersistence(double persistence) { this.persistence = persistence; return this; }
+		public Builder withOctaves(int numOctaves, double persistence) { this.octaves = numOctaves; this.persistence = persistence; return this; }
+		
+		public FractalNoise2D build() {
+			return new FractalNoise2D(seed, frequency, octaves, min, max, persistence);
+		}
+		
+	}
+	
+	private final long seed;
+	private final double persistence;
+	private final double frequency;
+	private final double scale, offset;
+	private final int octaves;
+	private final SimplexNoise2D[] generators;
+	
+	private FractalNoise2D(long seed, double frequency, int octaves, double min, double max, double persistence) {
 		this.seed = seed;
 		this.persistence = persistence;
 		this.frequency = frequency;
 		this.octaves = octaves;
-		createGenerators();
+		
+		// Output normally on range (-1, 1), Re-map to (min, max).
+		this.scale = (max - min) / 2.0;
+		this.offset = min + scale;
+		
+		// Create generators
+		Random r = new Random(this.seed);
+		generators = new SimplexNoise2D[octaves];
+		double power = 1.0;
+		for(int i = 0; i < octaves; i++) {
+			generators[i] = new SimplexNoise2D(r.nextLong(), this.frequency*power);
+			power *= 2.0;
+		}
 	}
 	
-	public FractalNoise2D(long seed, double frequency, int octaves) {
-		this(seed, frequency, octaves, 0.5);
-	}
-	
-	public FractalNoise2D(double frequency, int octaves) {
-		this((long)(Math.random()*Long.MAX_VALUE), frequency, octaves, 0.5);
-	}
+//	public FractalNoise2D(long seed, double frequency, int octaves) {
+//		this(seed, frequency, octaves, -1.0, 1.0, 0.5);
+//	}
 	
 	/**
 	 * Returns a value between -1.0 and 1.0. More octaves
 	 * make values more likely to be in the middle.
 	 */
+	@Override
 	public double getValue(double x, double y) {
 		double value = 0;
 		double dividend = 0;
@@ -39,31 +78,8 @@ public class FractalNoise2D implements Function2D {
 			dividend += multiple;
 			multiple *= this.persistence;
 		}
-		return value/dividend;
-	}
-	
-	public void setPersistence(double persistence) {
-		this.persistence = persistence;
-	}
-	
-	public void setFrequency(double frequency) {
-		this.frequency = frequency;
-		createGenerators();
-	}
-	
-	public void setOctaves(int octaves) {
-		this.octaves = octaves;
-		createGenerators();
-	}
-	
-	private void createGenerators() {
-		Random r = new Random(this.seed);
-		generators = new SimplexNoise2D[octaves];
-		double power = 1.0;
-		for(int i = 0; i < octaves; i++) {
-			generators[i] = new SimplexNoise2D(r.nextLong(), this.frequency*power);
-			power *= 2.0;
-		}
+		value /= dividend;
+		return value * scale + offset;
 	}
 
 }

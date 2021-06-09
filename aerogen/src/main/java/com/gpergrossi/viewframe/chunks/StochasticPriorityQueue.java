@@ -42,6 +42,7 @@ public class StochasticPriorityQueue<T extends Object> extends ArrayList<T> impl
 		return 0;
 	}
 
+	@Override
 	public boolean offer(T item) {
 		super.add(item);
 		if (compare(item, currentNextBest) < 0) {
@@ -50,6 +51,7 @@ public class StochasticPriorityQueue<T extends Object> extends ArrayList<T> impl
 		return true;
 	}
 
+	@Override
 	public T remove() {
 		T head = poll();
         if (head != null)
@@ -58,6 +60,7 @@ public class StochasticPriorityQueue<T extends Object> extends ArrayList<T> impl
             throw new NoSuchElementException();
 	}
 	
+	@Override
 	public T element() {
 		T head = peek();
         if (head != null)
@@ -66,6 +69,7 @@ public class StochasticPriorityQueue<T extends Object> extends ArrayList<T> impl
             throw new NoSuchElementException();
 	}
 
+	@Override
 	public T poll() {
 		T head;
 		if (peeked == null) head = peek();
@@ -79,6 +83,7 @@ public class StochasticPriorityQueue<T extends Object> extends ArrayList<T> impl
 		return head;
 	}
 
+	@Override
 	public T peek() {
 		if (this.isEmpty()) return null;
 		

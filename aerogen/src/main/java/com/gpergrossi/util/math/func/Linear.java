@@ -4,7 +4,7 @@ public class Linear extends Function {
 	
 	public final double m, b;
 	
-	Function create(double m, double b) {
+	public static Function create(double m, double b) {
 		if (m != 0) return new Linear(m, b);
 		return new Constant(b);
 	}

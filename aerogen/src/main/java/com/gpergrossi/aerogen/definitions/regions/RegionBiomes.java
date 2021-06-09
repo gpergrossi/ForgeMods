@@ -14,10 +14,12 @@ public class RegionBiomes {
 	}
 	
 	public static final RegionBiome REGION_FOREST = new RegionBiome() {
+		@Override
 		public String getName() {
 			return "Forest";
 		}
 		
+		@Override
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.FOREST);
@@ -26,6 +28,7 @@ public class RegionBiomes {
 			return biomes;
 		}
 		
+		@Override
 		public int getRandomNumberOfRivers(Random random) {
 			double roll = random.nextDouble();
 			if (roll < 0.75) return 1;
@@ -37,10 +40,12 @@ public class RegionBiomes {
 	public static final RegionBiome START_AREA = REGION_FOREST;
 	
 	public static final RegionBiome REGION_DESERT = new RegionBiome() {
+		@Override
 		public String getName() {
 			return "Desert";
 		}
 
+		@Override
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.DESERT);
@@ -53,6 +58,7 @@ public class RegionBiomes {
 			return 0.75;
 		}
 		
+		@Override
 		public double getCellSizeMultiplier() {
 			return 1.5;
 		}
@@ -67,16 +73,19 @@ public class RegionBiomes {
 	};
 	
 	public static final RegionBiome REGION_JUNGLE = new RegionBiome() {
+		@Override
 		public String getName() {
 			return "Jungle";
 		}
 
+		@Override
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.JUNGLE);
 			return biomes;
 		}
 		
+		@Override
 		public int getRandomNumberOfRivers(Random random) {
 			return 2;
 		}
@@ -86,6 +95,7 @@ public class RegionBiomes {
 			return 0.25;
 		}
 		
+		@Override
 		public double getCellSizeMultiplier() {
 			return 1.5;
 		}
@@ -109,16 +119,19 @@ public class RegionBiomes {
 	};
 	
 	public static final RegionBiome REGION_SAVANNAH = new RegionBiome() {
+		@Override
 		public String getName() {
 			return "Savannah";
 		}
 
+		@Override
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.SAVANNAH);
 			return biomes;
 		}
 		
+		@Override
 		public int getRandomNumberOfRivers(Random random) {
 			return 2;
 		}
@@ -128,6 +141,7 @@ public class RegionBiomes {
 			return 0.75;
 		}
 		
+		@Override
 		public double getCellSizeMultiplier() {
 			return 1.5;
 		}
@@ -142,16 +156,19 @@ public class RegionBiomes {
 	};
 	
 	public static final RegionBiome REGION_SNOWY = new RegionBiome() {
+		@Override
 		public String getName() {
 			return "Snowy";
 		}
 		
+		@Override
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.COLD_TAIGA);
 			return biomes;
 		}
 		
+		@Override
 		public int getRandomNumberOfRivers(Random random) {
 			double roll = random.nextDouble();
 			if (roll < 0.75) return 1;
@@ -161,22 +178,57 @@ public class RegionBiomes {
 	};
 	
 	public static final RegionBiome REGION_DEEP_FOREST = new RegionBiome() {
+		@Override
 		public String getName() {
 			return "Deep Forest";
 		}
 		
+		@Override
 		public List<IslandBiome> getPossibleIslandBiomes() {
 			List<IslandBiome> biomes = new ArrayList<>();
 			biomes.add(IslandBiomes.ROOFED_FOREST);
 			return biomes;
 		}
 		
+		@Override
 		public int getRandomNumberOfRivers(Random random) {
 			double roll = random.nextDouble();
 			if (roll < 0.75) return 1;
 			return 2;
 		}
 		
+	};
+	
+	public static final RegionBiome REGION_MESA = new RegionBiome() {
+		@Override
+		public String getName() {
+			return "Mesa";
+		}
+
+		@Override
+		public List<IslandBiome> getPossibleIslandBiomes() {
+			List<IslandBiome> biomes = new ArrayList<>();
+			biomes.add(IslandBiomes.MESA);
+			return biomes;
+		}
+		
+		@Override
+		public double getIslandCellGatherPercentage() {
+			return 0.75;
+		}
+		
+		@Override
+		public double getCellSizeMultiplier() {
+			return 1.5;
+		}
+		
+		@Override
+		public int getRandomIslandAltitude(Random random, int minHeight, int maxHeight) {
+			int altitude = random.nextInt(maxHeight-minHeight+1)+minHeight;
+			altitude = Math.min(altitude, random.nextInt(maxHeight-minHeight+1)+minHeight);
+			return altitude;
+		}
+
 	};
 	
 //	public static final RegionBiome SWAMP = new RegionBiome() {
@@ -316,6 +368,7 @@ public class RegionBiomes {
 		ALL.add(REGION_SAVANNAH);
 		ALL.add(REGION_FOREST);
 		ALL.add(REGION_DESERT);
+		ALL.add(REGION_MESA);
 		ALL.add(REGION_JUNGLE);
 	}
 	

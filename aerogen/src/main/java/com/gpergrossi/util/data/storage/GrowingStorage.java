@@ -144,6 +144,7 @@ public class GrowingStorage<T extends StorageItem> implements Storage<T> {
 		return store.contains(o);
 	}
 	
+	@Override
 	public void clear() {		
 		// Clear storages but keep largest FixedSizeStorage object
 		FixedSizeStorage<T> largest = storages.getLast();

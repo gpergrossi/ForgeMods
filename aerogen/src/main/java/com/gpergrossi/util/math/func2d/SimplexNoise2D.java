@@ -2,7 +2,9 @@ package com.gpergrossi.util.math.func2d;
 
 import java.util.Random;
 
-public class SimplexNoise2D implements Function2D {
+import com.gpergrossi.util.math.SimplexNoise;
+
+public class SimplexNoise2D implements IFunction2D {
 
 	public static double MAX_OFFSET = 16777216.0f; //2^24
 	
@@ -34,6 +36,7 @@ public class SimplexNoise2D implements Function2D {
 		this.yScale *= frequency;
 	}
 
+	@Override
 	public double getValue(double x, double y) {
 		return SimplexNoise.noise(x*xScale+xOff, y*yScale+yOff);
 	}

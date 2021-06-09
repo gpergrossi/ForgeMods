@@ -14,6 +14,7 @@ import com.gpergrossi.util.geom.vectors.Double2D;
 public final class Site implements Comparable<Site> {
 
 	private static final IntFunction<Double2D[]> VEC2_ARRAY_ALLOCATOR = new IntFunction<Double2D[]>() {
+		@Override
 		public Double2D[] apply(int value) {
 			return new Double2D[value];
 		}
@@ -49,12 +50,15 @@ public final class Site implements Comparable<Site> {
 	
 	public Iterable<Vertex> getVertices() {
 		return new Iterable<Vertex>() {
+			@Override
 			public Iterator<Vertex> iterator() {
 				return new Iterator<Vertex>() {
 					int index = 0;
+					@Override
 					public boolean hasNext() {
 						return index < numVertices;
 					}
+					@Override
 					public Vertex next() {
 						if (index >= numVertices) throw new NoSuchElementException();
 						return vertices[index++];
@@ -70,12 +74,15 @@ public final class Site implements Comparable<Site> {
 	
 	public Iterable<Edge> getEdges() {
 		return new Iterable<Edge>() {
+			@Override
 			public Iterator<Edge> iterator() {
 				return new Iterator<Edge>() {
 					int index = 0;
+					@Override
 					public boolean hasNext() {
 						return index < numEdges;
 					}
+					@Override
 					public Edge next() {
 						if (index >= numEdges) throw new NoSuchElementException();
 						return edges[index++];
@@ -162,9 +169,9 @@ public final class Site implements Comparable<Site> {
 	}
 
 	/**
-	 * A simple selection sort, most site arrays are only < 8 items long
+	 * A simple selection sort, almost all site arrays are less than 8 items long
 	 */
-	private <T> void sort(T[] array, int start, int end, double[] values) {
+	private static <T> void sort(T[] array, int start, int end, double[] values) {
 		for (int i = start; i < end; i++) {
 			int bestIndex = i;
 			double bestValue = values[i];

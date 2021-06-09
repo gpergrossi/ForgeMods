@@ -78,7 +78,7 @@ public class InfiniteVoronoiChunk extends View2DChunk<InfiniteVoronoiChunk> {
 		
 	}
 	
-	private Color randomColor(Random random) {
+	private static Color randomColor(Random random) {
 		return new Color(Color.HSBtoRGB(random.nextFloat(), 1, random.nextFloat()*0.5f + 0.5f));
 	}
 

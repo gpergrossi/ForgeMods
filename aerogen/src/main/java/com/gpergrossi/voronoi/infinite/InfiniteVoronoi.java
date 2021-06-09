@@ -8,7 +8,6 @@ import java.util.function.Function;
 import com.gpergrossi.util.geom.ranges.Int2DRange;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
-import com.gpergrossi.util.spacial.Large2DArray;
 import com.gpergrossi.voronoi.Site;
 import com.gpergrossi.voronoi.Voronoi;
 import com.gpergrossi.voronoi.VoronoiBuilder;
@@ -19,19 +18,21 @@ public class InfiniteVoronoi {
 	public final double gridSize;
 	
 	protected int allocations;
-	Large2DArray<InfiniteCell> cellCache;
+	Map<Int2D, InfiniteCell> cellCache;
 
 	public InfiniteVoronoi(double gridSize, long seed) {
 		this.gridSize = gridSize;
 		this.seed = seed;
 
 		this.allocations = 0;
-		this.cellCache = new Large2DArray<>();
+		this.cellCache = new HashMap<>();
 	}
 	
 	/**
-	 * Gets a range of cells. Does init(). Does reserve().
-	 * All cells returned must call cell.release() in order to be removed from the cellCache.
+	 * Gets a range of cells. Does init(). Does reserve(). Any cell that would be returned 
+	 * but is already in the output list will not be reserved(). Any cell that does not 
+	 * intersect the given range will not be reserved() or returned. All cells returned
+	 * must call cell.release() in order to be removed from the cellCache.
 	 */
 	public synchronized void getCells(Int2DRange range, List<InfiniteCell> output) {
 		int minCellX = (int) Math.floor(range.minX / gridSize) - 2;
@@ -74,6 +75,7 @@ public class InfiniteVoronoi {
 		}
 		
 		winner.reserve();
+		winner.init();
 		return winner;
 	}
 
@@ -97,7 +99,7 @@ public class InfiniteVoronoi {
 	}
 	
 	private synchronized InfiniteCell getCell(int x, int y, boolean reserve) {
-		InfiniteCell cell = cellCache.get(x, y);
+		InfiniteCell cell = cellCache.get(new Int2D(x, y));
 		if (cell == null) cell = new InfiniteCell(this, x, y);
 		if (reserve) {
 			cell.reserve();
@@ -164,6 +166,7 @@ public class InfiniteVoronoi {
 				if (!cell.initialized) {
 					Site site = voronoi.getSite(cellIndex);
 					Function<Site, Int2D> siteToCellLocation = new Function<Site, Int2D>() {
+						@Override
 						public Int2D apply(Site site) {
 							InfiniteCell cell = workCellMap.get(site.index);
 							if (cell == null) return null;
@@ -183,7 +186,7 @@ public class InfiniteVoronoi {
 	protected void addCache(InfiniteCell cell) {
 		if (cell.inCache) return;
 		
-		cellCache.set(cell.cellX, cell.cellY, cell);
+		cellCache.put(new Int2D(cell.cellX, cell.cellY), cell);
 		cell.inCache = true;
 		this.allocations++;
 	}
@@ -191,7 +194,7 @@ public class InfiniteVoronoi {
 	protected void removeCache(InfiniteCell cell) {
 		if (!cell.inCache) return;
 		
-		cellCache.set(cell.cellX, cell.cellY, null);
+		cellCache.remove(new Int2D(cell.cellX, cell.cellY));
 		cell.inCache = false;
 		this.allocations--;
 		

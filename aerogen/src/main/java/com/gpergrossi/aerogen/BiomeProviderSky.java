@@ -2,7 +2,7 @@ package com.gpergrossi.aerogen;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import com.gpergrossi.aerogen.generator.AeroGenerator;
 import com.gpergrossi.util.geom.ranges.Int2DRange;
 
 import net.minecraft.init.Biomes;
@@ -28,7 +28,8 @@ public class BiomeProviderSky extends BiomeProvider {
     /**
      * Gets the list of valid biomes for the player to spawn in.
      */
-    public List<Biome> getBiomesToSpawnIn() {
+    @Override
+	public List<Biome> getBiomesToSpawnIn() {
         return this.spawnBiomes;
     }
 	
@@ -83,7 +84,7 @@ public class BiomeProviderSky extends BiomeProvider {
 
 			for (int j = 0; j < areaHeight; j++) {
 				for (int i = 0; i < areaWidth; i++) {
-					this.initChunkSeed((long) (areaX + i), (long) (areaY + j));
+					this.initChunkSeed(areaX + i, areaY + j);
 					int parentIndex = (j << 1) * parentScansize + (i << 1);
 					int i00 = parentInts[parentIndex];
 					int i01 = parentInts[parentIndex + 1];

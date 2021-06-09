@@ -36,6 +36,15 @@ public final class Rect implements IShape {
 		this.height = height;
 	}
 	
+	/**
+	 * <p>Returns a new rectangle that fully contains this rectangle and the rectangle provided.</p>
+	 * <pre>
+	 * I.E. minX = min(this.minX, r.minX)
+	 *      minY = min(this.minY, r.minY)
+	 *      maxX = max(this.maxX, r.maxX)
+	 *      maxY = max(this.maxY, r.maxY)
+	 * </pre>
+	 */
 	public Rect union(Rect r) {
 		double minX = Math.min(minX(), r.minX());
 		double minY = Math.min(minY(), r.minY());
@@ -67,6 +76,7 @@ public final class Rect implements IShape {
 
 	public Iterable<LineSeg> edges() {
 		return new Iterable<LineSeg>() {
+			@Override
 			public Iterator<LineSeg> iterator() {
 				return new Iterator<LineSeg>() {
 					int index = 0;
@@ -78,9 +88,11 @@ public final class Rect implements IShape {
 						 vertices[2] = new Double2D(maxX(), maxY());
 						 vertices[3] = new Double2D(maxX(), minY());
 					}
+					@Override
 					public boolean hasNext() {
 						return index < vertices.length;
 					}
+					@Override
 					public LineSeg next() {
 						if (index >= vertices.length) throw new NoSuchElementException();
 						Double2D pt0 = vertices[index];
@@ -186,6 +198,7 @@ public final class Rect implements IShape {
 		return contains(pt.x(), pt.y());
 	}
 	
+	@Override
 	public boolean contains(double x, double y) {
 		if (x < minX() || y < minY()) return false;
 		if (x > maxX() || y > maxY()) return false;

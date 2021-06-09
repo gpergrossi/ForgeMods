@@ -68,7 +68,7 @@ public class NDMFVerifier {
 			}
 			
 			Integer link = null;
-			int numSlots = (int) ((size - ndmf.SIZE_SEGMENT_HEADER) / ndmf.SIZE_INDEX_ENTRY);
+			int numSlots = (size - ndmf.SIZE_SEGMENT_HEADER) / ndmf.SIZE_INDEX_ENTRY;
 			int numUsed = 0, numEmpty = 0;
 			for (int slot = 0; slot < numSlots; slot++) {
 				int blockReference = ndmf.readBlockID();
@@ -222,7 +222,7 @@ public class NDMFVerifier {
 		}
 
 		int totalBlocks = freeBlocks.size() + numDataBlocks + numIndexBlocks;
-		double percentFree = ((double) freeBlocks.size() * 100.0) / totalBlocks;
+		double percentFree = (freeBlocks.size() * 100.0) / totalBlocks;
 		String percent = String.format("%.2f", percentFree);
 		
 		System.out.println("OVERVIEW:");

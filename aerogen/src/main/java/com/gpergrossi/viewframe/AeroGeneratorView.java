@@ -8,15 +8,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import com.gpergrossi.aerogen.AeroGenerator;
+import com.gpergrossi.aerogen.generator.AeroGenerator;
 import com.gpergrossi.aerogen.generator.islands.Island;
 import com.gpergrossi.aerogen.generator.islands.IslandCell;
+import com.gpergrossi.aerogen.generator.primer.WorldPrimerChunk;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.river.River;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverCell;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverFeature;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
-import com.gpergrossi.aerogen.primer.WorldPrimerChunk;
 import com.gpergrossi.util.geom.shapes.Convex;
 import com.gpergrossi.util.geom.shapes.LineSeg;
 
@@ -122,8 +122,8 @@ public class AeroGeneratorView extends View {
 		try {
 			while (chunkIter.hasNext()) {
 				WorldPrimerChunk chunk = chunkIter.next();
-				int chunkMinX = chunk.chunkX << 4;
-				int chunkMinZ = chunk.chunkZ << 4;
+				int chunkMinX = chunk.getChunkX() << 4;
+				int chunkMinZ = chunk.getChunkZ() << 4;
 				
 				int red = 64, green = 64, blue = 64;
 				if (chunk.hasBiomes()) red = 255;

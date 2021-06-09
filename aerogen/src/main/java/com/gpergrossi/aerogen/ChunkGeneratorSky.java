@@ -3,6 +3,8 @@ package com.gpergrossi.aerogen;
 import java.util.List;
 import javax.annotation.Nullable;
 
+import com.gpergrossi.aerogen.generator.AeroGenerator;
+
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -30,14 +32,17 @@ public class ChunkGeneratorSky implements IChunkGenerator {
 		return generator.generateChunk(chunkX, chunkZ);
 	}
 
+	@Override
 	public void populate(int chunkX, int chunkZ) {
 		generator.postPopulate(world, chunkX, chunkZ);
 	}
 
+	@Override
 	public boolean generateStructures(Chunk chunkIn, int x, int z) {
 		return false;
 	}
 
+	@Override
 	public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, BlockPos pos) {
 		Biome biome = this.world.getBiome(pos);
 		return biome.getSpawnableList(creatureType);
@@ -48,6 +53,7 @@ public class ChunkGeneratorSky implements IChunkGenerator {
 		return null;
 	}
 
+	@Override
 	public void recreateStructures(Chunk chunkIn, int x, int z) {}
 
 	@Override

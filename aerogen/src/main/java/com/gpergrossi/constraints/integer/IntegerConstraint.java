@@ -33,6 +33,7 @@ public class IntegerConstraint implements IConstraint<IntegerConstraint, Integer
 			return IntegerConstraint.NEVER;
 		}
 		
+		@Override
 		public ImplicationRules<IntegerConstraint> getImplicationRules(ConstraintMatrix<IntegerConstraint> matrix) {
 			return new IntegerImplicationRules(matrix);
 		}

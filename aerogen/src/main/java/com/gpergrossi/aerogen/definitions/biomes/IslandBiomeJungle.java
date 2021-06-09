@@ -16,7 +16,7 @@ import com.gpergrossi.aerogen.generator.decorate.placeables.Placeables;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementHighestBlock;
 import com.gpergrossi.aerogen.generator.decorate.placement.PlacementIslandEdge;
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
+import com.gpergrossi.aerogen.generator.islands.IslandHeightmap;
 
 public class IslandBiomeJungle extends IslandBiome {
 
@@ -33,7 +33,7 @@ public class IslandBiomeJungle extends IslandBiome {
 	}
 
 	@Override
-	public IslandHeightmap getHeightMap(Island island) {
+	public IslandHeightmap createHeightMap(Island island) {
 		return new IslandHeightmap(island) {
 			@Override
 			public void initialize(Random random) {

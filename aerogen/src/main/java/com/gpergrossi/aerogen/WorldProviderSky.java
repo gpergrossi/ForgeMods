@@ -26,16 +26,19 @@ public class WorldProviderSky extends WorldProvider {
     /**
      * the y level at which clouds are rendered.
      */
-    @SideOnly(Side.CLIENT)
+    @Override
+	@SideOnly(Side.CLIENT)
     public float getCloudHeight() {
         return AeroGenMod.WORLD_TYPE_SKY.getCloudHeight();
     }
     
-    public int getAverageGroundLevel() {
+    @Override
+	public int getAverageGroundLevel() {
         return AeroGenMod.WORLD_TYPE_SKY.getMinimumSpawnHeight(this.world);
     }
     
-    public double getHorizon() {
+    @Override
+	public double getHorizon() {
         return AeroGenMod.WORLD_TYPE_SKY.getHorizon(world);
     }
     
@@ -44,7 +47,8 @@ public class WorldProviderSky extends WorldProvider {
      * maximum. The default factor of 0.03125 relative to 256, for example, means the void fog will be at its maximum at
      * (256*0.03125), or 8.
      */
-    @SideOnly(Side.CLIENT)
+    @Override
+	@SideOnly(Side.CLIENT)
     public double getVoidFogYFactor() {
         return AeroGenMod.WORLD_TYPE_SKY.voidFadeMagnitude();
     }

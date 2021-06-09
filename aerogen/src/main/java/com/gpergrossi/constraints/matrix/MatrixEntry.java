@@ -32,6 +32,7 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 	
 	public abstract MatrixEntry<ConstraintClass> reverse();
 	
+	@Override
 	public final String toString() {
 		return "[v"+getIndexA()+getConstraint().inline()+"v"+getIndexB()+"]";
 	}
@@ -55,6 +56,7 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			this.constraint = constraint;
 		}
 
+		@Override
 		protected void setConstraint(ConstraintClass constraint) {
 			throw new UnsupportedOperationException();
 		}
@@ -64,26 +66,32 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			throw new UnsupportedOperationException();
 		}
 		
+		@Override
 		protected void backup() {
 			throw new UnsupportedOperationException();
 		}
 
+		@Override
 		protected void restore() {
 			throw new UnsupportedOperationException();
 		}
 		
+		@Override
 		public int getIndexA() {
 			return indexA;
 		}
 
+		@Override
 		public int getIndexB() {
 			return indexB;
 		}
 		
+		@Override
 		public ConstraintClass getConstraint() {
 			return constraint;
 		}
 		
+		@Override
 		public MatrixEntry<ConstraintClass> reverse() {
 			throw new UnsupportedOperationException();
 		}
@@ -113,6 +121,7 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			this.reverseEntry = new ReverseView<>(this);
 		}
 
+		@Override
 		protected void setConstraint(ConstraintClass constraint) {
 			if (!this.getConstraint().equals(constraint)) {
 				this.constraint = constraint;
@@ -131,6 +140,7 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			}
 		}
 
+		@Override
 		protected void setNeedsUpdate(boolean needsUpdate) {
 			if (needsUpdate && !this.needsUpdate) this.matrix.implications.mark(this);
 			this.needsUpdate = needsUpdate;
@@ -142,12 +152,14 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			return reverseConstraint;
 		}
 
+		@Override
 		protected void backup() {
 			this.backupConstraint = constraint;
 			this.backupReverseConstrain = reverseConstraint;
 			this.hasChanged = false;
 		}
 
+		@Override
 		protected void restore() {
 			if (hasChanged) {
 				this.constraint = backupConstraint;
@@ -157,20 +169,24 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			}
 		}
 
+		@Override
 		public int getIndexA() {
 			return indexA;
 		}
 
+		@Override
 		public int getIndexB() {
 			return indexB;
 		}
 		
+		@Override
 		public ConstraintClass getConstraint() {
 			if (constraint == null)
 				constraint = reverseConstraint.reverse();
 			return constraint;
 		}
 		
+		@Override
 		public ReverseView<ConstraintClass> reverse() {
 			return reverseEntry;
 		}
@@ -184,34 +200,42 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			this.storedEntry = entry;
 		}
 		
+		@Override
 		protected void setConstraint(ConstraintClass constraint) {
 			storedEntry.setReverseConstraint(constraint);		
 		}
 		
+		@Override
 		protected void setNeedsUpdate(boolean needsUpdate) {
 			throw new UnsupportedOperationException();
 		}
 
+		@Override
 		protected void backup() {
 			storedEntry.backup();
 		}
 
+		@Override
 		protected void restore() {
 			storedEntry.restore();		
 		}
 		
+		@Override
 		public int getIndexA() {
 			return storedEntry.getIndexB();
 		}
 
+		@Override
 		public int getIndexB() {
 			return storedEntry.getIndexA();
 		}
 
+		@Override
 		public ConstraintClass getConstraint() {
 			return storedEntry.getReverseConstraint();
 		}
 		
+		@Override
 		public Stored<ConstraintClass> reverse() {
 			return storedEntry;
 		}
@@ -226,34 +250,42 @@ public abstract class MatrixEntry<ConstraintClass extends IConstraint<Constraint
 			this.index = index;
 		}
 		
+		@Override
 		protected void setConstraint(ConstraintClass constraint) {
 			// Do nothing
 		}
 		
+		@Override
 		protected void setNeedsUpdate(boolean needsUpdate) {
 			// Do nothing
 		}
 
+		@Override
 		protected void backup() {
 			// Do nothing
 		}
 
+		@Override
 		protected void restore() {
 			// Do nothing
 		}
 		
+		@Override
 		public int getIndexA() {
 			return index;
 		}
 
+		@Override
 		public int getIndexB() {
 			return index;
 		}
 
+		@Override
 		public ConstraintClass getConstraint() {
 			return matrix.constraintClass.getEqualConstraint();
 		}
 		
+		@Override
 		public Identity<ConstraintClass> reverse() {
 			return this;
 		}

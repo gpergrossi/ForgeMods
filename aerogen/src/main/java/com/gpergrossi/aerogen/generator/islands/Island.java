@@ -8,15 +8,12 @@ import java.util.Map;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.definitions.biomes.IslandBiome;
-import com.gpergrossi.aerogen.generator.IslandProvider;
+import com.gpergrossi.aerogen.generator.AeroGeneratorSettings;
 import com.gpergrossi.aerogen.generator.decorate.PopulatePhase;
 import com.gpergrossi.aerogen.generator.decorate.terrain.ITerrainFeature;
 import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureBasin;
 import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureSpawnPlatform;
 import com.gpergrossi.aerogen.generator.decorate.terrain.TerrainFeatureWaterfall;
-import com.gpergrossi.aerogen.generator.islands.carve.IslandCaves;
-import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
-import com.gpergrossi.aerogen.generator.islands.extrude.IslandHeightmap;
 import com.gpergrossi.aerogen.generator.regions.Region;
 import com.gpergrossi.aerogen.generator.regions.features.river.RiverWaterfall;
 import com.gpergrossi.util.geom.ranges.Int2DRange;
@@ -38,7 +35,6 @@ public class Island {
 	public final Region region;
 	public final int regionIndex;
 	public final long seed;
-	public final IslandProvider provider;
 	public final Random random;
 
 	private int altitude;
@@ -59,7 +55,6 @@ public class Island {
 		this.region = region;
 		this.regionIndex = regionIsleIndex;
 		this.seed = seed;
-		this.provider = region.getProvider();
 		this.random = new Random(seed);
 		this.cells = new ArrayList<>();
 		this.extensions = new HashMap<>();
@@ -96,7 +91,7 @@ public class Island {
 		if (!initialized) throw new IllegalStateException("Island needs to initialize() before being generated");
 		if (this.generated) return;
 
-		this.heightmap = biome.getHeightMap(this);
+		this.heightmap = biome.createHeightMap(this);
 		this.heightmap.initialize(random);
 
 		this.terrainFeatures = new ArrayList<>();
@@ -202,8 +197,8 @@ public class Island {
 		return seed;
 	}
 	
-	public IslandProvider getProvider() {
-		return provider;
+	public AeroGeneratorSettings getSettings() {
+		return region.getSettings();
 	}
 	
 	public void setExtension(String key, Object value) {
@@ -308,7 +303,7 @@ public class Island {
 			}
 			if (!hasPlatform) this.terrainFeatures.add(new TerrainFeatureSpawnPlatform(this, spawnPos));
 			
-			// TODO creation of the spawn platform as a terrain feature could be too late
+			// TODO creation of the spawn platform as a terrain feature could be too late.
 			// If the chunks the platform would be in have already been created, this
 			// terrain feature will not be put into the world.
 			

@@ -41,11 +41,12 @@ public class VoronoiBuilder {
 	}
 
 	public int addSite(Double2D point) {
+		if (!Double.isFinite(point.x()) || !Double.isFinite(point.y())) throw new IllegalArgumentException("Non-finite point: "+point);
 		if (enforceBounds && !bounds.contains(point.x(), point.y())) {
 			System.err.println("site rejected by bounds: "+point+", "+bounds);
 			return -1;
 		}		
-		boundsAddPoint(point);
+		if (!enforceBounds) boundsAddPoint(point);
 		return internalAddSite(point);
 	}
 	
@@ -57,7 +58,7 @@ public class VoronoiBuilder {
 		for (Double2D s : sites.values()) {
 			if (point.distanceTo(s) < minDistance) return -1;
 		}
-		boundsAddPoint(point);
+		if (!enforceBounds) boundsAddPoint(point);
 		return internalAddSite(point);
 	}
 
@@ -65,7 +66,7 @@ public class VoronoiBuilder {
 		Iterator<Entry<Integer, Double2D>> iter = sites.entrySet().iterator();
 		while (iter.hasNext()) {
 			Entry<Integer, Double2D> entry = iter.next();
-			return entry.getKey();
+			if (entry.getValue() == site) return entry.getKey();
 		}
 		return -1;
 	}
@@ -129,8 +130,7 @@ public class VoronoiBuilder {
 	}
 	
 	private void boundsAddPoint(Double2D point) {
-		Rect pointRect = new Rect(point.x(), point.y(), 0, 0);
-		if (!enforceBounds) pointRect.outset(padding);
+		Rect pointRect = new Rect(point.x(), point.y(), 0, 0).outset(padding);
 		if (defaultBounds == null) {
 			defaultBounds = pointRect;
 		} else {
@@ -152,33 +152,63 @@ public class VoronoiBuilder {
 
 
 	public void savePoints() throws IOException {
-		FileOutputStream fos = new FileOutputStream("saved");
-		DataOutputStream dos = new DataOutputStream(fos);
-		
-		dos.writeInt(sites.size());
-		for (Double2D site : sites.values()) {
-			dos.writeDouble(site.x());
-			dos.writeDouble(site.y());
+		try (
+				FileOutputStream fos = new FileOutputStream("saved");
+				DataOutputStream dos = new DataOutputStream(fos);
+		) {
+			if (bounds == null) {
+				System.out.println("Writing bounds with 0 vertices:");
+				dos.writeInt(0);
+			} else {
+				System.out.println("Writing bounds with "+bounds.getNumVertices()+" vertices:");
+				dos.writeInt(bounds.getNumVertices());
+				Iterable<Double2D> verts = bounds.getVertices();
+				for (Double2D vert : verts) {
+					dos.writeDouble(vert.x());
+					dos.writeDouble(vert.y());
+					System.out.println("  Bounds vertex: "+vert.x()+", "+vert.y());
+				}
+			}
+			System.out.println("Writing "+sites.size()+" sites:");
+			dos.writeInt(sites.size());
+			for (Double2D site : sites.values()) {
+				dos.writeDouble(site.x());
+				dos.writeDouble(site.y());
+				System.out.println("  Site: "+site.x()+", "+site.y());
+			}
+			System.out.println("Saved "+sites.size()+" sites");
 		}
-
-		System.out.println("Saved "+sites.size()+" sites");
-		dos.close();
 	}
 	
-	public void loadPoints() throws IOException {		
-		FileInputStream fis = new FileInputStream("saved");
-		DataInputStream dis = new DataInputStream(fis);
-		
-		int numSites = dis.readInt();
-		for (int i = 0; i < numSites; i++) {
-			double x = dis.readDouble();
-			double y = dis.readDouble();
+	public void loadPoints() throws IOException {
+		try (
+				FileInputStream fis = new FileInputStream("saved");
+				DataInputStream dis = new DataInputStream(fis);
+		) {
+			int numVerts = dis.readInt();
+			if (numVerts > 0) {
+				System.out.println("Reading bounds with "+numVerts+" vertices:");
+				Double2D[] verts = new Double2D[numVerts];
+				for (int i = 0; i < numVerts; i++) {
+					double x = dis.readDouble();
+					double y = dis.readDouble();
+					verts[i] = new Double2D(x, y);
+					System.out.println("  Bounds vertex: "+x+", "+y);
+				}
+				setBounds(Convex.createDirect(verts));
+			}
 			
-			addSite(new Double2D(x,y));
+			int numSites = dis.readInt();
+			System.out.println("Reading "+numSites+" sites:");
+			for (int i = 0; i < numSites; i++) {
+				double x = dis.readDouble();
+				double y = dis.readDouble();
+				
+				addSite(new Double2D(x,y));
+				System.out.println("  Site: "+x+", "+y);
+			}
+			System.out.println("Loaded "+numSites+" sites");
 		}
-		
-		dis.close();
-		System.out.println("Loaded "+numSites+" sites");
 	}
 	
 }

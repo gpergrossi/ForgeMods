@@ -25,7 +25,7 @@ public class Double3D implements IVector3D<Double3D> {
 	public double z() {
 		return z;
 	}
-	
+
 	public Double3D redefine(double x, double y, double z) {
 		return new Double3D(x, y, z);
 	}
@@ -160,6 +160,7 @@ public class Double3D implements IVector3D<Double3D> {
 			this.z = z;
 		}
 		
+		@Override
 		public Mutable redefine(double x, double y, double z) {
 			this.x = x;
 			this.y = y;

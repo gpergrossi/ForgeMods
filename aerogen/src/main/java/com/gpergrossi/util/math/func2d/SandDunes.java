@@ -11,8 +11,8 @@ import net.minecraft.util.math.MathHelper;
 
 public class SandDunes extends InfiniteFeatureGrid {
 
-	Function2D flatPatchLayer;
-	Function2D baseLayer;
+	IFunction2D flatPatchLayer;
+	IFunction2D baseLayer;
 	
 	float scale;
 	
@@ -36,13 +36,8 @@ public class SandDunes extends InfiniteFeatureGrid {
 			featuresBySize.add(features);
 		}
 		
-		FractalNoise2D baseLayer0 = new FractalNoise2D(1.0f/128.0f, 2);
-		baseLayer = new RemapOperation(baseLayer0, a -> (a*0.5f+0.5f)*0.25f);
-		
-		FractalNoise2D flatPatchLayer = new FractalNoise2D(1.0f/1024.0f, 3);
-		RemapOperation flatPatchLayer2 = new RemapOperation(flatPatchLayer, a -> (a*0.5f+0.5f)*1.3f - 0.3f);
-		
-		this.flatPatchLayer = flatPatchLayer2;
+		baseLayer = FractalNoise2D.builder().withSeed(seed).withPeriod(128).withOctaves(2).withRange(0, 0.25).build();		
+		flatPatchLayer = FractalNoise2D.builder().withSeed(seed).withPeriod(1024).withOctaves(3).withRange(-0.3, 1.0).build();
 	}
 	
 	private static FiniteFeature createDune(long seed, float height) {

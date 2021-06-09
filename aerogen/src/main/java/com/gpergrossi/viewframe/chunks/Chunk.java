@@ -66,6 +66,7 @@ public abstract class Chunk<T extends Chunk<T>> {
 		this.notifyAll();
 	}
 	
+	@Override
 	public String toString() {
 		return "Chunk["+chunkX+","+chunkY+"]";
 	}

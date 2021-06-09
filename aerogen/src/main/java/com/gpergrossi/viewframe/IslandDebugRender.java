@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
 import java.util.Random;
 
 import com.gpergrossi.aerogen.generator.islands.Island;
-import com.gpergrossi.aerogen.generator.islands.contour.IslandShape;
+import com.gpergrossi.aerogen.generator.islands.IslandShape;
 import com.gpergrossi.util.geom.shapes.Rect;
 import com.gpergrossi.util.geom.vectors.Int2D;
 
@@ -40,6 +40,7 @@ public class IslandDebugRender {
 		if (!renderBegan) {
 			renderBegan = true;
 			Thread thread = new Thread(new Runnable() {
+				@Override
 				public void run() {
 					IslandDebugRender.this.render();
 				}
