@@ -14,7 +14,7 @@ There are a number of images documenting development work and inspiration availa
 
 Follow the mod's development on [Trello](https://trello.com/b/sjkYZNq2/aerogen-development)
 
-## Install Java 16
+# Install Java 16
 
 Minecraft is now using Java 16. You will need a Java 16 JDK to develop mods.
 1. Install a JDK for Java 16. One option is [here](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html) or you can use [AdoptOpenJDK](https://marketplace.eclipse.org/content/java-16-support-eclipse-2021-03-419#group-details).
