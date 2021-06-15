@@ -1,48 +1,41 @@
-# AeroGen for Forge 1.12
+# AeroGen for [Fabric](https://fabricmc.net/) 0.7.4 (Minecraft 1.16)
 
 Generates a world full of beautiful floating islands.
 
 ![Development Screenshot](images/ktaqncffgzg01.png)
 
-This build is compatable with forge 1.12.
+This build is compatable with Minecraft 1.16 running Fabric 0.7.4+
 
-# Build
-1. Open a command prompt or shell in the `'<repo>/aerogen/'` directory.
-2. Run `gradlew build`
-3. Your mod jar file should appear in `'<repo>/aerogen/build/libs/aerogen-1.12.2-007.jar'`
+# Images Directory
 
-# Usage
-1. install forge for minecraft 1.12 on your minecrraft 1.12 client
-2. place the mod jar in your minecraft mods folder
-3. launch forge and make sure the aerogen mod was loaded
-4. click to create a new single player world
-5. go to generator settings and select the generator type "AeroGen"
-6. click to finish creating the world
+There are a number of images documenting development work and inspiration available [here](https://drive.google.com/drive/folders/1Gf60RvpDF6PWzwxIvtzchbF7EmpCd4j-?usp=sharing).
 
-Note: this generator does not have all biomes from 1.12 and it generates no structures.
-This means that playing through the game will be impossible because there is no End portal.
-You can create an End portal in creative mode if you still wish to play though. Lava is
-difficult to find and villagers can only be rescued from zombie. Think of it as a fun challenge.
+## Install Java 16
 
-# Biomes
-- Oak Forest
-- Birch Forest
-- Plains
-- Savannah
-- Taiga (snowy with spruce trees)
-- Jungle
-- Dark Forest (dark oak)
-- Desert
-- Rivers
+Minecraft is now using Java 16. You will need a Java 16 JDK to develop mods.
+1. Install a JDK for Java 16. One option is [here](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html) or you can use [AdoptOpenJDK](https://marketplace.eclipse.org/content/java-16-support-eclipse-2021-03-419#group-details).
+2. Make sure your JAVA_HOME system variable is set to the new Java 16 JDK.
 
-# Todo
-- Add generated structures
-- Red sand deserts
-- Clay mesas
-- More biomes
+# Eclipse Setup
 
-# Legacy
+## Install Latest Eclipse (for Java 16 support)
+1. Install the latest [Eclipse IDE](https://www.eclipse.org/downloads/)
+2. For now, you need a [plugin](https://marketplace.eclipse.org/content/java-16-support-eclipse-2021-03-419#group-details) to support Java 16 in Eclipse because it's that new. 
+3. You probably also want a Gradle extension like [Buildship Gradle](https://marketplace.eclipse.org/content/buildship-gradle-integration?mpc=true&mpc_state=) from the Eclipse foundation.
+4. If eclipse bugs you to install plugins for new file types (like .json) that's up to you, but I just point them to my System Editor (Notepad++).
 
-This mod used to be a Bukkit mod available at https://dev.bukkit.org/projects/aerogen.
-This is a new version with a complete rewrite of the source code to explore ideas that 
-weren't possible in the Bukkit version.
+## Project Import
+1. Clone this github repository
+2. Use `git checkout fabric/development` to checkout this fabric development branch.
+3. Before you can import the project into eclipse you have to execute some Gradle tasks to generate the project files.
+   1. Open a command prompt or whatever console you use
+   2. Navigate to <aerogen repository>/aerogen/
+   3. Run `gradlew eclipse` (`gradlew tasks` will list other tasks you can use)
+   4. Run `gradlew genEclipseRuns` to generate the client and server run configurations for eclipse
+4. Make a new workspace specifically for AeroGen. (Optional, but recommended)
+5. In eclipse: 
+   1. Import existing project...
+   2. Locate your local aerogen reposiotory directory
+   3. It should identify the aerogen project
+   4. Click finish
+   5. Ignore console errors, but you may want to check your Run Configurations and make sure you can execute the aerogen_client build.
