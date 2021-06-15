@@ -29,17 +29,17 @@ public class WorldProviderSky extends WorldProvider {
     @Override
 	@SideOnly(Side.CLIENT)
     public float getCloudHeight() {
-        return AeroGenMod.WORLD_TYPE_SKY.getCloudHeight();
+        return AeroGenMod.DIMENSION_TYPE_SKY.getCloudHeight();
     }
     
     @Override
 	public int getAverageGroundLevel() {
-        return AeroGenMod.WORLD_TYPE_SKY.getMinimumSpawnHeight(this.world);
+        return AeroGenMod.DIMENSION_TYPE_SKY.getMinimumSpawnHeight(this.world);
     }
     
     @Override
 	public double getHorizon() {
-        return AeroGenMod.WORLD_TYPE_SKY.getHorizon(world);
+        return AeroGenMod.DIMENSION_TYPE_SKY.getHorizon(world);
     }
     
     /**
@@ -50,7 +50,7 @@ public class WorldProviderSky extends WorldProvider {
     @Override
 	@SideOnly(Side.CLIENT)
     public double getVoidFogYFactor() {
-        return AeroGenMod.WORLD_TYPE_SKY.voidFadeMagnitude();
+        return AeroGenMod.DIMENSION_TYPE_SKY.voidFadeMagnitude();
     }
 	
 }

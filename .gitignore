@@ -10,8 +10,7 @@ aerogen/.gradle/**
 aerogen/.settings/**
 aerogen/.classpath
 aerogen/.project
-aerogen/aerogen_client.launch
-aerogen/aerogen_server.launch
+aerogen/*.launch
 aerogen/bin
 aerogen/build/**
 aerogen/logs

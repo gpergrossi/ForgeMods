@@ -6,33 +6,20 @@ import com.gpergrossi.aerogen.commands.CommandAeroMap;
 import com.gpergrossi.aerogen.commands.CommandTest;
 import com.gpergrossi.aerogen.generator.AeroGenerator;
 
-import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.world.DimensionType;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldProviderSurface;
-import net.minecraft.world.WorldType;
-import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.common.config.Property;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-@Mod(modid = AeroGenMod.MODID, version = AeroGenMod.VERSION, acceptableRemoteVersions = "*")
+@Mod(AeroGenMod.MODID)
 @Mod.EventBusSubscriber
 public class AeroGenMod {
 	
     public static final String MODID = "aerogen";
-    public static final String VERSION = "1.12.2-007";
+    public static final String VERSION = "1.16.5-007";
     
-    public static WorldType WORLD_TYPE_SKY;
+    public static DimensionType DIMENSION_TYPE_SKY;
 	public static Logger log;
     
     public static boolean REGISTER_DIMENSION = false;
@@ -71,7 +58,7 @@ public class AeroGenMod {
     public void init(FMLInitializationEvent event) {
         log.info("Loading "+MODID+" version "+VERSION);
         
-        WORLD_TYPE_SKY = new WorldTypeSky();
+        DIMENSION_TYPE_SKY = new DimensionTypeSky();
         
 		if (REGISTER_DIMENSION) {
 			SKY_DIMENSION_ID = DimensionManager.getNextFreeDimId();
@@ -86,7 +73,7 @@ public class AeroGenMod {
 	public static boolean isWorldAerogen(World world) {
 		if (world.isRemote) return false;
     	if (world.provider instanceof WorldProviderSky) return true;
-    	if (world.getWorldType() == AeroGenMod.WORLD_TYPE_SKY && (world.provider instanceof WorldProviderSurface)) return true;
+    	if (world.getWorldType() == AeroGenMod.DIMENSION_TYPE_SKY && (world.provider instanceof WorldProviderSurface)) return true;
     	return false;
 	}
 
@@ -105,7 +92,7 @@ public class AeroGenMod {
 	
     @SubscribeEvent
 	public static void onEntitySpawn(EntityJoinWorldEvent event) {
-		if (event.getWorld().getWorldType() != WORLD_TYPE_SKY) return;
+		if (event.getWorld().getWorldType() != DIMENSION_TYPE_SKY) return;
 		
 		if (event.getEntity().isCreatureType(EnumCreatureType.MONSTER, true)) {
 			if (Math.random() < 0.5) event.setCanceled(true);
