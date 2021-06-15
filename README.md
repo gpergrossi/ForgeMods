@@ -10,6 +10,10 @@ This build is compatable with Minecraft 1.16 running Fabric 0.7.4+
 
 There are a number of images documenting development work and inspiration available [here](https://drive.google.com/drive/folders/1Gf60RvpDF6PWzwxIvtzchbF7EmpCd4j-?usp=sharing).
 
+# Trello
+
+Follow the mod's development on [Trello](https://trello.com/b/sjkYZNq2/aerogen-development)
+
 ## Install Java 16
 
 Minecraft is now using Java 16. You will need a Java 16 JDK to develop mods.
