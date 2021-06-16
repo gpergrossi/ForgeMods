@@ -9,8 +9,8 @@
     "Me!"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://gpergrossi.com/aerogen",
+    "sources": "https://github.com/gpergrossi/aerogen/tree/fabric/development"
   },
 
   "license": "CC0-1.0",
@@ -19,11 +19,12 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleMod"
+      "com.gpergrossi.aerogen.AeroGenMod"
     ]
   },
+  "accessWidener" : "aerogen.accesswidener",
   "mixins": [
-    "modid.mixins.json"
+    "aerogen.mixins.json"
   ],
 
   "depends": {
