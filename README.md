@@ -14,7 +14,7 @@ There are a number of images documenting development work and inspiration availa
 
 Follow the mod's development on [Trello](https://trello.com/b/sjkYZNq2/aerogen-development)
 
-## Install Java 16
+# Install Java 16
 
 Minecraft is now using Java 16. You will need a Java 16 JDK to develop mods.
 1. Install a JDK for Java 16. One option is [here](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html) or you can use [AdoptOpenJDK](https://marketplace.eclipse.org/content/java-16-support-eclipse-2021-03-419#group-details).
@@ -43,3 +43,9 @@ Minecraft is now using Java 16. You will need a Java 16 JDK to develop mods.
    3. It should identify the aerogen project
    4. Click finish
    5. Ignore console errors, but you may want to check your Run Configurations and make sure you can execute the aerogen_client build.
+
+# Mod Development Info
+
+## Attaching Sources
+   
+   If you need to attach sources and you IDE is not making it easy. Run `gradlew genSources` (takes a while) then locate the sources in `C:\Users\<username>\.gradle\caches\fabric-loom\1.17-mapped-net.fabricmc.yarn-1.17+build.11-v2\minecraft-1.17-mapped-net.fabricmc.yarn-1.17+build.11-v2-sources.jar`. Obviously the version info changes depending on all of your various versions (minecraft, fabric, yarn, etc.) but it was easier to show a full example.
