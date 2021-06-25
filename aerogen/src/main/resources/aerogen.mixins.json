@@ -4,9 +4,10 @@
   "package": "com.gpergrossi.aerogen.mixin",
   "compatibilityLevel": "JAVA_16",
   "mixins": [
+    "GeneratorTypeMixin",
+    "DimensionTypeMixin"
   ],
   "client": [
-    "GeneratorTypeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
